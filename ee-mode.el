@@ -31,38 +31,54 @@
 (require 'generic)
 
 (define-generic-mode 'ee-generic-mode
-  (list ?! )
-  (list "Left$" "Mid$" "Right$" "In$" "If" "For" "\"")
+  nil  ;; Can't handle comment here.  Ends up matching the != op.
+  (list "Left\\$" "Mid\\$" "Right\\$" "In\\$" "If" "For")
   (list
+   (list  "\\(^\\s *!.*$\\)" '(1 font-lock-comment-face t))
    (list
-    "[^\\]\\('\\([^\\']*\\(\\'\\)*\\)*'\\)"  
-     '(1 font-lock-string-face))
+    "\\('[^\\\\']*\\(\\\\.[^\\\\']*\\)*'\\)"
+    '(1 font-lock-string-face append))
    (list
-    "\\(XRef[^$]+\\)" 
-    '(1 font-lock-builtin-face))
+    "\\(XRef\\w+\\$\\)" 
+    '(1 font-lock-function-name-face prepend))
    (list
     "\\(AddFn\\)" 
-    '(1 font-lock-function-name-face))
+    '(1 font-lock-builtin-face prepend))
    (list
     "\\({\\(double\\|int\\|string\\)}\\)" 
-    '(1 font-lock-type-face))
+    '(1 font-lock-type-face prepend))
    (list
-    "\\(\\.\\([bfi]\\d+\\|[cs]\\)\\)" 
-    '(1 font-lock-type-face))
+    "\\(\\.\\([bfi][0-9]+\\|[cs]\\)\\)" 
+    '(1 font-lock-type-face prepend))
    (list
     "\\(rds\\|txn\\)" 
-    '(1 font-lock-constant-face))
+    '(1 font-lock-constant-face prepend))
    (list
-    "\\([A-Za-z0-9_]+\\)\\(##?[sid]\\)" 
-    '(1 font-lock-variable-name-face)
-    '(2 font-lock-type-face))
+    "\\(\\w+\\)\\(##?[sid]\\)" 
+    '(1 font-lock-variable-name-face prepend)
+    '(2 font-lock-type-face prepend))
+   ;;
+   ;; Optional font-locking.  Right now, controlled by commenting out. :P
+   ;;
+   ;;;(list "^\\s *\\([,(){}]\\)" '(1 font-lock-constant-face prepend))
+   ;;;(list "\\(\"\\)\\s *$" '(1 font-lock-warning-face t))
+   (list "\\([;,]\\)\\s *$" '(1 font-lock-builtin-face prepend))
+   (list "^\\s *\\(,\\)\\s *$" '(1 font-lock-builtin-face prepend))
    )
   (list "\\.cfg\\'" "\\.templt\\'")
-  nil
+  (list 'generic-ee-mode-setup-function)
   "Generic Mode for ExpressionEvaluator files.")
 
 
-
+(defun generic-ee-mode-setup-function ()
+;;  (make-local-variable 'ee-mode-syntax-table)
+;;  (setq ee-mode-syntax-table (make-syntax-table))
+;;  (modify-syntax-entry ?_  "w" ee-mode-syntax-table)
+;;  (set-syntax-table ee-mode-syntax-table)
+  (modify-syntax-entry ?_  "w")
+  (modify-syntax-entry ?'  "$")
+  (modify-syntax-entry ?\" "$")
+  )
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;

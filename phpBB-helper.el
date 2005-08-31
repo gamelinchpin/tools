@@ -604,7 +604,7 @@ will therefore be a bullet-list.
                        ));;end (type-str (and ...
         );; end vardefs.
     (if type-str
-        (jpw-insert-phpBB-tag-with-arg "list" type-str)
+        (jpw-insert-phpBB-tag-with-arg "list" type-str t)
       ;;else
       (jpw-insert-phpBB-tag "list")
       );; end if
