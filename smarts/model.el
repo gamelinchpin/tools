@@ -1473,9 +1473,9 @@ do unpredictable things.
 
 Font-lock support for this mode comes in the traditional three levels.
 Level-1 fontifies all preprocessor expressions, class definitions,
-standard variable types, basic constants (like TRUE and FALSE) member
+standard variable types, basic constants \(like TRUE and FALSE\) member
 operations and member-declarative keywords.  Level-2 fontification
-(the default) is an enhancement of level-1.  \"typedef\" and \"type\"
+\(the default\) is an enhancement of level-1.  \"typedef\" and \"type\"
 declarations receive fontification.  All type-specifiers and argument
 names in operation declarations receive fontification.  Similarly, the
 names of variables and type-specifications in attributes,
