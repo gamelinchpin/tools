@@ -103,6 +103,17 @@
 
 ;;------------------------------------------------------------
 ;;
+;; Tag-Type-Specific Constants
+;; 
+
+
+(defconst jpw-tag-finder-re "\\[.+\\]")
+(defconst jpw-tag-end-re "\\[/")
+(defconst jpw-tag-full-startend-re "\\[/?\\([^]=]+\\)\\(=[^]]+\\)?\\]")
+
+
+;;------------------------------------------------------------
+;;
 ;; Utility Functions
 ;; 
 
@@ -136,13 +147,6 @@ either side of the region.
   )
 
 
-;; TODO:
-;; Refactor `jpw-phpBB-tag-*' to be tag-blind.  Specifically, refactor
-;; anything that references a phpBB tag vs. and XML tag out into separate
-;; variables and/or functions.
-;; Can be done as a defconst so it compiles into the functions.
-
-
 (defsubst jpw-phpBB-tag-find-last (&optional pos)
   "Searches backward from `pos' (defaults to `point') for the nearest phpBB
 tag.  Returns a list of the form:
@@ -159,8 +163,8 @@ Alters `point'.  Be sure to call this only from within a `save-excursion'.
   (let (last-start-tag
         last-end-tag
         the-tag) ;; end var defs
-    (if (re-search-backward "\\[.+\\]" nil t)
-        (if (looking-at "\\[/")
+    (if (re-search-backward jpw-tag-finder-re nil t)
+        (if (looking-at jpw-tag-end-re)
             (setq last-end-tag (point))
           ;;else
           (setq last-start-tag (point))
@@ -187,10 +191,10 @@ Alters `point'.  Be sure to call this only from within a `save-excursion'.
   (if pos (goto-char pos))
   (let (next-start-tag
         next-end-tag) ;; end var defs
-    (if (re-search-forward "\\[.+\\]" nil t)
+    (if (re-search-forward jpw-tag-finder-re nil t)
         (progn
           (goto-char (match-beginning 0))
-          (if (looking-at "\\[/")
+          (if (looking-at jpw-tag-end-re)
               (setq next-end-tag (point))
             ;;else
             (setq next-start-tag (point))
@@ -217,7 +221,7 @@ Alters `point'.  Be sure to call this only from within a `save-excursion'.
     ;; else:  scalar
     (goto-char pos)
     )
-  (if (looking-at "\\[/?\\([^]=]+\\)\\(=[^]]+\\)?\\]")
+  (if (looking-at jpw-tag-full-startend-re)
       (match-string-no-properties 1)) 
   )
 
@@ -468,8 +472,16 @@ Returns nil if `point' is not enclosed in any phpBB tags.
 {jpw: 03/2005}"
   (interactive)
   (save-excursion
-    (let* ((posn-pair-stack (list (jpw-phpBB-tag-find-enclosing nil nil t)))
-         );;end var defs
+    (let* ((posn-pair-stack '())
+           (current-tag (jpw-phpBB-tag-find-enclosing nil nil t))
+           );;end var defs
+      (while (car current-tag)
+        (setq posn-pair-stack (append posn-pair-stack (list current-tag)))
+        (setq current-tag 
+              (jpw-phpBB-tag-find-enclosing (1- (caadr current-tag))
+                                            (1+ (cadadr current-tag))
+                                            t))
+        )
       (message "%S" posn-pair-stack)
       );;end let
     );;end excursion
@@ -655,6 +667,8 @@ Evals to `nil' and does nothing if we're not inside of a quote environment.
     (progn
       (setq phpBB-mode-map (make-sparse-keymap))
       ;;(define-key phpBB-mode-map "\M-\"" 'phpBB-unfill-paragraphs)
+
+      (define-key phpBB-mode-map "\C-c\C-s" 'jpw-phpBB-tag-analysis)
 
       (define-key phpBB-mode-map "\M-g\M-[i" 'phpBB-insert-italic)
       (define-key phpBB-mode-map "\M-pi" 'phpBB-insert-italic)
