@@ -103,6 +103,22 @@
 
 ;;------------------------------------------------------------
 ;;
+;; Variables
+;; 
+
+
+(defvar jpw-phpBB-tag-analysis-cache '()
+  "Contains the most recent result of a call to `jpw-phpBB-tag-analysis'.
+{jpw: 09/2005}")
+
+
+(defvar jpw-phpBB-tag-analysis-cache-last-update-buffer-state '(t 0 0)
+  "Internal variable used by `jpw-phpBB-tag-analysis'.
+{jpw: 09/2005}")
+
+
+;;------------------------------------------------------------
+;;
 ;; Tag-Type-Specific Constants
 ;; 
 
@@ -460,31 +476,63 @@ Returns a `nil' TAG when the nearest tags aren't a matching \"[TAG]
   )
 
 
+;;
+;; TODO:
+;; Cache the analysis results, so we don't need to keep repeating them.
+;;
+
+
 (defun jpw-phpBB-tag-analysis ()
   "Search forward and backward from `point' to see what tags we're enclosed
 in.  Returns a list of pairs.  Each pair is the position of the start tag and
 end tag, respectively.  The list of pairs is built from the inside-out.
 
-So, `\(caar \(jpw-phpBB-tag-analysis\)\)' would return the position of the
-innermost start tag.
+So, `\(car \(caadr \(jpw-phpBB-tag-analysis\)\)\)' would return the position of
+the innermost start tag.
 
 Returns nil if `point' is not enclosed in any phpBB tags.
-{jpw: 03/2005}"
-  (interactive)
-  (save-excursion
-    (let* ((posn-pair-stack '())
-           (current-tag (jpw-phpBB-tag-find-enclosing nil nil t))
-           );;end var defs
-      (while (car current-tag)
-        (setq posn-pair-stack (append posn-pair-stack (list current-tag)))
-        (setq current-tag 
-              (jpw-phpBB-tag-find-enclosing (1- (caadr current-tag))
-                                            (1+ (cadadr current-tag))
-                                            t))
-        )
-      (message "%S" posn-pair-stack)
-      );;end let
-    );;end excursion
+
+The results of recent calls to this function are stored in the variable
+`jpw-phpBB-tag-analysis-cache'.
+{jpw: 09/2005}"
+  (let* ((cached-inner-tagspec (car (reverse jpw-phpBB-tag-analysis-cache)))
+         (cached-inner-startp (caadr cached-inner-tagspec))
+         (cached-inner-endp (cadadr cached-inner-tagspec))
+         (buffer-state (list (buffer-modified-p) (buffer-modified-tick)
+                             (buffer-size)))
+         current-tagspec
+         );;end var defs
+
+    ;; Clear the analysis cache if the buffer state has changed since last
+    ;; call.
+    (if (not (equal jpw-phpBB-tag-analysis-cache-last-update-buffer-state
+                    buffer-state))
+        (setq jpw-phpBB-tag-analysis-cache '())
+      )
+    (if (and (not (or (null cached-inner-startp)
+                      (null cached-inner-endp)))
+             (<= cached-inner-startp (point))
+             (<= (point) cached-inner-endp))
+        jpw-phpBB-tag-analysis-cache
+      ;;else
+      (save-excursion
+        (setq current-tagspec (jpw-phpBB-tag-find-enclosing nil nil t)
+              jpw-phpBB-tag-analysis-cache '()
+              )
+        (while (car current-tagspec)
+          (setq jpw-phpBB-tag-analysis-cache 
+                (cons current-tagspec jpw-phpBB-tag-analysis-cache))
+          (setq current-tagspec 
+                (jpw-phpBB-tag-find-enclosing (1- (caadr current-tagspec))
+                                              (1+ (cadadr current-tagspec))
+                                              t))
+          )
+        (setq 
+         jpw-phpBB-tag-analysis-cache-last-update-buffer-state
+         buffer-state)
+        );;end excursion
+      );;end if
+    );;end let
   )
 
 
@@ -656,6 +704,13 @@ Evals to `nil' and does nothing if we're not inside of a quote environment.
   )
 
 
+(defun jpw-phpBB-display-tag-analysis ()
+  "Show the results of `jpw-phpBB-tag-analysis' in the *Messages* buffer.
+{jpw: 09/2005}"
+  (interactive)
+  (message "%S" (jpw-phpBB-tag-analysis))
+  )
+
 ;;------------------------------------------------------------
 ;;
 ;; Bindings: Define Local Keymap
@@ -668,7 +723,7 @@ Evals to `nil' and does nothing if we're not inside of a quote environment.
       (setq phpBB-mode-map (make-sparse-keymap))
       ;;(define-key phpBB-mode-map "\M-\"" 'phpBB-unfill-paragraphs)
 
-      (define-key phpBB-mode-map "\C-c\C-s" 'jpw-phpBB-tag-analysis)
+      (define-key phpBB-mode-map "\C-c\C-s" 'jpw-phpBB-display-tag-analysis)
 
       (define-key phpBB-mode-map "\M-g\M-[i" 'phpBB-insert-italic)
       (define-key phpBB-mode-map "\M-pi" 'phpBB-insert-italic)
