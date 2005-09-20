@@ -112,7 +112,7 @@
 {jpw: 09/2005}")
 
 
-(defvar jpw-phpBB-tag-analysis-cache-last-update-buffer-state '(t 0 0)
+(defvar jpw-phpBB-t-a-c-l-u-buffer-state '(t 0 0)
   "Internal variable used by `jpw-phpBB-tag-analysis'.
 {jpw: 09/2005}")
 
@@ -163,7 +163,7 @@ either side of the region.
   )
 
 
-(defsubst jpw-phpBB-tag-find-last (&optional pos)
+(defsubst jpw-phpBB-tag-find-last (&optional pos boundpos)
   "Searches backward from `pos' (defaults to `point') for the nearest phpBB
 tag.  Returns a list of the form:
 
@@ -173,13 +173,17 @@ Either START-TAG or END-TAG will be nil, indicating the type of tag in that
 direction.  If both are nil (i. e. no tags were found), returns nil instead of
 a list.
 
+The optional `boundpos' is an integer buffer position.  It stops the search at
+that position.  If no tag is found before `boundpos', the function returns
+nil.  The default is to search backward to the beginning of the buffer.
+
 Alters `point'.  Be sure to call this only from within a `save-excursion'.
 {jpw:03/05}"
   (if pos (goto-char pos))
   (let (last-start-tag
         last-end-tag
         the-tag) ;; end var defs
-    (if (re-search-backward jpw-tag-finder-re nil t)
+    (if (re-search-backward jpw-tag-finder-re boundpos t)
         (if (looking-at jpw-tag-end-re)
             (setq last-end-tag (point))
           ;;else
@@ -192,7 +196,7 @@ Alters `point'.  Be sure to call this only from within a `save-excursion'.
   )
 
 
-(defsubst jpw-phpBB-tag-find-next (&optional pos)
+(defsubst jpw-phpBB-tag-find-next (&optional pos boundpos)
   "Searches forward from `pos' (defaults to `point') for the nearest phpBB
 tag.  Returns a list of the form:
 
@@ -202,12 +206,16 @@ Either START-TAG or END-TAG will be nil, indicating the type of tag in that
 direction.  If both are nil (i. e. no tags were found), returns nil instead of
 a list.
 
+The optional `boundpos' is an integer buffer position.  It stops the search at
+that position.  If no tag is found before `boundpos', the function returns
+nil.  The default is to search forward to the end of the buffer.
+
 Alters `point'.  Be sure to call this only from within a `save-excursion'.
 {jpw:03/05}"
   (if pos (goto-char pos))
   (let (next-start-tag
         next-end-tag) ;; end var defs
-    (if (re-search-forward jpw-tag-finder-re nil t)
+    (if (re-search-forward jpw-tag-finder-re boundpos t)
         (progn
           (goto-char (match-beginning 0))
           (if (looking-at jpw-tag-end-re)
@@ -261,7 +269,10 @@ This defun *greatly* simplifies all of the subsequent syntactic analysis code.
   )
 
 
-(defsubst jpw-phpBB-tag-find-nearest (&optional pos-last-start pos-next-end)
+(defsubst jpw-phpBB-tag-find-nearest (&optional pos-last-start 
+                                                pos-next-end
+                                                from-pos
+                                                to-pos)
   "Used by `jpw-phpBB-tag-analysis'.  Returns a list of the form:
 
 \(LAST NEXT\)
@@ -273,14 +284,25 @@ preceding and next nearest tags, respectively.  The lists both take the form:
 
 ...or `nil' if no tag was found in that direction.
 
+The optional argument `pos-last-start' is the buffer position of the nearest
+start-tag found.  The search for the next start-tag will start here.  (Default
+is to start at `point'.)  Similarly, `pos-next-end' is the position of the
+nearest end-tag found, and will be used as the starting point for the next end
+tag.  (Again, the default is to start searching at `point'.)
+
+`from-pos' and `to-pos' are, respectively, the upper and lower bounds of the
+search.  This lets you narrow the tag search to the region between these two
+positions without having to call `narrow-to-region'.  The default is to search
+the entire buffer.
+
 Alters `point'.  Be sure to call this only from within a `save-excursion'.
 {jpw:07/05}"
   (if (not pos-last-start) (setq pos-last-start (point)))
   (if (not pos-next-end) (setq pos-next-end pos-last-start))
   (let* ((last (jpw-phpBB-tag-pos-to-syntactic
-                (jpw-phpBB-tag-find-last pos-last-start)))
+                (jpw-phpBB-tag-find-last pos-last-start from-pos)))
          (next (jpw-phpBB-tag-pos-to-syntactic
-                (jpw-phpBB-tag-find-next pos-next-end)))
+                (jpw-phpBB-tag-find-next pos-next-end to-pos)))
         ) ;; end var defs    
 
     (if (or last next)
@@ -297,12 +319,18 @@ otherwise.
   )
 
 
-(defsubst jpw-phpBB-tag-skip-ignorable (nearest)
+(defsubst jpw-phpBB-tag-skip-ignorable (nearest
+                                        &optional from-pos to-pos)
   "Extension of `jpw-phpBB-tag-find-nearest' which skips tags that
 `jpw-phpBB-tag-analysis-ignore' returns `t' for.  
 
 `nearest' should be the a list of the same form returned by
 `jpw-phpBB-tag-find-nearest', which is what this defun evals to, as well.
+
+`from-pos' and `to-pos' are, respectively, the upper and lower bounds of the
+search.  This lets you narrow the tag search to the region between these two
+positions without having to call `narrow-to-region'.  The default is to search
+the entire buffer.
 
 Alters `point'.  Be sure to call this only from within a `save-excursion'.
 {jpw: 07/2005}"
@@ -317,7 +345,7 @@ Alters `point'.  Be sure to call this only from within a `save-excursion'.
                  (jpw-phpBB-tag-analysis-ignore (caddr info-last-tag)))
        (setq info-last-tag 
              (jpw-phpBB-tag-pos-to-syntactic
-              (jpw-phpBB-tag-find-last (car info-last-tag))))
+              (jpw-phpBB-tag-find-last (car info-last-tag) from-pos)))
        );; end backward search
 
      ;; Check the following tag
@@ -325,7 +353,7 @@ Alters `point'.  Be sure to call this only from within a `save-excursion'.
                  (jpw-phpBB-tag-analysis-ignore (caddr info-next-tag)))
        (setq info-next-tag 
              (jpw-phpBB-tag-pos-to-syntactic
-              (jpw-phpBB-tag-find-next (1+ (car info-next-tag)))))
+              (jpw-phpBB-tag-find-next (1+ (car info-next-tag)) to-pos)))
        );; end forward search
 
      ;; The new positions, free of non-syntactic tags.
@@ -338,7 +366,9 @@ Alters `point'.  Be sure to call this only from within a `save-excursion'.
 
 (defun jpw-phpBB-tag-find-enclosing (&optional pos-last-start 
                                                pos-next-end
-                                               skip-unanalyzable-tags)
+                                               skip-unanalyzable-tags
+                                               from-pos
+                                               to-pos)
   "Search forward and backward to see what tags we're immediately
 enclosed in.  Returns a list of the form:
 
@@ -351,6 +381,11 @@ The backward search begins from `pos-last-start', or `point' if not set.  The
 forward search begins from `pos-next-end', or `pos-last-start' if not set.
 \(`pos-last-start' is checked first.\)
 
+`from-pos' and `to-pos' are, respectively, the upper and lower bounds of the
+search.  This lets you narrow the tag search to the region between these two
+positions without having to call `narrow-to-region'.  The default is to search
+the entire buffer.
+
 Returns nil if `point' is not enclosed in any phpBB tags whatsoever.  
 
 Returns a `nil' TAG when the nearest tags aren't a matching \"[TAG]
@@ -362,10 +397,14 @@ Returns a `nil' TAG when the nearest tags aren't a matching \"[TAG]
     (let* ((tmp-nearest-pair
             (if skip-unanalyzable-tags
                 (jpw-phpBB-tag-skip-ignorable
-                 (jpw-phpBB-tag-find-nearest pos-last-start pos-next-end))
+                 (jpw-phpBB-tag-find-nearest pos-last-start pos-next-end
+                                             from-pos to-pos)
+                 from-pos to-pos)
               ;; else
-              (jpw-phpBB-tag-find-nearest pos-last-start pos-next-end))
-            );;end if
+              (jpw-phpBB-tag-find-nearest pos-last-start pos-next-end
+                                          from-pos to-pos)
+              );;end if
+            )
            (info-last-tag (car tmp-nearest-pair))
            (info-next-tag (cadr tmp-nearest-pair))
            (last-tag (caddr info-last-tag))
@@ -434,7 +473,7 @@ Returns a `nil' TAG when the nearest tags aren't a matching \"[TAG]
            ;; start the search one char forward from `pos-next-end'.
            (setq info-next-tag 
                  (jpw-phpBB-tag-pos-to-syntactic
-                  (jpw-phpBB-tag-find-next (1+ (car info-next-tag)))))
+                  (jpw-phpBB-tag-find-next (1+ (car info-next-tag)) to-pos)))
            );; end while
 
          ;; Loop stopped.  Do we have a result?
@@ -456,7 +495,7 @@ Returns a `nil' TAG when the nearest tags aren't a matching \"[TAG]
                      )
            (setq info-last-tag 
                  (jpw-phpBB-tag-pos-to-syntactic
-                  (jpw-phpBB-tag-find-last (car info-last-tag))))
+                  (jpw-phpBB-tag-find-last (car info-last-tag) from-pos)))
            );; end while
 
          ;; Loop stopped.  Do we have a result?
@@ -479,59 +518,107 @@ Returns a `nil' TAG when the nearest tags aren't a matching \"[TAG]
 ;;
 ;; TODO:
 ;; Cache the analysis results, so we don't need to keep repeating them.
+;; See revision 1424 for the previous attempt at caching.  It failed due to
+;; the from-inside-out analysis method.
 ;;
 
 
 (defun jpw-phpBB-tag-analysis ()
   "Search forward and backward from `point' to see what tags we're enclosed
-in.  Returns a list of pairs.  Each pair is the position of the start tag and
-end tag, respectively.  The list of pairs is built from the inside-out.
+in.  Each pair is the position of the start tag and end tag, respectively.
+The list of pairs is built from the inside-out.  The results are stored in the
+variable `jpw-phpBB-tag-analysis-cache'.
 
-So, `\(car \(caadr \(jpw-phpBB-tag-analysis\)\)\)' would return the position of
-the innermost start tag.
+So, `\(car \(caadr \(jpw-phpBB-tag-analysis-cache\)\)\)' would return the
+position of the outermost start tag.
 
-Returns nil if `point' is not enclosed in any phpBB tags.
-
-The results of recent calls to this function are stored in the variable
-`jpw-phpBB-tag-analysis-cache'.
+The result of analysis is nil if `point' is not enclosed in any phpBB tags.
 {jpw: 09/2005}"
-  (let* ((cached-inner-tagspec (car (reverse jpw-phpBB-tag-analysis-cache)))
-         (cached-inner-startp (caadr cached-inner-tagspec))
-         (cached-inner-endp (cadadr cached-inner-tagspec))
-         (buffer-state (list (buffer-modified-p) (buffer-modified-tick)
+  (let* ((buffer-state (list (buffer-modified-p) (buffer-modified-tick)
                              (buffer-size)))
+         (cached-tagpos (cadar jpw-phpBB-tag-analysis-cache))
+         (cached-startag-pos (car cached-tagpos))
+         (cached-endtag-pos (cadr cached-tagpos))
+         (cache-unaltered 't)
+         old-cache
          current-tagspec
+         from-pos 
+         to-pos
          );;end var defs
 
-    ;; Clear the analysis cache if the buffer state has changed since last
-    ;; call.
-    (if (not (equal jpw-phpBB-tag-analysis-cache-last-update-buffer-state
-                    buffer-state))
-        (setq jpw-phpBB-tag-analysis-cache '())
-      )
-    (if (and (not (or (null cached-inner-startp)
-                      (null cached-inner-endp)))
-             (<= cached-inner-startp (point))
-             (<= (point) cached-inner-endp))
+    ;; Examine cached state, removing any state no longer consistent with our
+    ;; current position.
+    (if (equal jpw-phpBB-t-a-c-l-u-buffer-state buffer-state)
+        (while (and (not (or (null jpw-phpBB-tag-analysis-cache)
+                             (null cached-startag-pos)
+                             (null cached-endtag-pos)))
+                    (or (> cached-startag-pos (point))
+                        (> (point) cached-endtag-pos))
+                    )
+          (setq 
+           cache-unaltered nil
+           jpw-phpBB-tag-analysis-cache (cdr jpw-phpBB-tag-analysis-cache)
+           cached-tagpos (cadar jpw-phpBB-tag-analysis-cache)
+           cached-startag-pos (car cached-tagpos)
+           cached-endtag-pos (cadr cached-tagpos)
+           )
+          );;end while
+      ;;
+      ;; else:
+      ;; Force reanalysis and erase the old cache, thereby forcing a full
+      ;; reanalysis.
+      (setq cache-unaltered nil
+            jpw-phpBB-tag-analysis-cache '())
+      );;end if-same-buffer-state
+
+    ;; Do we need to reperform cache analysis?
+    (if (and cache-unaltered
+             (not (null jpw-phpBB-tag-analysis-cache)))
+        ;; Nope.  Just eval the current cache.
         jpw-phpBB-tag-analysis-cache
-      ;;else
+      ;;
+      ;; else:
+      ;; 
+      ;; We must reperform cache analysis, up to the innermost enclosing pair
+      ;; of tags.  Get the bounds of the innermost one.  Then, save the old
+      ;; cache so we can later append it to any new tags we find ourselves
+      ;; inside of.
+      (setq 
+       from-pos cached-startag-pos
+       to-pos cached-endtag-pos
+       old-cache jpw-phpBB-tag-analysis-cache)
+
+      ;; Now reset the buffer state, clear out the cache, and start
+      ;; rebuilding.
+      (setq jpw-phpBB-t-a-c-l-u-buffer-state buffer-state
+            jpw-phpBB-tag-analysis-cache '()
+            current-tagspec (jpw-phpBB-tag-find-enclosing nil 
+                                                          nil 
+                                                          t 
+                                                          from-pos 
+                                                          to-pos)
+            )
       (save-excursion
-        (setq current-tagspec (jpw-phpBB-tag-find-enclosing nil nil t)
-              jpw-phpBB-tag-analysis-cache '()
-              )
         (while (car current-tagspec)
           (setq jpw-phpBB-tag-analysis-cache 
-                (cons current-tagspec jpw-phpBB-tag-analysis-cache))
+                ;;(cons current-tagspec jpw-phpBB-tag-analysis-cache)
+                (nconc jpw-phpBB-tag-analysis-cache (list current-tagspec))
+                )
           (setq current-tagspec 
                 (jpw-phpBB-tag-find-enclosing (1- (caadr current-tagspec))
                                               (1+ (cadadr current-tagspec))
-                                              t))
-          )
-        (setq 
-         jpw-phpBB-tag-analysis-cache-last-update-buffer-state
-         buffer-state)
+                                              t
+                                              from-pos
+                                              to-pos))
+          );;end while
         );;end excursion
-      );;end if
+
+      ;; Lastly, append the remnant of the old cache to the end of the new one
+      ;; we just built.  This will also make the contents of the cache the
+      ;; expression to which this defun evals.
+      (setq jpw-phpBB-tag-analysis-cache 
+            (nconc jpw-phpBB-tag-analysis-cache old-cache))
+      );;end outermost-if
     );;end let
   )
 
@@ -708,7 +795,8 @@ Evals to `nil' and does nothing if we're not inside of a quote environment.
   "Show the results of `jpw-phpBB-tag-analysis' in the *Messages* buffer.
 {jpw: 09/2005}"
   (interactive)
-  (message "%S" (jpw-phpBB-tag-analysis))
+  (jpw-phpBB-tag-analysis)
+  (message "%S" jpw-phpBB-tag-analysis-cache)
   )
 
 ;;------------------------------------------------------------
