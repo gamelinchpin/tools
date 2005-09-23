@@ -515,14 +515,6 @@ Returns a `nil' TAG when the nearest tags aren't a matching \"[TAG]
   )
 
 
-;;
-;; TODO:
-;; Cache the analysis results, so we don't need to keep repeating them.
-;; See revision 1424 for the previous attempt at caching.  It failed due to
-;; the from-inside-out analysis method.
-;;
-
-
 (defun jpw-phpBB-tag-analysis ()
   "Search forward and backward from `point' to see what tags we're enclosed
 in.  Each pair is the position of the start tag and end tag, respectively.
@@ -536,89 +528,82 @@ The result of analysis is nil if `point' is not enclosed in any phpBB tags.
 {jpw: 09/2005}"
   (let* ((buffer-state (list (buffer-modified-p) (buffer-modified-tick)
                              (buffer-size)))
-         (cached-tagpos (cadar jpw-phpBB-tag-analysis-cache))
-         (cached-startag-pos (car cached-tagpos))
-         (cached-endtag-pos (cadr cached-tagpos))
-         (cache-unaltered 't)
-         old-cache
-         current-tagspec
+         (cache-pos-cdr-iter (cons 'nil jpw-phpBB-tag-analysis-cache))
+         (taginfo-from-iter (cadr cache-pos-cdr-iter))
+         (cached-startag-pos (car (cadr taginfo-from-iter)))
+         (cached-endtag-pos (cadr (cadr taginfo-from-iter)))
          from-pos 
          to-pos
+         analysis-cache-working
+         current-tagspec
          );;end var defs
 
     ;; Examine cached state, removing any state no longer consistent with our
     ;; current position.
     (if (equal jpw-phpBB-t-a-c-l-u-buffer-state buffer-state)
-        (while (and (not (or (null jpw-phpBB-tag-analysis-cache)
-                             (null cached-startag-pos)
-                             (null cached-endtag-pos)))
-                    (or (> cached-startag-pos (point))
-                        (> (point) cached-endtag-pos))
-                    )
-          (setq 
-           cache-unaltered nil
-           jpw-phpBB-tag-analysis-cache (cdr jpw-phpBB-tag-analysis-cache)
-           cached-tagpos (cadar jpw-phpBB-tag-analysis-cache)
-           cached-startag-pos (car cached-tagpos)
-           cached-endtag-pos (cadr cached-tagpos)
-           )
-          );;end while
+        (progn
+          (while (and (not (or (null taginfo-from-iter)
+                               (null cached-startag-pos)
+                               (null cached-endtag-pos)))
+                      (<= cached-startag-pos (point))
+                      (<= (point) cached-endtag-pos)
+                      )
+            (setq 
+             from-pos cached-startag-pos
+             to-pos cached-endtag-pos
+             cache-pos-cdr-iter (cdr cache-pos-cdr-iter)
+             taginfo-from-iter (cadr cache-pos-cdr-iter)
+             cached-startag-pos (car (cadr taginfo-from-iter))
+             cached-endtag-pos (cadr (cadr taginfo-from-iter))
+             )
+            ) ;;end while
+          (if taginfo-from-iter
+              (if (car cache-pos-cdr-iter)
+                  (setcdr cache-pos-cdr-iter 'nil)
+                ;; else: point is outside of everything in the cache
+                (setq jpw-phpBB-tag-analysis-cache '())
+                );;end if
+            )
+          jpw-phpBB-tag-analysis-cache
+          ) ;;end progn
       ;;
       ;; else:
-      ;; Force reanalysis and erase the old cache, thereby forcing a full
-      ;; reanalysis.
-      (setq cache-unaltered nil
-            jpw-phpBB-tag-analysis-cache '())
+      ;; Force a full reanalysis.
+      (setq jpw-phpBB-tag-analysis-cache '())
       );;end if-same-buffer-state
 
-    ;; Do we need to reperform cache analysis?
-    (if (and cache-unaltered
-             (not (null jpw-phpBB-tag-analysis-cache)))
-        ;; Nope.  Just eval the current cache.
-        jpw-phpBB-tag-analysis-cache
-      ;;
-      ;; else:
-      ;; 
-      ;; We must reperform cache analysis, up to the innermost enclosing pair
-      ;; of tags.  Get the bounds of the innermost one.  Then, save the old
-      ;; cache so we can later append it to any new tags we find ourselves
-      ;; inside of.
-      (setq 
-       from-pos cached-startag-pos
-       to-pos cached-endtag-pos
-       old-cache jpw-phpBB-tag-analysis-cache)
-
-      ;; Now reset the buffer state, clear out the cache, and start
-      ;; rebuilding.
+    ;; We still want to attempt a constrained rebuild, however, as we may now
+    ;; be inside of a more deeply nested tag.  Consider this example:
+    ;;     <h1>dolor ipse <em>lorem</em> sit</h1>
+    ;; If point was at "i" on initial analysis, then moved to "m", we couldn't
+    ;; use the cached analysis, now, could we?
+    (save-excursion
+      ;; Reset the buffer state and start rebuilding.
       (setq jpw-phpBB-t-a-c-l-u-buffer-state buffer-state
-            jpw-phpBB-tag-analysis-cache '()
             current-tagspec (jpw-phpBB-tag-find-enclosing nil 
                                                           nil 
                                                           t 
                                                           from-pos 
                                                           to-pos)
             )
-      (save-excursion
-        (while (car current-tagspec)
-          (setq jpw-phpBB-tag-analysis-cache 
-                ;;(cons current-tagspec jpw-phpBB-tag-analysis-cache)
-                (nconc jpw-phpBB-tag-analysis-cache (list current-tagspec))
-                )
-          (setq current-tagspec 
-                (jpw-phpBB-tag-find-enclosing (1- (caadr current-tagspec))
-                                              (1+ (cadadr current-tagspec))
-                                              t
-                                              from-pos
-                                              to-pos))
-          );;end while
-        );;end excursion
+      (while (car current-tagspec)
+        (setq analysis-cache-working
+              (cons current-tagspec analysis-cache-working)
+              )
+        (setq current-tagspec 
+              (jpw-phpBB-tag-find-enclosing (1- (caadr current-tagspec))
+                                            (1+ (cadadr current-tagspec))
+                                            t
+                                            from-pos
+                                            to-pos))
+        ) ;;end while
+      ) ;;end excursion
 
-      ;; Lastly, append the remnant of the old cache to the end of the new one
-      ;; we just built.  This will also make the contents of the cache the
-      ;; expression to which this defun evals.
-      (setq jpw-phpBB-tag-analysis-cache 
-            (nconc jpw-phpBB-tag-analysis-cache old-cache))
-      );;end outermost-if
+    ;; Lastly, append the working analysis cache to the remnant of the old
+    ;; cache.  This will also make the contents of the cache the expression
+    ;; to which this defun evals. 
+    (setq jpw-phpBB-tag-analysis-cache 
+          (nconc jpw-phpBB-tag-analysis-cache analysis-cache-working))
     );;end let
   )
 
