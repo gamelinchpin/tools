@@ -534,11 +534,11 @@ Returns a `nil' TAG when the nearest tags aren't a matching \"[TAG]
   )
 
 
-(defun jpw-phpBB-tag-analysis ()
+(defun jpw-phpBB-tag-nested-analysis ()
   "Search forward and backward from `point' to see what tags we're enclosed
 in.  Each pair is the position of the start tag and end tag, respectively.
 The list of pairs is built from the inside-out.  The results are stored in the
-variable `jpw-phpBB-tag-analysis-cache'.
+variable `jpw-phpBB-tag-analysis-cache', in a depth-descending order.
 
 So, `\(car \(caadr \(jpw-phpBB-tag-analysis-cache\)\)\)' would return the
 position of the outermost start tag.
@@ -553,6 +553,7 @@ The result of analysis is nil if `point' is not enclosed in any phpBB tags.
          ;; Simple work variable to make the code more readable; contains the
          ;; current taginfo list, the cdr of which holds the tag locations.
          (taginfo-from-iter (cadr cache-pos-cdr-iter))
+         ;; Pull out the first pair of positions.
          (cached-startag-pos (car (cadr taginfo-from-iter)))
          (cached-endtag-pos (cadr (cadr taginfo-from-iter)))
          from-pos 
@@ -567,15 +568,19 @@ The result of analysis is nil if `point' is not enclosed in any phpBB tags.
         (progn
           (while (and (not (or (null taginfo-from-iter)
                                (null cached-startag-pos)
-                               (null cached-endtag-pos)))
+                               (null cached-endtag-pos))) ;; Guard conds
+                      ;; What we really want to check:
                       (<= cached-startag-pos (point))
                       (<= (point) cached-endtag-pos)
                       )
             (setq 
+             ;; Update the search bounds with the old position
              from-pos cached-startag-pos
              to-pos cached-endtag-pos
+             ;; Bump the iterator.
              cache-pos-cdr-iter (cdr cache-pos-cdr-iter)
              taginfo-from-iter (cadr cache-pos-cdr-iter)
+             ;; Pull out the next pair of positions.
              cached-startag-pos (car (cadr taginfo-from-iter))
              cached-endtag-pos (cadr (cadr taginfo-from-iter))
              )
@@ -585,10 +590,12 @@ The result of analysis is nil if `point' is not enclosed in any phpBB tags.
                   ;; Truncate the cache, removing all elements that point is
                   ;; now outside of.
                   (setcdr cache-pos-cdr-iter 'nil)
-                ;; else: point is outside of everything in the cache
+                ;; else:
+                ;; We never executed the while-loop.  ==> Point is outside of
+                ;; everything in the cache.  Trash the old cache.
                 (setq jpw-phpBB-tag-analysis-cache '())
                 );;end if
-            )
+            );;end if taginfo-from-iter
           ) ;;end progn
       ;;
       ;; else:
@@ -599,8 +606,8 @@ The result of analysis is nil if `point' is not enclosed in any phpBB tags.
     ;; We still want to attempt a constrained rebuild, however, as we may now
     ;; be inside of a more deeply nested tag.  Consider this example:
     ;;     <h1>dolor ipse <em>lorem</em> sit</h1>
-    ;; If point was at "i" on initial analysis, then moved to "m", we couldn't
-    ;; use the cached analysis, now, could we?
+    ;; If point was at "i" on initial analysis, then moved to the "r" in
+    ;; "lorem," we couldn't use the cached analysis, now, could we?
     (save-excursion
       ;; Reset the buffer state and start rebuilding.
       (setq jpw-phpBB-t-a-c-l-u-buffer-state buffer-state
@@ -611,9 +618,13 @@ The result of analysis is nil if `point' is not enclosed in any phpBB tags.
                                                           to-pos)
             )
       (while (car current-tagspec)
+        ;; Prepend each new tag pair.  Since we're searching outward, this
+        ;; builds `analysis-cache-working' in depth-descending order.
         (setq analysis-cache-working
               (cons current-tagspec analysis-cache-working)
               )
+        ;;  Note the backward/forward offsetting by one character from the
+        ;;  positions of the last start/end tags.
         (setq current-tagspec 
               (jpw-phpBB-tag-find-enclosing (1- (caadr current-tagspec))
                                             (1+ (cadadr current-tagspec))
@@ -624,8 +635,9 @@ The result of analysis is nil if `point' is not enclosed in any phpBB tags.
       ) ;;end excursion
 
     ;; Lastly, append the working analysis cache to the remnant of the old
-    ;; cache.  This will also make the contents of the cache the expression
-    ;; to which this defun evals. 
+    ;; cache (both of which are in depth-descending order).  This will also
+    ;; make the contents of the cache the expression to which this defun
+    ;; evals.
     (setq jpw-phpBB-tag-analysis-cache 
           (nconc jpw-phpBB-tag-analysis-cache analysis-cache-working))
     );;end let
@@ -804,7 +816,7 @@ Evals to `nil' and does nothing if we're not inside of a quote environment.
   "Show the results of `jpw-phpBB-tag-analysis' in the *Messages* buffer.
 {jpw: 09/2005}"
   (interactive)
-  (jpw-phpBB-tag-analysis)
+  (jpw-phpBB-tag-nested-analysis)
   (message "%S" jpw-phpBB-tag-analysis-cache)
   )
 
@@ -1077,17 +1089,29 @@ Evals to `nil' and does nothing if we're not inside of a quote environment.
   );;end defconst
 
 (defconst phpBB-font-lock-multi-quote-face-key-3
-  "Not correct and presently unused."
   (list
    (concat
-    phpBB-re-quote-start         ; 3 groupings
-    phpBB-re-mid-quote-markup    ; 2 grouping
-    phpBB-re-quote-end           ; 1 grouping
+    phpBB-re-quote-start      ; 3 groupings
+    "\\(\\("                  ; 2 groupings
+    phpBB-re-quote-start        ; 3 groupings
+    phpBB-re-mid-quote-markup   ; 2 grouping
+    phpBB-re-quote-end          ; 1 grouping
+    "\\)+\\|" 
+    phpBB-re-mid-quote-markup ; 2 grouping
+    "\\)+"
+    phpBB-re-quote-end        ; 1 grouping
     );;end concat
    '(1 'phpBB-tag-face t)
    '(3 'phpBB-tag-face t)
-   '(4 'phpBB-quote-face append)
+   ;; groups 4,5,7 are internal
    '(6 'phpBB-tag-face t)
+   '(8 'phpBB-tag-face t)
+   '(9 'phpBB-multiply-quoted-face append)
+   ;; group 10 is internal
+   '(11 'phpBB-tag-face t)
+   '(12 'phpBB-quote-face append)
+   ;; group 13 is internal
+   '(14 'phpBB-tag-face t)
    );;end list
   );;end defconst
 
@@ -1117,6 +1141,7 @@ Evals to `nil' and does nothing if we're not inside of a quote environment.
   (append phpBB-font-lock-keywords-2
           (list phpBB-font-lock-list1-face-key-3
                 phpBB-font-lock-list2-face-key-3
+                ;phpBB-font-lock-multi-quote-face-key-3
                 phpBB-font-lock-quote-face-key-3
                 phpBB-font-lock-code-face-key-3
                 phpBB-font-lock-color-face-key-3
