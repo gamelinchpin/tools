@@ -241,6 +241,9 @@
     "\\(\\.\\([bfi][0-9]+\\|[cs]\\)\\)" 
     '(1 font-lock-type-face prepend))
    (list
+    "#include"
+    '(0 font-lock-constant-face prepend))
+   (list
     ee-mode-globals-re
     '(1 font-lock-constant-face prepend))
    (list
@@ -260,7 +263,7 @@
    ;;
    (list  ee-mode-comment-re '(1 font-lock-comment-face t))
    (list
-    "\\('[^\\\\']*\\(\\\\.[^\\\\']*\\)*'\\)"
+    "[^!']*\\('[^\\\\']*\\(\\\\.[^\\\\']*\\)*'\\)"
     '(1 font-lock-string-face append))
    )
   (list "\\.cfg\\'" "\\.templt\\'")
@@ -276,6 +279,8 @@
   (modify-syntax-entry ?_  "w")
   (modify-syntax-entry ?'  "$")
   (modify-syntax-entry ?\" "$")
+  (make-local-variable 'font-lock-multiline)
+  (setq font-lock-multiline t)
   )
 
 
