@@ -409,6 +409,7 @@ Returns a `nil' TAG when the nearest tags aren't a matching \"[TAG]
            (info-next-tag (cadr tmp-nearest-pair))
            (last-tag (caddr info-last-tag))
            (next-tag (caddr info-next-tag)) 
+           nested-tag-count
            );;end var defs
 
       ;; Here are the various cases we're looking for:
@@ -459,21 +460,30 @@ Returns a `nil' TAG when the nearest tags aren't a matching \"[TAG]
          ) ;; end: Inside tags.
 
         ;; [TAG1] ..pt.. [TAG2]
+        ;; [TAG1] ..pt.. [TAG1]
         ((not (or (cadr info-last-tag) (cadr info-next-tag)))
          ;; We're between two start tags.  Search forwards for the
          ;; matching end tag.
+         ;; The latter case, where a tag is nested inside of itself, is
+         ;; allowed, and must be handled by counting repeated occurrences of
+         ;; "TAG1".
+         (setq nested-tag-count
+               (if (equal last-tag (caddr info-next-tag)) 2 1))
          (while (and info-next-tag
-                     (not (and (cadr info-next-tag) ;; is end tag
-                               (equal last-tag (caddr info-next-tag))
-                               )
-                          )
-                     )
+                     (> nested-tag-count 0))
            ;; Note:  To prevent `jpw-phpBB-tag-find-next' from "getting
            ;; stuck" at the tag we found on the last iteration, we need to
            ;; start the search one char forward from `pos-next-end'.
            (setq info-next-tag 
                  (jpw-phpBB-tag-pos-to-syntactic
                   (jpw-phpBB-tag-find-next (1+ (car info-next-tag)) to-pos)))
+           (if (equal last-tag (caddr info-next-tag))
+               (if (cadr info-next-tag) ;; is end tag
+                   (setq nested-tag-count (1- nested-tag-count))
+                 ;; else:  it's a nested start tag 
+                 (setq nested-tag-count (1+ nested-tag-count))
+                 );;end if end-or-start tag
+             );;end if equal
            );; end while
 
          ;; Loop stopped.  Do we have a result?
@@ -484,18 +494,27 @@ Returns a `nil' TAG when the nearest tags aren't a matching \"[TAG]
          ) ;; end: Between two start tags.
 
         ;; [/TAG1] ..pt.. [/TAG2]
+        ;; [/TAG2] ..pt.. [/TAG2]
         ((and (cadr info-last-tag) (cadr info-next-tag))
          ;; We're between end start tags.  Search backwards for the
          ;; matching start tag.
+         ;; The latter case, where a tag is nested inside of itself, is
+         ;; allowed, and must be handled by counting repeated occurrences of
+         ;; "TAG2".
+         (setq nested-tag-count
+               (if (equal (caddr info-last-tag) next-tag) 2 1))
          (while (and info-last-tag
-                     (not (and (not (cadr info-last-tag)) ;; is start tag
-                               (equal (caddr info-last-tag) next-tag)
-                               )
-                          )
-                     )
+                     (> nested-tag-count 0))
            (setq info-last-tag 
                  (jpw-phpBB-tag-pos-to-syntactic
                   (jpw-phpBB-tag-find-last (car info-last-tag) from-pos)))
+           (if (equal (caddr info-last-tag) next-tag)
+               (if (cadr info-last-tag) ;; is end tag
+                   (setq nested-tag-count (1+ nested-tag-count))
+                 ;; else:  it's a matching start tag 
+                 (setq nested-tag-count (1- nested-tag-count))
+                 );;end if end-or-start tag
+             );;end if equal
            );; end while
 
          ;; Loop stopped.  Do we have a result?
@@ -528,7 +547,11 @@ The result of analysis is nil if `point' is not enclosed in any phpBB tags.
 {jpw: 09/2005}"
   (let* ((buffer-state (list (buffer-modified-p) (buffer-modified-tick)
                              (buffer-size)))
+         ;; Point the iterator at the cdr, so we can manipulate the
+         ;; cache through the iterator.
          (cache-pos-cdr-iter (cons 'nil jpw-phpBB-tag-analysis-cache))
+         ;; Simple work variable to make the code more readable; contains the
+         ;; current taginfo list, the cdr of which holds the tag locations.
          (taginfo-from-iter (cadr cache-pos-cdr-iter))
          (cached-startag-pos (car (cadr taginfo-from-iter)))
          (cached-endtag-pos (cadr (cadr taginfo-from-iter)))
@@ -559,12 +582,13 @@ The result of analysis is nil if `point' is not enclosed in any phpBB tags.
             ) ;;end while
           (if taginfo-from-iter
               (if (car cache-pos-cdr-iter)
+                  ;; Truncate the cache, removing all elements that point is
+                  ;; now outside of.
                   (setcdr cache-pos-cdr-iter 'nil)
                 ;; else: point is outside of everything in the cache
                 (setq jpw-phpBB-tag-analysis-cache '())
                 );;end if
             )
-          jpw-phpBB-tag-analysis-cache
           ) ;;end progn
       ;;
       ;; else:
@@ -1138,8 +1162,23 @@ Key bindings:
   ;; Set up font-lock for phpBB-mode
   (make-local-variable 'font-lock-defaults)
   (make-local-variable 'font-lock-multiline)
+  (make-local-variable 'font-lock-support-mode)
+  (make-local-variable 'lazy-lock-minimum-size)
+  (make-local-variable 'lazy-lock-)
   (setq font-lock-defaults phpBB-font-lock-defaults
         font-lock-multiline t
+        ;; `jit-lock-mode' doesn't correctly fontify everything we want it to.
+        ;; 
+        ;; `fast-lock-mode' and `lazy-lock-mode' require you to
+        ;; manually-refontify when editing text in some of the more complex
+        ;; multiline expressions.  `fast-lock-mode' works by keeping a cache
+        ;; of fontifications.  Great for programming modes.  Bad for modes
+        ;; operating on temporary buffers.
+        ;; 
+        ;; So, we'll use `lazy-lock-mode', suitably tuned to behave as
+        ;; desired.
+        font-lock-support-mode lazy-lock-mode
+        lazy-lock-minimum-size nil
         fill-column 0)
   (auto-fill-mode -1)
   )
