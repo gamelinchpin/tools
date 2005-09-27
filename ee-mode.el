@@ -30,19 +30,209 @@
 
 (require 'generic)
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; Language Elements
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+(defvar ee-mode-logic-re
+  (concat
+   "\\("
+   "AddFn\\|"
+   "AndExpr\\|"
+   "ExactExpr\\|"
+   "For\\|"
+   "If\\|"
+   "OrExpr\\|"
+   "StartsWithExpr\\|"
+   "WildcardExpr"
+   "\\)"
+   )
+  )
+
+
+(defvar ee-mode-keyword-list
+  (list
+   "Abs"
+   "ByteAt"
+   "CheckAccessRight"
+   "Chr\044"
+   "DateAdd\044"
+   "DateDiff"
+   "DatePart"
+   "DatePart\044"
+   "DateTimeAdd\044"
+   "DateTimeDiff"
+   "Date\044"
+   "DbGet"
+   "DbGetFirst"
+   "DbGetFirstInGroup"
+   "DbGetGT"
+   "DbGetGTE"
+   "DbGetLT"
+   "DbGetLTE"
+   "DbGetLast"
+   "DbGetLastInGroup"
+   "DbGetNextInGroup"
+   "DbGetPrevInGroup"
+   "DbOpen"
+   "DctDateTimeAdd"
+   "DctDateTimeDiff"
+   "DctDateTimeFromString"
+   "DctDateTimeNow"
+   "DctDateTimeToString"
+   "DctDateTimeToZone"
+   "DctFromShortString"
+   "DctToShortId"
+   "Display"
+   "ErrGetField"
+   "ErrGetLogging"
+   "ErrGetName"
+   "ErrGetSeverity"
+   "ErrGetText"
+   "ErrInitialize"
+   "ExprToken"
+   "ExprTokenCount"
+   "FracPrice"
+   "GetEnv\044"
+   "GetUserName"
+   "HostName"
+   "In\044"
+   "IsDctConstantValue"
+   "IsNull"
+   "Keyword"
+   "LTrim\044"
+   "Left\044"
+   "Len\044"
+   "LogDataOperator\044"
+   "LogOperator\044"
+   "LogTrace\044"
+   "MapAdd"
+   "MapDelete"
+   "MapGet"
+   "Match"
+   "Mid\044"
+   "OAServiceInfo"
+   "QPrice"
+   "RTrim\044"
+   "RecCopyRecord"
+   "RecCreate"
+   "RecDelete"
+   "RecDump"
+   "RecGetDoubleField"
+   "RecGetField"
+   "RecGetIntField"
+   "RecGetRecordNumber"
+   "RecSetField"
+   "RecSetRecordNumber"
+   "Replace\044"
+   "Right\044"
+   "Round"
+   "Sds_Dump"
+   "Sds_FieldList"
+   "Sds_GetDouble"
+   "Sds_GetInt"
+   "Sds_GetRepCount"
+   "Sds_GetRepField"
+   "Sds_GetString"
+   "Sds_Remove"
+   "Sds_RemoveField"
+   "Sds_Set"
+   "Sds_SetRepDoubleField"
+   "Sds_SetRepIntField"
+   "Sds_SetRepStringField"
+   "ShellCmd"
+   "Sprintf"
+   "TimeAdd\044"
+   "TimeDiff"
+   "Time\044"
+   "ToGMTDate\044"
+   "ToGMTTime\044"
+   "ToLocalDate\044"
+   "ToLocalTime\044"
+   "ToLower\044"
+   "ToUpper\044"
+   "TokenCount"
+   "Token\044"
+   "Translate\044"
+   "exp"
+   "log"
+   "log10"
+   )
+  )
+
+
+
+(defvar ee-mode-generic-blockdefn-re_frag
+  "name\\|default")
+(defvar ee-mode-expression-defn-re_frag
+  "dll\\|expression\\|preExpression\\|xrefTables")
+(defvar ee-mode-error-defn-re_frag
+  "messages\\|error\\|warning\\|language")
+(defvar ee-mode-linkmgr-defn-re_frag
+  (concat
+   "linkMgr\\|stateLink\\|onDatabase\\(Available\\|Recoverable\\)\\|"
+   "compressLevel\\|applyDefaultToLocal\\|service\\|capabilities\\|"
+   "address"
+   ))
+(defvar ee-mode-db-defn-re_frag
+  (concat
+   "table\\|alias\\|where\\|"
+   "\\(join\\(If\\|Key\\|Type\\)?\\)\\|"
+   "\\(backwardJoin\\(Key\\|Where\\)?\\)"
+   ))
+
+(defvar ee-mode-blockelement-re
+  (concat
+   "\\("
+   ee-mode-generic-blockdefn-re_frag
+   "\\|"
+   ee-mode-expression-defn-re_frag
+   "\\|"
+   ee-mode-error-defn-re_frag
+   "\\|"
+   ee-mode-linkmgr-defn-re_frag
+   "\\|"
+   ee-mode-db-defn-re_frag
+   "\\)"
+   )
+  )
+
+
+(defvar ee-mode-comment-re
+  "\\(^\\s *!.*$\\)"
+  )
+
+
+(defvar ee-mode-var-re
+  "\\(\\w+\\)\\(##?[sid]\\)" 
+  )
+
+
+(defvar ee-mode-globals-re
+  "\\(rds\\|txn\\|update\\(Idx\\|Op\\)\\)"
+  )
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; Mode Definition
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
 (define-generic-mode 'ee-generic-mode
   nil  ;; Can't handle comment here.  Ends up matching the != op.
-  (list "Left\\$" "Mid\\$" "Right\\$" "In\\$" "If" "For")
+  ee-mode-keyword-list
   (list
-   (list  "\\(^\\s *!.*$\\)" '(1 font-lock-comment-face t))
-   (list
-    "\\('[^\\\\']*\\(\\\\.[^\\\\']*\\)*'\\)"
-    '(1 font-lock-string-face append))
    (list
     "\\(XRef\\w+\\$\\)" 
     '(1 font-lock-function-name-face prepend))
    (list
-    "\\(AddFn\\)" 
+    ee-mode-logic-re
     '(1 font-lock-builtin-face prepend))
    (list
     "\\({\\(double\\|int\\|string\\)}\\)" 
@@ -51,10 +241,10 @@
     "\\(\\.\\([bfi][0-9]+\\|[cs]\\)\\)" 
     '(1 font-lock-type-face prepend))
    (list
-    "\\(rds\\|txn\\)" 
+    ee-mode-globals-re
     '(1 font-lock-constant-face prepend))
    (list
-    "\\(\\w+\\)\\(##?[sid]\\)" 
+    ee-mode-var-re
     '(1 font-lock-variable-name-face prepend)
     '(2 font-lock-type-face prepend))
    ;;
@@ -64,6 +254,14 @@
    ;;;(list "\\(\"\\)\\s *$" '(1 font-lock-warning-face t))
    (list "\\([;,]\\)\\s *$" '(1 font-lock-builtin-face prepend))
    (list "^\\s *\\(,\\)\\s *$" '(1 font-lock-builtin-face prepend))
+   ;;
+   ;; Does definition ordering matter for FontLock?  If so, these must come
+   ;; last.
+   ;;
+   (list  ee-mode-comment-re '(1 font-lock-comment-face t))
+   (list
+    "\\('[^\\\\']*\\(\\\\.[^\\\\']*\\)*'\\)"
+    '(1 font-lock-string-face append))
    )
   (list "\\.cfg\\'" "\\.templt\\'")
   (list 'generic-ee-mode-setup-function)
