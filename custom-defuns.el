@@ -155,6 +155,69 @@ tags on either side of the region.
   )
 
 
+(defun jpw-unfill-paragraph (&optional remove-blank-line)
+  "Takes paragraphs separated by blank lines and merges the paragraph into a
+single line.  The inter-paragraph blank lines are preserved by default.
+
+Evaluates to `nil' if this is the current paragraph is the last paragraph in
+the buffer.  Evaluates to `t' otherwise.
+
+If `remove-blank-line' is non-nil, the first inter-paragraph blank line will
+be removed.  The others will be left alone.
+{jpw: 09/2005}"
+  (interactive "P")
+  (save-excursion
+    ;; Position at 1st char of the paragraph proper.
+    (backward-paragraph)
+    (if (not (bobp))
+        (forward-char))
+    (end-of-line)
+    ;; Main Loop
+    (while (looking-at "\n\\([ \t]*\\)\\([^ \t\n]\\)")
+      (if (and (functionp 'jpw-unfill-skip-line)
+               (jpw-unfill-skip-line (match-beginning 2)))
+          (forward-line)
+        ;; else:
+        ;; Merge the two lines.
+        (if (not (or (= (preceding-char) ?\ )
+                     (= (preceding-char) ?\t)))
+            ;; Insert two spaces after '.' or ':'.
+            (if (or (= (preceding-char) ?.)
+                    (= (preceding-char) ?:))
+                (replace-match "  \\2")
+              ;; else:
+              ;; Other non-whitespace char.  Only put in one space.
+              (replace-match " \\2")
+              ) ;; end punct-if
+          ;; else:
+          ;; Already contains a separating whitespace char.
+          (replace-match "\\2")
+          ) ;;end space-if
+        );; end skip-line-if
+      (end-of-line)
+      );;end Main Loop
+    (if (and remove-blank-line (looking-at "\n\n"))
+        (replace-match "\n"))
+    );;end excursion
+  (not (eobp))
+  )
+
+
+(defun jpw-unfill-buffer (&optional remove-blank-line)
+  "Calls `jpw-unfill-paragraph' on every paragraph in the buffer.
+
+The optional `remove-blank-line' will be passed to every underlying
+`jpw-unfill-paragraph' call.
+{jpw: 09/2005}"
+  (interactive)
+  (save-excursion
+    (while (jpw-unfill-paragraph remove-blank-line)
+      (forward-word 1)
+      );; end while.
+    );; end excursion
+  )
+
+
 (defun reverse-indent-line ()
   "Remove a level of indentation from the current line. {jpw: 10/01}"
   (interactive)

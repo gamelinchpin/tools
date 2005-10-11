@@ -812,13 +812,20 @@ Evals to `nil' and does nothing if we're not inside of a quote environment.
   )
 
 
+(defsubst jpw-unfill-skip-line (next-nonws-char)
+  (char-equal (char-after next-nonws-char) ?\[)
+  )
+
+
 (defun jpw-phpBB-display-tag-analysis ()
-  "Show the results of `jpw-phpBB-tag-analysis' in the *Messages* buffer.
+  "Show the results of `jpw-phpBB-tag-nested-analysis' in the *Messages*
+buffer.
 {jpw: 09/2005}"
   (interactive)
   (jpw-phpBB-tag-nested-analysis)
   (message "%S" jpw-phpBB-tag-analysis-cache)
   )
+
 
 ;;------------------------------------------------------------
 ;;
