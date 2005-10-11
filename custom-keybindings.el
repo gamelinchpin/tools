@@ -283,6 +283,7 @@
 (global-set-key "\C-xk" 'kill-this-buffer)
 (global-set-key "\C-xK" 'kill-buffer)
 (global-set-key "\C-c\C-l" 'font-lock-fontify-buffer)
+(global-set-key "\C-x\M-f" 'auto-fill-mode)
 
 ;; Binding the Tab-key is tricky; WinBlows steals \M-Tab and
 ;; \M-\S-Tab.  Furthermore, \S-Tab and Tab are treated as the same key

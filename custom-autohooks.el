@@ -51,7 +51,7 @@
 
 
 ;; Lisp [Emacs and plain]
-(add-hook 'emacs-lisp-mode-hook 'turn-on-auto-fill)
+(add-hook 'emacs-lisp-mode-hook 'use-jpw-style-elisp)
 (add-hook 'lisp-mode-hook 'turn-on-auto-fill)
 
 ;; Scripting languages
