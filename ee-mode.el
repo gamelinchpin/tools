@@ -23,7 +23,7 @@
 ;; At present, it's just a variant of generic-mode.
 ;;
 ;;  
-;; RCS $Id: elisp.el 1401 2005-08-08 23:09:12Z candide $
+;; RCS $Id$
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

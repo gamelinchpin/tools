@@ -837,7 +837,7 @@ buffer.
 (if (null phpBB-mode-map)
     (progn
       (setq phpBB-mode-map (make-sparse-keymap))
-      ;;(define-key phpBB-mode-map "\M-\"" 'phpBB-unfill-paragraphs)
+      (define-key phpBB-mode-map "\M-\"" 'jpw-unfill-paragraph)
 
       (define-key phpBB-mode-map "\C-c\C-s" 'jpw-phpBB-display-tag-analysis)
 
