@@ -615,7 +615,7 @@ The result of analysis is nil if `point' is not enclosed in any phpBB tags.
                                                           nil 
                                                           t 
                                                           from-pos 
-                                                          to-pos)
+                                                          to-pos)  
             )
       (while (car current-tagspec)
         ;; Prepend each new tag pair.  Since we're searching outward, this
@@ -881,8 +881,82 @@ buffer.
 
 
 ;;
+;; Support var, consts, & defsubsts (i.e. ones used by the Font-Lock MATCHER
+;; defuns and keyword lists).
+;;
+
+
+(defconst phpBB-re-quote-start
+  "\\(\\[quote\\)\\(=[^]]+\\)?\\(\\]\\)")
+
+(defconst phpBB-re-quote-end "\\(\\[/quote\\]\\)")
+
+(defconst phpBB-re-mid-quote-markup
+  "\\([^[]*\\(\\[[^/]+/[^q][^]]*\\][^[]*\\)*\\)")
+
+(defsubst phpBB-tag-find-enclosing-quote ()
+  (let ((enclosing-tag (jpw-phpBB-tag-find-enclosing))
+        );; end var bindings
+    (and enclosing-tag
+         (equal "quote" (car enclosing-tag))
+         (cadr enclosing-tag))
+    );;end let
+  )
+
+
+;;
+;; Font-lock MATCHER functions.
+;;
+;; Must be a function instead of a regexp.  Will be called with
+;; a single arg:  the limit of the search, and on success:
+;;   1. Must return non-nil
+;;   2. Must set `match-data' accordingly.
+;;
+
+
+(defun phpBB-find-nested-quotes (upper-limit)
+  ;; Leave docstring blank; use doc-comments, instead.
+
+  ;; Examines region between `point' and `upper-limit', looking for all
+  ;; multiply-nested quotes.  Highlights any quote-tag with internal quote-tags
+  (message "phpBB-find-nested-quotes called in region: (%d, %d)"
+           (point) upper-limit)
+  (if nil (let* ((startpt (point))
+         (enclosing-quote-pos (phpBB-tag-find-enclosing-quote))
+         (quote-start-list '())
+         (quote-end-list '())
+         );;end var defs
+    ;; In a pair of enclosing quote-tags?  Store the positions.
+    (if (car enclosing-quote-pos)
+        (nconc quote-start-list (car enclosing-quote-pos))
+      )
+    (if (cadr enclosing-quote-pos)
+        (progn 
+          (setq upper-limit (cadr enclosing-quote-pos))
+          (nconc quote-end-list upper-limit)
+          )
+      )
+
+    ;; Search for all of the remaining quote tags.
+    (while (re-search-forward "\\[/?quote" upper-limit t)
+      (cond
+       ((looking-at phpBB-re-quote-end)
+          (nconc quote-end-list (match-beginning 0))
+        );;end quote-end case
+       ((looking-at phpBB-re-quote-start)
+        (nconc quote-start-list (match-beginning 0))
+        );;end quote-start case
+       );;end cond
+      );; end while
+    (message "%S" (list quote-start-list quote-end-list))
+    nil
+    ));;end let
+  )
+
+
+;;
 ;; Individual `font-lock-keyword' lists.  Each value is of the same form as an
-;; element of `font-lock-keyword'; see that variable's documentation for more
+;; element of `font-lock-keywords'; see that variable's documentation for more
 ;; info.
 ;;
 
@@ -1072,15 +1146,6 @@ buffer.
   );;end defconst
 
 
-(defconst phpBB-re-quote-start (concat "\\(\\[quote\\)"
-                                       "\\(=[^]]+\\)?"
-                                       "\\(\\]\\)"))
-
-(defconst phpBB-re-quote-end "\\(\\[/quote\\]\\)")
-
-(defconst phpBB-re-mid-quote-markup
-  "\\([^[]*\\(\\[[^/]+/[^q][^]]*\\][^[]*\\)*\\)")
-
 (defconst phpBB-font-lock-quote-face-key-3
   (list
    (concat
@@ -1097,28 +1162,18 @@ buffer.
 
 (defconst phpBB-font-lock-multi-quote-face-key-3
   (list
-   (concat
-    phpBB-re-quote-start      ; 3 groupings
-    "\\(\\("                  ; 2 groupings
-    phpBB-re-quote-start        ; 3 groupings
-    phpBB-re-mid-quote-markup   ; 2 grouping
-    phpBB-re-quote-end          ; 1 grouping
-    "\\)+\\|" 
-    phpBB-re-mid-quote-markup ; 2 grouping
-    "\\)+"
-    phpBB-re-quote-end        ; 1 grouping
-    );;end concat
+   'phpBB-find-nested-quotes
    '(1 'phpBB-tag-face t)
-   '(3 'phpBB-tag-face t)
+;;   '(3 'phpBB-tag-face t)
    ;; groups 4,5,7 are internal
-   '(6 'phpBB-tag-face t)
-   '(8 'phpBB-tag-face t)
-   '(9 'phpBB-multiply-quoted-face append)
+;;   '(6 'phpBB-tag-face t)
+;;   '(8 'phpBB-tag-face t)
+;;   '(9 'phpBB-multiply-quoted-face append)
    ;; group 10 is internal
-   '(11 'phpBB-tag-face t)
-   '(12 'phpBB-quote-face append)
+;;   '(11 'phpBB-tag-face t)
+;;   '(12 'phpBB-quote-face append)
    ;; group 13 is internal
-   '(14 'phpBB-tag-face t)
+;;   '(14 'phpBB-tag-face t)
    );;end list
   );;end defconst
 
@@ -1148,7 +1203,7 @@ buffer.
   (append phpBB-font-lock-keywords-2
           (list phpBB-font-lock-list1-face-key-3
                 phpBB-font-lock-list2-face-key-3
-                ;phpBB-font-lock-multi-quote-face-key-3
+                phpBB-font-lock-multi-quote-face-key-3
                 phpBB-font-lock-quote-face-key-3
                 phpBB-font-lock-code-face-key-3
                 phpBB-font-lock-color-face-key-3
@@ -1196,7 +1251,13 @@ Key bindings:
   (make-local-variable 'font-lock-multiline)
   (make-local-variable 'font-lock-support-mode)
   (make-local-variable 'lazy-lock-minimum-size)
-  (make-local-variable 'lazy-lock-)
+  (make-local-variable 'lazy-lock-defer-on-the-fly)
+  (make-local-variable 'lazy-lock-defer-on-scrolling)
+  (make-local-variable 'lazy-lock-defer-contextually)
+  (make-local-variable 'lazy-lock-stealth-time)
+  (make-local-variable 'lazy-lock-stealth-load)
+  (make-local-variable 'lazy-lock-stealth-nice)
+  (make-local-variable 'lazy-lock-stealth-verbose)
   (setq font-lock-defaults phpBB-font-lock-defaults
         font-lock-multiline t
         ;; `jit-lock-mode' doesn't correctly fontify everything we want it to.
@@ -1211,8 +1272,19 @@ Key bindings:
         ;; desired.
         font-lock-support-mode lazy-lock-mode
         lazy-lock-minimum-size nil
-        fill-column 0)
-  (auto-fill-mode -1)
+        lazy-lock-stealth-verbose t
+        lazy-lock-defer-on-the-fly t
+        lazy-lock-defer-on-scrolling nil
+        lazy-lock-defer-contextually nil
+        lazy-lock-stealth-time 3
+        lazy-lock-stealth-nice 0.1
+        lazy-lock-stealth-load nil)
+  ;; TODO:
+  ;; Eventually, this will be moved into an if-statement controlled by a
+  ;; customization flag.  That flag will also need to perform an unfill-buffer
+  ;; before saving/killing.  Will need to build in that functionality, as
+  ;; well. 
+  (progn (setq fill-column 0) (auto-fill-mode -1))
   )
 
 (global-set-key "\M-p\M-P" 'phpBB-mode)
@@ -1275,6 +1347,12 @@ Key bindings:
 ;;             (tagval (jpw-phpBB-get-tag-at tagspec))
 ;;             )
 ;;       (message tagval))))
+(defun phpBB-test-find-nested-quotes ()
+  (interactive)
+  (save-excursion
+    (goto-char (point-min))
+    (phpBB-find-nested-quotes (point-max))
+    ))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
