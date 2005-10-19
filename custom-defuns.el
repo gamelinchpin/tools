@@ -606,7 +606,7 @@ extended using an EOL-\"\\\"-char.  {jpw; 12/04}"
 (defun use-jpw-style-elisp ()
   (interactive)
   (auto-fill-mode 1)
-  (local-set-key "\C-cg" 'goto-char)
+  (global-set-key "\C-cg" 'goto-char)
   (local-set-key "\C-cd" 'edebug-eval-top-level-form)
   (local-set-key "\C-c\C-d" 'edebug-eval-top-level-form)
   )
