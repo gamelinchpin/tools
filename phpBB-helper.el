@@ -894,14 +894,7 @@ buffer.
 (defconst phpBB-re-mid-quote-markup
   "\\([^[]*\\(\\[[^/]+/[^q][^]]*\\][^[]*\\)*\\)")
 
-(defsubst phpBB-tag-find-enclosing-quote ()
-  (let ((enclosing-tag (jpw-phpBB-tag-find-enclosing))
-        );; end var bindings
-    (and enclosing-tag
-         (equal "quote" (car enclosing-tag))
-         (cadr enclosing-tag))
-    );;end let
-  )
+(defvar phpBB-nested-quote-level 0)
 
 
 ;;
@@ -911,6 +904,8 @@ buffer.
 ;; a single arg:  the limit of the search, and on success:
 ;;   1. Must return non-nil
 ;;   2. Must set `match-data' accordingly.
+;;   3. It must move `point' past `match-beginning', or font-lock will loop
+;;      forever.
 ;;
 
 
@@ -919,38 +914,77 @@ buffer.
 
   ;; Examines region between `point' and `upper-limit', looking for all
   ;; multiply-nested quotes.  Highlights any quote-tag with internal quote-tags
-  (message "phpBB-find-nested-quotes called in region: (%d, %d)"
-           (point) upper-limit)
-  (if nil (let* ((startpt (point))
-         (enclosing-quote-pos (phpBB-tag-find-enclosing-quote))
-         (quote-start-list '())
-         (quote-end-list '())
-         );;end var defs
-    ;; In a pair of enclosing quote-tags?  Store the positions.
-    (if (car enclosing-quote-pos)
-        (nconc quote-start-list (car enclosing-quote-pos))
-      )
-    (if (cadr enclosing-quote-pos)
-        (progn 
-          (setq upper-limit (cadr enclosing-quote-pos))
-          (nconc quote-end-list upper-limit)
-          )
-      )
 
-    ;; Search for all of the remaining quote tags.
-    (while (re-search-forward "\\[/?quote" upper-limit t)
-      (cond
-       ((looking-at phpBB-re-quote-end)
-          (nconc quote-end-list (match-beginning 0))
-        );;end quote-end case
-       ((looking-at phpBB-re-quote-start)
-        (nconc quote-start-list (match-beginning 0))
-        );;end quote-start case
-       );;end cond
-      );; end while
-    (message "%S" (list quote-start-list quote-end-list))
-    nil
-    ));;end let
+  ;; We have two cases we need to deal with:
+  ;; 1. We're starting afresh, from the bobp.
+  ;; 2. We're starting inside of a tag, one already fontified.  The immediate
+  ;;    enclosing tag *may* be a quote.  Or, it may not.  We dunno.
+
+
+  ;; This only works with the first case.  it may not work with the second
+  ;; case. 
+  (let* (tag-end-pos
+         quote-match-data
+         );; end var defs
+
+    (if (bobp) (setq phpBB-nested-quote-level 0))
+
+    (and
+     (re-search-forward "\\[/?quote" upper-limit t)
+     (setq quote-match-data (list (match-beginning 0) nil))
+     (goto-char (match-beginning 0))
+     (cond
+      ((looking-at phpBB-re-quote-start)
+       (nconc quote-match-data 
+              (list (match-beginning 1) (match-end 1)
+                    (match-beginning 3) (match-end 3)
+                    )
+              )
+       (setq phpBB-nested-quote-level (1+ phpBB-nested-quote-level))
+       t
+       );;end quote-start case
+      ((looking-at phpBB-re-quote-end)
+       (nconc quote-match-data 
+              (list (match-beginning 0) (match-end 0)
+                    nil nil)
+              )
+       (setq phpBB-nested-quote-level (1- phpBB-nested-quote-level))
+       t
+       );;end quote-end case
+      );;end cond
+
+     ;; Only reaches here if the `cond' was true
+     (goto-char (match-end 0))
+     (setq tag-end-pos (point))
+     ;; Look for the next quote-tag.
+     (if (and (> phpBB-nested-quote-level 0)
+              (re-search-forward "\\[/?quote" upper-limit t)
+              )
+         (progn
+           (if (> phpBB-nested-quote-level 1)
+               (nconc quote-match-data 
+                      (list nil nil
+                            tag-end-pos (match-beginning 0)
+                            )
+                      )
+             ;; else
+             (nconc quote-match-data 
+                    (list tag-end-pos (match-beginning 0)
+                          nil nil)
+                    )
+             );; end if quote-level
+           (setcar (cdr quote-match-data) (match-beginning 0))
+           (goto-char (match-beginning 0))
+           );;end progn
+       ;;else
+       ;; No more quote tags.  Reset the quote-level.
+       (setq phpBB-nested-quote-level 0)
+       (setcar (cdr quote-match-data) tag-end-pos)
+       );end if
+     (or (set-match-data quote-match-data) t)
+     (message "found: %S" (match-data))
+     );; end and
+    );; end let
   )
 
 
@@ -1164,16 +1198,9 @@ buffer.
   (list
    'phpBB-find-nested-quotes
    '(1 'phpBB-tag-face t)
-;;   '(3 'phpBB-tag-face t)
-   ;; groups 4,5,7 are internal
-;;   '(6 'phpBB-tag-face t)
-;;   '(8 'phpBB-tag-face t)
-;;   '(9 'phpBB-multiply-quoted-face append)
-   ;; group 10 is internal
-;;   '(11 'phpBB-tag-face t)
-;;   '(12 'phpBB-quote-face append)
-   ;; group 13 is internal
-;;   '(14 'phpBB-tag-face t)
+   '(2 'phpBB-tag-face t t)
+   '(3 'phpBB-quote-face append t)
+   '(4 'phpBB-multiply-quoted-face append t)
    );;end list
   );;end defconst
 
@@ -1204,7 +1231,9 @@ buffer.
           (list phpBB-font-lock-list1-face-key-3
                 phpBB-font-lock-list2-face-key-3
                 phpBB-font-lock-multi-quote-face-key-3
-                phpBB-font-lock-quote-face-key-3
+                ;; The phpBB-font-lock-multi-quote-face-key-3 successfully
+                ;; fontifies plain quotes, too.
+                ;;phpBB-font-lock-quote-face-key-3
                 phpBB-font-lock-code-face-key-3
                 phpBB-font-lock-color-face-key-3
                 phpBB-font-lock-url-face-key-3
