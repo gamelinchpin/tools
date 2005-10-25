@@ -3,7 +3,7 @@
 ;;  .emacs setup file
 ;;
 ;;
-;;  last modified 06/2005            (jpw)
+;;  last modified 10/2005            (jpw)
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -25,7 +25,7 @@
 ;;
 ;; ;(load "elib-startup")
 ;; ;(load "cedet-setup")
-;; ;(load "phpBB-macros")
+;; ;(load "phpBB-helper")
 ;; ;(load "psvn")
 ;; ;(load "custom-mutt_start")
 
@@ -65,6 +65,8 @@
  '(html-helper-mode-uses-visual-basic t nil (html-helper-mode))
  '(line-number-mode t)
  '(mouse-wheel-mode t nil (mwheel))
+ '(outline-plain-bullets-string "·§-+.:,;¶¤»×°")
+ '(outline-regexp "[*§¶]+\\|[ 	]+[-+¤°»]+")
  '(ps-printer-name "~/emacs-out.ps")
  '(require-final-newline nil)
  '(revert-without-query (quote (".*")))

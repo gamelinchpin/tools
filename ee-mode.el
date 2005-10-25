@@ -280,7 +280,26 @@
   (modify-syntax-entry ?'  "$")
   (modify-syntax-entry ?\" "$")
   (make-local-variable 'font-lock-multiline)
-  (setq font-lock-multiline t)
+  (make-local-variable 'font-lock-support-mode)
+  (make-local-variable 'lazy-lock-minimum-size)
+  (make-local-variable 'jit-lock-stealth-time)
+  (make-local-variable 'jit-lock-stealth-nice)
+  (make-local-variable 'jit-lock-defer-contextually)
+  (make-local-variable 'lazy-lock-defer-contextually)
+  (setq font-lock-multiline t
+        ;; `jit-lock-mode' doesn't correctly fontify everything we want it to.
+        ;; 
+        ;; `fast-lock-mode' and `lazy-lock-mode' require you to
+        ;; manually-refontify when editing text in some of the more complex
+        ;; multiline expressions.  `fast-lock-mode' works by keeping a cache
+        ;; of fontifications.
+        jit-lock-stealth-time  3
+        jit-lock-stealth-nice  0.1
+        ;; Remove contextual deferment from all of the modes.  Permits
+        ;; in-place fontification & preserves font of subsequent text, which
+        ;; is useful for multiline syntactic contexts.
+        jit-lock-defer-contextually  nil
+        lazy-lock-defer-contextually  nil)
   )
 
 
