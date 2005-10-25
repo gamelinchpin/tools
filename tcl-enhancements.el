@@ -24,7 +24,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
-(eval-when-compile (require 'tcl))
+(require 'tcl)
 
 
 ;;------------------------------------------------------------
@@ -66,112 +66,174 @@ default, but is provided for finer-grained control.
 ;; 
 
 
-(eval-and-compile ;; Required for Compilation:
-  ;; Pre-eval these constants, which are referenced later on in this file
-  ;; inside of an inner `eval-when-compile'.
-
-  (defconst tcl-core-builtins
-    '("expr" "exec" "source" "rename")
-    "Some rather crucial builtins.  One could argue that they should be
+(defconst tcl-core-builtins
+  '("expr" "exec" "source" "rename")
+  "Some rather crucial builtins.  One could argue that they should be
 keywords.  One could, however, never use one in a Tcl script, whereas it's
 hard to write a Tcl script without a single 'set' in it.
 {jpw: 6/05}")
 
 
-  (defconst tcl-list-builtins
-    '("list" "lappend" "lindex" "linsert" "llength"
-      "lrange" "lreplace" "lsearch" "lset" "lsort")
-    "Tcl builtins for list manipulation.
+(defconst tcl-list-builtins
+  '("list" "lappend" "lindex" "linsert" "llength"
+    "lrange" "lreplace" "lsearch" "lset" "lsort")
+  "Tcl builtins for list manipulation.
 {jpw: 6/05}")
 
 
-  (defconst tcl-text-builtins
-    '("append" "concat" "join" "format" "scan" "split" "subst" "regexp"
-      "regsub")
-    "Tcl builtins for text manipulation.
+(defconst tcl-text-builtins
+  '("append" "concat" "join" "format" "scan" "split" "subst" "regexp"
+    "regsub")
+  "Tcl builtins for text manipulation.
 {jpw: 6/05}")
 
 
-  (defconst tcl-file-builtins
-    '("glob" "cd" "pwd")
-    "A smattering of file- and os-related Tcl builtins.  See also
+(defconst tcl-file-builtins
+  '("glob" "cd" "pwd")
+  "A smattering of file- and os-related Tcl builtins.  See also
 `tcl-io-builtins'.
 {jpw: 6/05}")
 
 
-  (defconst tcl-io-builtins
-    '("fcopy" "close" "eof" "fblocked" "fconfigure" "fileevent" "flush"
-      "gets" "seek" "tell" "open" "puts" "read" "pid")
-    "Tcl builtins for I/O.
+(defconst tcl-io-builtins
+  '("fcopy" "close" "eof" "fblocked" "fconfigure" "fileevent" "flush"
+    "gets" "seek" "tell" "open" "puts" "read" "pid")
+  "Tcl builtins for I/O.
 {jpw: 6/05}")
 
 
-  (defconst tclLib-all-builtins
-    '("auto_execok" "auto_import" "auto_load" "auto_mkindex"
-      "auto_mkindex_old" "auto_qualify" "auto_reset"
-      "pkg_mkIndex"
-      "parray"
-      "tcl_endOfWord" "tcl_findLibrary" "tcl_startOfNextWord"
-      "tcl_startOfPreviousWord" "tcl_wordBreakAfter" "tcl_wordBreakBefore"
-      )
-    "The proc's from the Tcl library of coding tools, which is included as part
+(defconst tclLib-all-builtins
+  '("auto_execok" "auto_import" "auto_load" "auto_mkindex"
+    "auto_mkindex_old" "auto_qualify" "auto_reset"
+    "pkg_mkIndex"
+    "parray"
+    "tcl_endOfWord" "tcl_findLibrary" "tcl_startOfNextWord"
+    "tcl_startOfPreviousWord" "tcl_wordBreakAfter" "tcl_wordBreakBefore"
+    )
+  "The proc's from the Tcl library of coding tools, which is included as part
 of the language but aren't really keywords or builtins.
 {jpw: 6/05}")
 
 
-  (defconst tclLib-text-builtins
-    '("parray"
-      "tcl_endOfWord" "tcl_startOfNextWord"
-      "tcl_startOfPreviousWord" "tcl_wordBreakAfter" "tcl_wordBreakBefore"
-      )
-    "A subset of `tclLib-all-builtins' used for text manipulation.  Also
+(defconst tclLib-text-builtins
+  '("parray"
+    "tcl_endOfWord" "tcl_startOfNextWord"
+    "tcl_startOfPreviousWord" "tcl_wordBreakAfter" "tcl_wordBreakBefore"
+    )
+  "A subset of `tclLib-all-builtins' used for text manipulation.  Also
 includes 'parray', which is more of a coding swiss-army-knife than anything
 else.
 {jpw: 6/05}")
 
 
-  (defconst tcl-misc-builtins
-    '("bgerror" "dde" "msgcat"
-      "resource" 
-      "socket"
-      "tcltest"
-      "load" "time"
-      "unknown" "update" "vwait")
-    "Miscellaneous Tcl proc's and builtins.
+(defconst tcl-misc-builtins
+  '("bgerror" "dde" "msgcat"
+    "resource" 
+    "socket"
+    "tcltest"
+    "load" "time"
+    "unknown" "update" "vwait")
+  "Miscellaneous Tcl proc's and builtins.
 {jpw: 6/05}")
 
-  ;;
-  ;; Enhanced Regexps for Font-Lock
-  ;;
 
-  ;; Not really needed; will handle separately.
-  (defconst tcl-keywords-with-arg-re
-    (eval-when-compile
-      (regexp-opt '("namespace" "package"))
-      )
-    "Special keywords; they take a required arg, which is a known-constant.
+;; I want these two consts to be hardcoded with whatever value is in the
+;; latest version of the `tcl' package.
+(if (boundp 'orig-tcl-proc-list)
+    ()
+  (defconst orig-tcl-proc-list tcl-proc-list)
+  (defconst orig-tcl-typeword-list tcl-typeword-list)
+  (defconst orig-tcl-keyword-list tcl-keyword-list)
+  ) ;; end if
+
+;; Regexps used in font-lock
+
+(defconst tcl-proc-list-re
+  (eval-when-compile
+    (regexp-opt orig-tcl-proc-list)
+    )
+  "The original value of `tcl-proc-list', converted to a regexp.
 {jpw: 6/05}")
 
-  (defconst tcl-const-list-re
-    (eval-when-compile
-      (regexp-opt '("argc" "argv" "argv0" "errorCode" "env" "stderr" "stdin"
-                    "stdout" "errorInfo" "tcl_library"
-                    "tcl_patchLevel" "tcl_pkgPath"  "tcl_platform"
-                    "tcl_precision" "tcl_traceCompile" "tcl_traceExec"
-                    "tcl_version" 
-                    "auto_execs" "auto_index" "auto_noexec" "auto_noload"
-                    "auto_path"))
-      )
-    "Builtin Tcl constants/variables.
+(defconst tcl-typeword-list-re
+  (eval-when-compile
+    (regexp-opt orig-tcl-typeword-list)
+    )
+  "The original value of `tcl-typeword-list', converted to a regexp.
 {jpw: 6/05}")
 
-  (defconst tcl-builtins-with-arg-re
-    (eval-when-compile
-      (regexp-opt '("array" "info" "interp" "string" "trace" "binary"
-                    "file" "clock"
-                    ))
-      )
-    "Special builtins that require another keyword as their first arg.  Not
+(defconst tcl-proc-list-enhanced
+  (eval-when-compile
+    (sort (copy-list orig-tcl-proc-list) 'string-lessp)
+    )
+  "The original value of `tcl-proc-list', sorted. 
+{jpw: 6/05}")
+
+(defconst tcl-typeword-list-enhanced
+  (eval-when-compile
+    (sort (copy-list orig-tcl-typeword-list) 'string-lessp)
+    )
+  "The original value of `tcl-typeword-list', sorted.
+{jpw: 6/05}")
+
+(defconst tcl-keyword-list-enhanced 
+  (eval-when-compile
+    (sort 
+     ;; The order of the following is important, since:
+     ;; (1) `append' doesn't copy the last arg
+     ;; (2) `sort' modifies the list passed to it.
+     (append orig-tcl-keyword-list '("set" "incr" "unset" "catch"))
+     'string-lessp)
+    )
+  "The original value of `tcl-keyword-list', appended with a few more
+keywords and converted to a regexp.  The additional keywords are:
+  - catch
+  - set
+  - incr
+  - unset
+One could argue that these 4 are really builtins.  However, Tcl is a scripting
+language, which means everything is, ultimately, a builtin.  I felt that these
+4 are so fundamental to the language that they needed to be part of the
+keyword list, not the builtin list.
+{jpw: 6/05}")
+
+(defconst tcl-keyword-list-re
+  (eval-when-compile
+    (regexp-opt tcl-keyword-list-enhanced)
+    )
+  "The value of `tcl-keyword-list-enhanced', converted to a regexp.
+{jpw: 6/05}")
+
+;; Below are the regexps for the new constants:
+
+;; Not really needed; will handle separately.
+(defconst tcl-keywords-with-arg-re
+  (eval-when-compile
+    (regexp-opt '("namespace" "package"))
+    )
+  "Special keywords; they take a required arg, which is a known-constant.
+{jpw: 6/05}")
+
+(defconst tcl-const-list-re 
+  (eval-when-compile
+    (regexp-opt '("argc" "argv" "argv0" "errorCode" "env" "stderr" "stdin"
+                  "stdout" "errorInfo" "tcl_library"
+                  "tcl_patchLevel" "tcl_pkgPath"  "tcl_platform"
+                  "tcl_precision" "tcl_traceCompile" "tcl_traceExec"
+                  "tcl_version" 
+                  "auto_execs" "auto_index" "auto_noexec" "auto_noload"
+                  "auto_path"))
+    )
+  "Builtin Tcl constants/variables.
+{jpw: 6/05}")
+
+(defconst tcl-builtins-with-arg-re 
+  (eval-when-compile
+    (regexp-opt '("array" "info" "interp" "string" "trace" "binary"
+                  "file" "clock"
+                  ))
+    )
+  "Special builtins that require another keyword as their first arg.  Not
 all of the basic Tcl builtins are included.  The following are intentionally omitted:
   - after
   - encoding
@@ -183,7 +245,65 @@ all of the basic Tcl builtins are included.  The following are intentionally omi
 They may be added at a later date.
 {jpw: 6/05}")
 
-  ) ;; End: Required `eval-and-compile' 
+(defconst tcl-builtins-re-1
+  (eval-when-compile
+    (regexp-opt (append tcl-core-builtins
+                        tcl-file-builtins))
+    )
+  "Minimal fontification of builtins.  Only `tcl-core-builtins' and
+`tcl-file-builtins' are included.
+{jpw: 6/05}")
+
+(defconst tcl-builtins-re-2
+  (eval-when-compile
+    (regexp-opt (append tcl-core-builtins
+                        tcl-text-builtins
+                        tcl-list-builtins
+                        tcl-file-builtins))
+    )
+  "Medium fontification of builtins.  Adds `tcl-text-builtins' and
+`tcl-list-builtins' to the set of builtins in `tcl-builtins-re-1'.
+{jpw: 6/05}")
+
+(defconst tcl-builtins-re-3
+  (eval-when-compile
+    (regexp-opt (append tcl-core-builtins
+                        tcl-text-builtins
+                        tcl-list-builtins
+                        tcl-io-builtins
+                        tclLib-text-builtins
+                        tcl-file-builtins))
+    )
+  "Even more colorful fontification of builtins.  Adds `tcl-io-builtins' and
+`tclLib-text-builtins' to the set of builtins in `tcl-builtins-re-2'.
+{jpw: 6/05}")
+
+(defconst tcl-builtins-re-4
+  (eval-when-compile
+    (regexp-opt (append tcl-core-builtins
+                        tcl-text-builtins
+                        tcl-list-builtins
+                        tcl-io-builtins
+                        tclLib-all-builtins
+                        tcl-file-builtins))
+    )
+  "An alternative to `tcl-builtins-re-3' that uses `tclLib-all-builtins'
+instead of just `tclLib-text-builtins'.
+{jpw: 6/05}")
+
+(defconst tcl-builtins-re-5
+  (eval-when-compile
+    (regexp-opt (append tcl-core-builtins
+                        tcl-text-builtins
+                        tcl-list-builtins
+                        tcl-io-builtins
+                        tclLib-all-builtins
+                        tcl-misc-builtins
+                        tcl-file-builtins))
+    )
+  "Fontifies all of the builtins (i.e. everything in `tcl-builtins-re-4'
+plus `tcl-misc-builtins'.
+{jpw: 6/05}")
 
 
 ;;------------------------------------------------------------
@@ -196,11 +316,11 @@ They may be added at a later date.
   "{jpw: 6/05}"
   (interactive "p")
   (let* ( (last-100-keys (recent-keys))
-          (i (- (length last-100-keys) 1))
+          (i (1- (length last-100-keys)))
           (last-key (aref last-100-keys i))
           next-to-last-key
          );; end bindings
-    (setq i (- i 1))
+    (setq i (1- i))
     (setq next-to-last-key (aref last-100-keys i))
     (if (and (equal (vector last-key) [tab])
              (equal last-key next-to-last-key))
@@ -227,10 +347,11 @@ They may be added at a later date.
 
 (defun tcl-enhance-indentation () 
   ;; Fix the binding of TAB to the normal, std. value.
-  (define-key tcl-mode-map "\t" 'indent-for-tab-command)
+  (global-set-key [tab] 'indent-for-tab-command)
   (set (make-local-variable 'indent-line-function) 
        'tcl-indent-command-toggler)
   )
+(remove-hook 'tcl-mode-hook 'tcl-enhance-indentation)
 (add-hook 'tcl-mode-hook 'tcl-enhance-indentation)
 
 
@@ -242,165 +363,11 @@ They may be added at a later date.
 ;; 
 
 
-
-;;
-;; Composite constants
-;;
-(eval-and-compile ;; Required for Compilation:
-  ;; Pre-eval these constants, which are also referenced inside of an inner
-  ;; `eval-when-compile'.
-  ;;
-  ;; The original idea: define each defconst using an acutal constant, created
-  ;; at compile time.  The compiled version of this file would therefore load
-  ;; more quickly
-  ;;
-  ;; Just one problem with this optimization:  wrapping the value-generating
-  ;; form inside of each `defconst' with an `eval-when-compile' messed up
-  ;; compiliation!  All variables defined in this file were now not `boundp' to
-  ;; the compiler.
-  ;;
-  ;; I tried rearranging the code, separating declaration from setting the
-  ;; value, but ultimately, nothing worked.  Only wrapping up everything in
-  ;; the outer `eval-and-compile' you see here fixed it.  :sigh:
-  ;; ------
-
-  ;; I want these next 3 consts to be hardcoded with whatever value is in the
-  ;; latest version of the `tcl' package.
-  (defconst orig-tcl-proc-list nil
-    "The original value of `tcl-proc-list', as defined in the `tcl' package.
-{jpw: 6/05}")
-  (if orig-tcl-proc-list
-      ()
-    (setq orig-tcl-proc-list (eval-when-compile tcl-proc-list))
-    )
-
-  (defconst orig-tcl-typeword-list nil
-    "The original value of `tcl-typeword-list', as defined in the `tcl' package.
-{jpw: 6/05}")
-  (if orig-tcl-typeword-list
-      ()
-    (setq orig-tcl-typeword-list (eval-when-compile tcl-typeword-list))
-    )
-
-  (defconst orig-tcl-keyword-list nil
-    "The original value of `tcl-keyword-list', as defined in the `tcl' package.
-{jpw: 6/05}")
-  (if orig-tcl-keyword-list
-      ()
-    (setq orig-tcl-keyword-list (eval-when-compile tcl-keyword-list))
-    )
-
-  ;;
-  ;; Regexps used in font-lock.  These don't need the special post-`setq' that
-  ;; the /orig-tcl-.*/ above do.
-  ;; 
-
-  (defconst tcl-proc-list-re
-    (eval-when-compile (regexp-opt orig-tcl-proc-list))
-    "The original value of `tcl-proc-list', converted to a regexp.
-{jpw: 6/05}")
-
-  (defconst tcl-typeword-list-re
-    (eval-when-compile (regexp-opt orig-tcl-typeword-list))
-    "The original value of `tcl-typeword-list', converted to a regexp.
-{jpw: 6/05}")
-
-  (defconst tcl-proc-list-enhanced
-    (eval-when-compile (sort (copy-list orig-tcl-proc-list) 'string-lessp))
-    "The original value of `tcl-proc-list', sorted. 
-{jpw: 6/05}")
-
-  (defconst tcl-typeword-list-enhanced
-    (eval-when-compile (sort (copy-list orig-tcl-typeword-list) 'string-lessp))
-    "The original value of `tcl-typeword-list', sorted.
-{jpw: 6/05}")
-
-  (defconst tcl-keyword-list-enhanced
-    (eval-when-compile
-      (sort 
-       ;; The order of the following is important, since:
-       ;; (1) `append' doesn't copy the last arg
-       ;; (2) `sort' modifies the list passed to it.
-       (append (symbol-value 'orig-tcl-keyword-list)
-               '("set" "incr" "unset" "catch"))
-       'string-lessp)
-      )
-    "The original value of `tcl-keyword-list', appended with a few more
-keywords and converted to a regexp.  The additional keywords are:
-  - catch
-  - set
-  - incr
-  - unset
-One could argue that these 4 are really builtins.  However, Tcl is a scripting
-language, which means everything is, ultimately, a builtin.  I felt that these
-4 are so fundamental to the language that they needed to be part of the
-keyword list, not the builtin list.
-{jpw: 6/05}")
-
-  (defconst tcl-keyword-list-re
-    (eval-when-compile (regexp-opt tcl-keyword-list-enhanced))
-    "The value of `tcl-keyword-list-enhanced', converted to a regexp.
-{jpw: 6/05}")
-
-  (defconst tcl-builtins-re-1
-    (eval-when-compile
-      (regexp-opt (append tcl-core-builtins
-                          tcl-file-builtins)))
-    "Minimal fontification of builtins.  Only `tcl-core-builtins' and
-`tcl-file-builtins' are included.
-{jpw: 6/05}")
-
-  (defconst tcl-builtins-re-2
-    (eval-when-compile
-      (regexp-opt (append tcl-core-builtins
-                          tcl-text-builtins
-                          tcl-list-builtins
-                          tcl-file-builtins)))
-    "Medium fontification of builtins.  Adds `tcl-text-builtins' and
-`tcl-list-builtins' to the set of builtins in `tcl-builtins-re-1'.
-{jpw: 6/05}")
-
-  (defconst tcl-builtins-re-3
-    (eval-when-compile
-      (regexp-opt (append tcl-core-builtins
-                          tcl-text-builtins
-                          tcl-list-builtins
-                          tcl-io-builtins
-                          tclLib-text-builtins
-                          tcl-file-builtins)))
-    "Even more colorful fontification of builtins.  Adds `tcl-io-builtins' and
-`tclLib-text-builtins' to the set of builtins in `tcl-builtins-re-2'.
-{jpw: 6/05}")
-
-  (defconst tcl-builtins-re-4
-    (eval-when-compile
-      (regexp-opt (append tcl-core-builtins
-                          tcl-text-builtins
-                          tcl-list-builtins
-                          tcl-io-builtins
-                          tclLib-all-builtins
-                          tcl-file-builtins)))
-    "An alternative to `tcl-builtins-re-3' that uses `tclLib-all-builtins'
-instead of just `tclLib-text-builtins'.
-{jpw: 6/05}")
-
-  (defconst tcl-builtins-re-5
-    (eval-when-compile
-      (regexp-opt (append tcl-core-builtins
-                          tcl-text-builtins
-                          tcl-list-builtins
-                          tcl-io-builtins
-                          tclLib-all-builtins
-                          tcl-misc-builtins
-                          tcl-file-builtins)))
-    "Fontifies all of the builtins (i.e. everything in `tcl-builtins-re-4'
-plus `tcl-misc-builtins'.
-{jpw: 6/05}")
-
-  ) ;; End: Required `eval-and-compile' 
-
-
-(defvar tcl-font-lock-keywords-enhanced
+(defvar tcl-font-lock-keywords-enhanced nil
+  "Enhancements for the standard `tcl-font-lock-keywords' variable.
+{jpw: 06/05}")
+;; Separate out the defvar from setting the value to make debugging easier.
+(setq tcl-font-lock-keywords-enhanced
   (eval-when-compile
     (list
      ;;
@@ -440,14 +407,14 @@ plus `tcl-misc-builtins'.
            '(3 'tcl-builtin-arg1-face t t))
      ) ;; end list
     ) ;; end eval-when-compile
-  "Enhancements for the standard `tcl-font-lock-keywords' variable.
-{jpw: 06/05}")
+  ) 
+;; end setq
 
 (defun tcl-enhance-font-lock ()
-  (set (make-local-variable 'font-lock-defaults)
-       (list
-        (append tcl-font-lock-keywords tcl-font-lock-keywords-enhanced)
-        nil nil '((?_ . "w") (?: . "w"))))
+    (set (make-local-variable 'font-lock-defaults)
+         (list
+          (append tcl-font-lock-keywords tcl-font-lock-keywords-enhanced)
+          nil nil '((?_ . "w") (?: . "w"))))
   )
 
 ;; Right now, I'm trying to preserve the std. tcl-mode behavior, rather than
