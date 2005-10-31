@@ -20,22 +20,19 @@
 ;;  
 ;; A programming mode for royalblue's "ExpressionEvaluator" language.
 ;;
-;; At present, it's just a variant of generic-mode.
-;;
 ;;  
 ;; RCS $Id$
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
-(require 'generic)
+(require 'font-lock)
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;------------------------------------------------------------
 ;;
-;; User customizations
-;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; User Customizations
+;; 
 
 
 (defgroup ee-mode nil
@@ -47,6 +44,13 @@
 ;;:type:
   ;; One of: integer, number, string, regexp, character, hook,
   ;;         symbol, function, variable, boolean
+
+
+(defcustom ee-mode-hook nil
+  "*Hook called by `ee-mode'.
+{jpw: 10/05}"
+  :type 'hook
+  :group 'ee-mode)
 
 
 (defcustom ee-mode-block-indent 4
@@ -114,11 +118,10 @@ expressions.
   :group 'ee-mode)
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;------------------------------------------------------------
 ;;
 ;; Language Elements
 ;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
 (defconst ee-mode-language-fn-list
@@ -134,9 +137,8 @@ expressions.
 {jpw: 10/05}")
 (defconst ee-mode-language-fn-re
   (eval-when-compile
-    (concat "\\("
-            (regexp-opt ee-mode-language-fn-list)
-            "\\)")))
+    (regexp-opt ee-mode-language-fn-list t)
+    ))
 
 
 (defconst ee-mode-keyword-list
@@ -250,9 +252,8 @@ expressions.
   )
 (defconst ee-mode-keyword-re
   (eval-when-compile
-    (concat "\\("
-            (regexp-opt ee-mode-keyword-list)
-            "\\)")))
+    (regexp-opt ee-mode-keyword-list t)
+    ))
 
 
 (defconst ee-mode-globals-list
@@ -261,9 +262,8 @@ expressions.
 {jpw: 10/05}")
 (defconst ee-mode-globals-re
   (eval-when-compile
-    (concat "\\("
-            (regexp-opt ee-mode-globals-list)
-            "\\)")))
+    (regexp-opt ee-mode-globals-list t)
+    ))
 
 
 (defconst ee-mode-generic-blockdefn-list
@@ -309,22 +309,20 @@ or other form of messages.
 
 (defconst ee-mode-blockelement-re
   (eval-when-compile
-    (concat "\\("
-            (regexp-opt 
-             (sort
-              ;; The order of the following is important, since:
-              ;; (1) `append' doesn't copy its last arg
-              ;; (2) `sort' modifies the list passed to it.
-              (append ee-mode-generic-blockdefn-list
-                      ee-mode-expression-defn-list
-                      ee-mode-error-defn-list
-                      ee-mode-linkmgr-defn-list
-                      (copy-list ee-mode-db-defn-list))
-              'string-lessp)
-             )
-            "\\)")
-    );; end eval-when-compile
-  );;end defconst
+    (regexp-opt 
+     (sort
+      ;; The order of the following is important, since:
+      ;; (1) `append' doesn't copy its last arg
+      ;; (2) `sort' modifies the list passed to it.
+      (append ee-mode-generic-blockdefn-list
+              ee-mode-expression-defn-list
+              ee-mode-error-defn-list
+              ee-mode-linkmgr-defn-list
+              (copy-list ee-mode-db-defn-list))
+      'string-lessp)
+     )
+    ) ;; end eval-when-compile
+  ) ;;end defconst
 
 
 (defconst ee-mode-comment-re
@@ -348,116 +346,28 @@ or other form of messages.
 (defconst ee-mode-expr-closing-quote-re "\"[,\;]\\s *$")
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;------------------------------------------------------------
 ;;
-;; Mode Definition
+;; Other Variables
+;; 
+
+
+(defvar ee-mode-syntax-table
+  (let ((nutable (copy-syntax-table)))
+    (modify-syntax-entry ?_  "w" nutable)
+    (modify-syntax-entry ?_  "w" nutable)
+    (modify-syntax-entry ?'  "$" nutable)
+    (modify-syntax-entry ?\" "$" nutable)
+    (modify-syntax-entry ?\\ "\\" nutable)
+    nutable);;end let
+  "Syntax table for use in ee-mode buffers.")
+
+
+;;------------------------------------------------------------
 ;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Utility Functions
+;; 
 
-
-(define-generic-mode 'ee-generic-mode
-  ;; Adding "! ... \n" to the syntax table as comment-start/comment-end screws
-  ;; up font-lock w/ the != operator.  So, we need a workaround; see below.
-  (list "!" "\n")
-  ee-mode-keyword-list
-  (list
-   (list
-    "\\(XRef\\w+\\$\\)" 
-    '(1 'ee-mode-map-function-face prepend))
-   (list
-    ee-mode-language-fn-re
-    '(1 'ee-mode-language-function-face prepend))
-   (list
-    "\\({\\(double\\|int\\|string\\)}\\)" 
-    '(1 'font-lock-type-face prepend))
-   (list
-    "\\(\\.\\([bfi][0-9]+\\|[cs]\\)\\)" 
-    '(1 'font-lock-type-face prepend))
-   (list
-    "#include"
-    '(0 'font-lock-constant-face prepend))
-   (list
-    ee-mode-globals-re
-    '(1 'ee-mode-globals-face prepend))
-   (list
-    ee-mode-var-re
-    '(1 'font-lock-variable-name-face prepend)
-    '(2 'font-lock-type-face prepend))
-   ;;
-   ;; Optional font-locking.  Right now, controlled by commenting out. :P
-   ;;
-   (list
-    "\\([;,]\\)\\s *$"
-    '(1 'ee-mode-syntactic-punctuation-face prepend))
-   (list
-    "^\\s *\\(,\\)\\s *$"
-    '(1 'ee-mode-syntactic-punctuation-face prepend))
-   ;;
-   ;; Does definition ordering matter for FontLock?  If so, these must come
-   ;; last.
-   ;;
-   (list ee-mode-comment-re '(1 'font-lock-comment-face t))
-   (list
-    "[^!']*\\('[^\\\\']*\\(\\\\.[^\\\\']*\\)*'\\)"
-    '(1 'font-lock-string-face append))
-   )
-  (list "\\.cfg\\'" "\\.templt\\'")
-  (list 'generic-ee-mode-setup-function)
-  "Generic Mode for ExpressionEvaluator files.")
-
-
-(defun generic-ee-mode-setup-function ()
-  (make-local-variable 'ee-mode-syntax-table)
-  (setq ee-mode-syntax-table (copy-syntax-table))
-  (modify-syntax-entry ?_  "w" ee-mode-syntax-table)
-  (modify-syntax-entry ?_  "w" ee-mode-syntax-table)
-  (modify-syntax-entry ?'  "$" ee-mode-syntax-table)
-  (modify-syntax-entry ?\" "$" ee-mode-syntax-table)
-  (modify-syntax-entry ?\\ "\\" ee-mode-syntax-table)
-
-  (make-local-variable 'font-lock-multiline)
-  (make-local-variable 'font-lock-support-mode)
-  (make-local-variable 'lazy-lock-minimum-size)
-  (make-local-variable 'jit-lock-stealth-time)
-  (make-local-variable 'jit-lock-stealth-nice)
-  (make-local-variable 'jit-lock-defer-contextually)
-  (make-local-variable 'lazy-lock-defer-contextually)
-  (setq font-lock-multiline t
-        ;; `jit-lock-mode' doesn't correctly fontify everything we want it to.
-        ;; 
-        ;; `fast-lock-mode' and `lazy-lock-mode' require you to
-        ;; manually-refontify when editing text in some of the more complex
-        ;; multiline expressions.  `fast-lock-mode' works by keeping a cache
-        ;; of fontifications.
-        jit-lock-stealth-time  3
-        jit-lock-stealth-nice  0.1
-        ;; Remove contextual deferment from all of the modes.  Permits
-        ;; in-place fontification & preserves font of subsequent text, which
-        ;; is useful for multiline syntactic contexts.
-        jit-lock-defer-contextually  nil
-        lazy-lock-defer-contextually  nil)
-
-  ;; The `define-generic-mode' defun sets up the syntax table and sets
-  ;; `comment-start' and `comment-end'.  We only need to add the following:
-  (make-local-variable 'comment-start-skip)
-  (setq comment-start-skip "!+ *")
-  (setq comment-start-skip "![ \t]*")
-
-  ;; Adding "! ... \n" to the syntax table as comment-start/comment-end screws
-  ;; up font-lock w/ the != operator.  As a workaround, disable syntactic
-  ;; keywords.
-  (make-local-variable 'font-lock-syntactic-keywords)
-  (setq font-lock-syntactic-keywords 'nil)
-
-  (set-syntax-table ee-mode-syntax-table)
-  )
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;
-;; Special Functions
-;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
 ;;
@@ -490,6 +400,175 @@ or other form of messages.
 
 ;;(defsubst 
 ;;  )
+
+
+;;------------------------------------------------------------
+;;
+;; Mode Interactive Functions
+;; 
+
+
+;;(defun)
+
+
+;;------------------------------------------------------------
+;;
+;; Bindings: Define Local Keymap
+;; 
+
+
+(defvar ee-mode-map nil)
+(if (null ee-mode-map)
+    (progn
+      (setq ee-mode-map (make-sparse-keymap))
+      ;; ToDo:
+      ;; Bindings go here:
+      ;;; E.g.:
+      ;;;(define-key ee-mode-map "\M-\"" 'jpw-unfill-paragraph)
+      );end progn
+  );end if
+
+
+;;------------------------------------------------------------
+;;
+;; Font-Lock Support
+;; 
+
+
+(defconst ee-mode-font-lock-keywords
+  (eval-when-compile
+    (list (concat "\\<" ee-mode-keyword-re "\\>")
+          '(1 'font-lock-keyword-face nil)
+          ))
+  )
+
+
+(defconst ee-mode-font-lock-keywords-1
+  (list
+   (list
+    "\\(XRef\\w+\\$\\)" 
+    '(1 'ee-mode-map-function-face prepend))
+   (list
+    ee-mode-language-fn-re
+    '(1 'ee-mode-language-function-face prepend))
+   (list
+    "\\({\\(double\\|int\\|string\\)}\\)" 
+    '(1 'font-lock-type-face prepend))
+   (list
+    "\\(\\.\\([bfi][0-9]+\\|[cs]\\)\\)" 
+    '(1 'font-lock-type-face prepend))
+   (list
+    "#include"
+    '(0 'font-lock-constant-face prepend))
+   (list
+    ee-mode-globals-re
+    '(1 'ee-mode-globals-face prepend))
+   (list
+    ee-mode-var-re
+    '(1 'font-lock-variable-name-face prepend)
+    '(2 'font-lock-type-face prepend))
+   ;; This should be optional.
+   (list
+    "\\([;,]\\)\\s *$"
+    '(1 'ee-mode-syntactic-punctuation-face prepend))
+   (list
+    "^\\s *\\(,\\)\\s *$"
+    '(1 'ee-mode-syntactic-punctuation-face prepend))
+   ;; Does definition ordering matter for FontLock?  If so, these must come
+   ;; last.
+   (list ee-mode-comment-re '(1 'font-lock-comment-face t))
+   (list
+    "[^!']*\\('[^\\\\']*\\(\\\\.[^\\\\']*\\)*'\\)"
+    '(1 'font-lock-string-face append))
+   );; end outer list.
+  "Mode-specific value of `font-lock-keywords'.
+{jpw: 10/05}")
+
+
+(defconst ee-mode-font-lock-defaults
+  (list
+   ;; TODO:  Change so that there are different levels of fontificaiton.
+   '(ee-mode-keyword-list ee-mode-font-lock-keywords-1)
+   nil nil
+   ;; Syntax table must not be used here.  Otherwise, we end up fontifying the
+   ;; != op.
+   '()
+   ;; ExpressionEvaluator is a block-based language.  So, using
+   ;; `backward-up-list' will refontify less while still moving backward an
+   ;; entire expression.
+   'backward-paragraph
+   );; end list
+  )
+
+
+;;------------------------------------------------------------
+;;
+;; Define the mode proper
+;; 
+
+
+
+;; Set up the auto-mode-alist with some defaults.  Do this just once, at load
+;; time.
+(dolist (re (list "\\.cfg\\'" "\\.syscfg\\'" "\\.templt\\'"))
+  (add-to-list 'auto-mode-alist (cons re 'ee-mode)))
+
+
+
+;;;###autoload (ee-mode)
+(define-derived-mode ee-mode text-mode "ee"
+  "Major Mode for Expression Evaluator files.
+
+Turning on ee-mode runs the usual hook: `ee-mode-hook'.
+
+Key bindings:
+\\{ee-mode-map}
+
+{jpw: 10/05}"
+  (kill-all-local-variables)
+  (set-syntax-table ee-mode-syntax-table)
+
+  ;; Define comment syntax.
+  (make-local-variable 'comment-end)
+  (make-local-variable 'comment-start)
+  (make-local-variable 'comment-start-skip)
+  (setq comment-start "! "
+        comment-start-skip "![ \t]*"
+        comment-end "")
+
+  ;; Set up font-lock for ee-mode
+  (make-local-variable 'font-lock-defaults)
+  (make-local-variable 'font-lock-multiline)
+  (make-local-variable 'font-lock-support-mode)
+  (make-local-variable 'jit-lock-defer-contextually)
+  (make-local-variable 'jit-lock-stealth-nice)
+  (make-local-variable 'jit-lock-stealth-time)
+  (make-local-variable 'lazy-lock-defer-contextually)
+  (make-local-variable 'lazy-lock-minimum-size)
+  (setq font-lock-defaults ee-mode-font-lock-defaults
+        font-lock-multiline t
+        ;; `jit-lock-mode' doesn't correctly fontify everything we want it to.
+        ;; 
+        ;; `fast-lock-mode' and `lazy-lock-mode' require you to
+        ;; manually-refontify when editing text in some of the more complex
+        ;; multiline expressions.  `fast-lock-mode' works by keeping a cache
+        ;; of fontifications.
+        jit-lock-stealth-time  3
+        jit-lock-stealth-nice  0.1
+        ;; Remove contextual deferment from all of the modes.  Permits
+        ;; in-place fontification & preserves font of subsequent text, which
+        ;; is useful for multiline syntactic contexts.
+        jit-lock-defer-contextually  nil
+        lazy-lock-defer-contextually  nil)
+
+  ;; Set the mode line
+  (setq major-mode 'ee-mode
+        mode-name "ee")
+  (run-hooks 'ee-mode-hook)
+  )
+
+
+(provide 'ee-mode)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
