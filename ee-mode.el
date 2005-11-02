@@ -27,6 +27,10 @@
 
 
 (require 'font-lock)
+(require 'newcomment)
+(eval-when-compile
+  (require 'lazy-lock)
+  (require 'jit-lock))
 
 
 ;;------------------------------------------------------------
@@ -326,7 +330,11 @@ or other form of messages.
 
 
 (defconst ee-mode-comment-re
-  "\\(!\\(==+.*\\|[^=].*\\|\\)$\\)")
+  ;; Not to be confused with `ee-mode-font-lock-comment-re', which is defined
+  ;; below.
+  ;; Any modificaitons to this const should be reflected in
+  ;; `ee-mode-font-lock-comment-re' too.
+  "!\\(==\\|[^=]\\|$\\)")
 
 
 (defconst ee-mode-var-re
@@ -369,34 +377,15 @@ or other form of messages.
 ;; 
 
 
-
 ;;
 ;; Inlines
 ;;
 
 
-;;~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-;; Some library functions that may be of use for indentation.
+(defsubst ee-inside-comment ()
+  ;; Wraps `comment-beginning' in an excursion.
+  (save-excursion (comment-beginning)))
 
-;;  Works, but is a tad top-heavy.
-;;  (how-many regex start-pt end-pt)
-;; thing-at-point
-;; indent-to
-;; current-indentation
-;; back-to-indentation ;; intra-line
-;; (backward-to-indentation arg) ;; find indentation ARG lines back
-;; forward-to-indentation 
-;; indent-relative ;; Good fallback fn.
-;; Moving by balanced parens:
-;; forward-sexp
-;; backward-sexp
-;; backward-list
-;; forward-list
-;; backward-up-list
-;; down-list
-
-;; Causes the sexp/list fns to skip comments.
-;; (setq parse-sexp-ignore-comments t)
 
 ;;(defsubst 
 ;;  )
@@ -408,7 +397,14 @@ or other form of messages.
 ;; 
 
 
-;;(defun)
+(defun ee-mode-indent ()
+  (interactive)
+  nil
+  ;; if ina-comment and comment begin properly indented
+  ;;   (indent-relative)
+  ;;  else indent comment correctly
+  ;; Else - not in a comment
+  )
 
 
 ;;------------------------------------------------------------
@@ -421,10 +417,8 @@ or other form of messages.
 (if (null ee-mode-map)
     (progn
       (setq ee-mode-map (make-sparse-keymap))
-      ;; ToDo:
-      ;; Bindings go here:
-      ;;; E.g.:
-      ;;;(define-key ee-mode-map "\M-\"" 'jpw-unfill-paragraph)
+      (define-key ee-mode-map [Tab] 'indent-according-to-mode)
+      ;; More bindings go here:
       );end progn
   );end if
 
@@ -433,6 +427,10 @@ or other form of messages.
 ;;
 ;; Font-Lock Support
 ;; 
+
+
+(defconst ee-mode-font-lock-comment-re
+  "\\(!\\(==+.*\\|[^=].*\\|\\)$\\)")
 
 
 (defconst ee-mode-font-lock-keywords
@@ -476,7 +474,7 @@ or other form of messages.
     '(1 'ee-mode-syntactic-punctuation-face prepend))
    ;; Does definition ordering matter for FontLock?  If so, these must come
    ;; last.
-   (list ee-mode-comment-re '(1 'font-lock-comment-face t))
+   (list ee-mode-font-lock-comment-re '(1 'font-lock-comment-face t))
    (list
     "[^!']*\\('[^\\\\']*\\(\\\\.[^\\\\']*\\)*'\\)"
     '(1 'font-lock-string-face append))
@@ -519,7 +517,7 @@ or other form of messages.
 (define-derived-mode ee-mode text-mode "ee"
   "Major Mode for Expression Evaluator files.
 
-Turning on ee-mode runs the usual hook: `ee-mode-hook'.
+Activating \"ee-mode\" runs the usual hook: `ee-mode-hook'.
 
 Key bindings:
 \\{ee-mode-map}
@@ -529,12 +527,20 @@ Key bindings:
   (set-syntax-table ee-mode-syntax-table)
 
   ;; Define comment syntax.
+  ;; All of these should be defined, or the built-in comment functions may not
+  ;; work.
   (make-local-variable 'comment-end)
+  (make-local-variable 'comment-end-skip)
   (make-local-variable 'comment-start)
   (make-local-variable 'comment-start-skip)
+  (make-local-variable 'comment-use-syntax)
   (setq comment-start "! "
-        comment-start-skip "![ \t]*"
-        comment-end "")
+        comment-start-skip "!+ *"
+        comment-end ""
+        comment-end-skip "\n"
+        comment-use-syntax nil)
+  ;; `comment-indent-function' should be set to something that returns the
+  ;; indentation of the previous line.  Well, probably...
 
   ;; Set up font-lock for ee-mode
   (make-local-variable 'font-lock-defaults)
@@ -561,7 +567,14 @@ Key bindings:
         jit-lock-defer-contextually  nil
         lazy-lock-defer-contextually  nil)
 
+;;  (make-local-variable 'indent-line-function)
+;;  (setq indent-line-function 'ee-mode-indent)
+
   ;; Set the mode line
+  ;; FIXME:  We shouldn't need to do this.  Not required for phpBB-mode.  So,
+  ;; why here?
+  (make-local-variable 'major-mode)
+  (make-local-variable 'mode-name)
   (setq major-mode 'ee-mode
         mode-name "ee")
   (run-hooks 'ee-mode-hook)
