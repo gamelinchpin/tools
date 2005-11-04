@@ -25,9 +25,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
-
+(eval-when-compile
+  (require 'source-safe))
 (message "loading WinBlows-specific crap.")
-
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -136,14 +136,20 @@
    "-*-Lucida Console-normal-r-*-*-12-*-*-*-c-*-*")
   )
  ((equal res "1024x768")
-  (setcdr (assoc 'height initial-frame-alist) '46)
+  (setcdr (assoc 'height initial-frame-alist) '45)
   (set-default-font 
-   "-*-Lucida Console-normal-r-*-*-13-*-*-*-c-*-*")
+;;   "-*-Lucida Sans Typewriter-normal-r-*-*-13-*-*-*-*-*-*")
+   "-*-Lucida Console-normal-r-*-*-15-*-*-*-c-*-*")
   )
  ((equal res "1152x864")
-  (setcdr (assoc 'height initial-frame-alist) '53)
+  ;; For NT, the height is '53.  For XP, it's down to '51
+  ;;;(setcdr (assoc 'height initial-frame-alist) '51)
+  ;;;(set-default-font 
+  ;;; "-*-Lucida Console-normal-r-*-*-15-*-*-*-c-*-*")
+  ;; For larger fonts, one could do this:
+  (setcdr (assoc 'height initial-frame-alist) '43)
   (set-default-font 
-   "-*-Lucida Console-normal-r-*-*-15-*-*-*-c-*-*")
+   "-*-Lucida Console-normal-r-*-*-17-*-*-*-c-*-*")
   )
   ;;else
  (t
@@ -177,7 +183,14 @@
  (list 'cygwin-mount-cygwin-bin-directory cygwin-binpath)
  '(cygwin-mount-build-mount-table-asynch t)
  )
-(require 'cygwin-mount)
+;;; NOTE:
+;;; I have a "cygwin32-mount" file on Linux, but a "cygwin-mount" file on my
+;;; winboxen.  To resolve the inconsistency (it looks like the /.*32-.*/
+;;; version is the older one), I'll do some compile-time fancy-footwork.
+(eval-when-compile
+  (or (require 'cygwin-mount nil t)
+      (and (require 'cygwin32-mount nil t)
+           (defalias 'cygwin-mount-activate 'cygwin32-mount-activate))))
 (cygwin-mount-activate)
 
 ;; I've forgotten what this does.

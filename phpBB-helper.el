@@ -37,7 +37,6 @@
 (defgroup phpBB nil
   "Customizable aspects of phpBB-mode.
 {jpw: 02/05}"
-  :group 'editing
   :group 'hypermedia
   :group 'local)
 

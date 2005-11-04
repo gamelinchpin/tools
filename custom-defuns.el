@@ -25,6 +25,12 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
+(eval-when-compile
+  (require 'cperl-mode)
+;;  (require 'sgml-mode)
+  (require 'xml-lite)
+  (require 'sql))
+
 ;;----------------------------------------------------------------------
 ;;
 ;; Customization/Setup Tools
@@ -203,6 +209,11 @@ be removed.  The others will be left alone.
   )
 
 
+;; N.B.:  When byte-compiling this file, you'll get warning about
+;;        `jpw-unfill-skip-line not being defined.  Ignore it; the file still
+;;        compiles.
+;;        I tried several techniques to remove this warning, but was
+;;        unsuccessful.
 (defun jpw-unfill-buffer (&optional remove-blank-line)
   "Calls `jpw-unfill-paragraph' on every paragraph in the buffer.
 
@@ -436,13 +447,6 @@ its own comment line {jpw: 07/04}"
   (recenter))
 
 
-(defun decode-xml ()
-  "Decode an xml buffer in utf-16 {jpw: 2/01}."
-  (interactive)
-  (require 'oc-unicode)
-  (decode-coding-region (point-min) (point-max) 'utf-16-le-dos))
-
-
 (defun c-no-comment-stars ()
   (interactive)
   ;; For Emacs 20.* or earlier
@@ -458,29 +462,28 @@ is set to {jpw: 3/02}."
   (funcall comment-line-break-function))
 
 
-;; Unicode Support, X-Windows mode
-(defun use-unicode()
+(defun use-utf()
+  "Force use of Mule UTF encodings. {jpw; 11/05}"
   (interactive)
-  (require 'oc-unicode)
-  (if (eq window-system 'x)
-      (progn
-        (oc-create-fontset
-         "-misc-fixed-medium-r-normal--18-*-*-*-*-*-fontset-standard"
-         "-misc-fixed-medium-r-normal-ja-18-*-iso10646-*")
-        (oc-create-fontset
-         "-misc-fixed-medium-r-normal--15-*-*-*-*-*-fontset-standard"
-         ; 18x15 doesn't exist yet, so compromise and use 18x18 
-         ;"-misc-fixed-medium-r-normal-ja-15-*-iso10646-*")
-         "-misc-fixed-medium-r-normal-ja-18-*-iso10646-*")
-        (oc-create-fontset
-         "-misc-fixed-medium-r-normal--13-*-*-*-*-*-fontset-standard"
-         "-misc-fixed-medium-r-normal-ja-13-*-iso10646-*")
-        )
-    (oc-create-fontset
-     "-misc-fixed-medium-r-normal--13-*-*-*-*-*-fontset-standard"
-     "-misc-fixed-medium-r-normal-ja-13-*-iso10646-*")
-    )
+  ;; Taken from `loadup.el'
+  (load "international/mule")
+  (load "international/mule-conf.el")  ; Don't get confused if someone
+                                       ; compiled this by mistake.
+  (load "international/mule-cmds")
+  (load "case-table")
+  (load "international/utf-8")
+  (load "international/utf-16")
+  (load "international/characters")
+  (load "international/ucs-tables")
   )
+
+
+(defun decode-utf16 ()
+  "Decode a buffer in utf-16 {jpw: 11/05}."
+  (interactive)
+  (use-utf)
+  (decode-coding-region (point-min) (point-max) 'utf-16-le-dos))
+(defalias 'decode-xml 'decode-utf16)
 
 
 (defun rebind-to (key map-or-cmd required-lib-name)
@@ -606,9 +609,11 @@ extended using an EOL-\"\\\"-char.  {jpw; 12/04}"
 (defun use-jpw-style-elisp ()
   (interactive)
   (auto-fill-mode 1)
+  (show-paren-mode 1)
   (global-set-key "\C-cg" 'goto-char)
   (local-set-key "\C-cd" 'edebug-eval-top-level-form)
   (local-set-key "\C-c\C-d" 'edebug-eval-top-level-form)
+  (local-set-key "\C-ce" 'eval-defun)
   )
 
 
@@ -680,12 +685,15 @@ extended using an EOL-\"\\\"-char.  {jpw; 12/04}"
 
 
 (defun jpw-set-sgml-indent (arg)
-  "Set indentation size for SGML modes. {jpw: 3/03}"
-  (interactive "nIndent Size: ")
-  (setq tab-width arg)
-  (setq sgml-indent-data t
-        sgml-indent-step arg)
-  )
+ "Set indentation size(s) for SGML modes. {jpw: 11/05}"
+ (interactive "nIndent Size: ")
+ (make-local-variable 'tab-width)
+ (make-local-variable 'custom-buffer-indent)
+ (make-local-variable 'standard-indent)
+ (setq tab-width arg
+       custom-buffer-indent arg
+       standard-indent arg)
+ )
 
 
 (defun use-jpw-style-sgml ()
