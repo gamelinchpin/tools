@@ -136,7 +136,10 @@ This uses the `repository-hostname' backend operation."
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (eval-after-load "vc"
-  (quote (add-to-list 'vc-handled-backends 'SVN)))
+  (quote (progn (add-to-list 'vc-handled-backends 'SVN)
+                (setq vc-dired-listing-switches "-Al")
+                (add-to-list 'vc-directory-exclusion-list ".svn")
+                )))
 
 (require 'vc)
 (provide 'vc-svn-wrapper)
