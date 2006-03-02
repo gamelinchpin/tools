@@ -7,7 +7,7 @@
 ;
 ;  Only needed for pre v20.* of Emacs.
 ;
-;  last modified 9/98            (jpw)
+;  last modified 9/98            {jpw}
 ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -120,7 +120,7 @@ See the documentation for the function `change-fonts-font-lock-mode'
 for more info.
 
 
-(jpw 11/95)")
+{jpw 11/95}")
 
 
 ;
@@ -492,7 +492,7 @@ it, unless it's for a mode-hook.  Use the function
 examples!
 
 
-(jpw 11/95)"
+{jpw 11/95}"
 
   (cond ( (string= "lisp" typestr)
 		(progn
@@ -827,7 +827,7 @@ anything else:          user-*-font
 ------------------------------------------
 
 
-(jpw 11/95)"
+{jpw 11/95}"
 
   (interactive)
   (progn

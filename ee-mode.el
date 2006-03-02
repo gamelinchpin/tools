@@ -141,7 +141,7 @@ expressions.
 {jpw: 10/05}")
 (defconst ee-mode-language-fn-re
   (eval-when-compile
-    (regexp-opt ee-mode-language-fn-list t)
+    (concat "\\<" (regexp-opt ee-mode-language-fn-list t))
     ))
 
 
@@ -256,17 +256,17 @@ expressions.
   )
 (defconst ee-mode-keyword-re
   (eval-when-compile
-    (regexp-opt ee-mode-keyword-list t)
+    (concat "\\<" (regexp-opt ee-mode-keyword-list t))
     ))
 
 
 (defconst ee-mode-globals-list
-  '("rds" "txn" "updateIdx" "updateOp")
+  '("rds" "sds" "txn" "updateIdx" "updateOp")
   "Expression Evaluator global vars & expressions.
 {jpw: 10/05}")
 (defconst ee-mode-globals-re
   (eval-when-compile
-    (regexp-opt ee-mode-globals-list t)
+    (concat "\\<" (regexp-opt ee-mode-globals-list t) "\\>")
     ))
 
 
@@ -313,18 +313,20 @@ or other form of messages.
 
 (defconst ee-mode-blockelement-re
   (eval-when-compile
-    (regexp-opt 
-     (sort
-      ;; The order of the following is important, since:
-      ;; (1) `append' doesn't copy its last arg
-      ;; (2) `sort' modifies the list passed to it.
-      (append ee-mode-generic-blockdefn-list
-              ee-mode-expression-defn-list
-              ee-mode-error-defn-list
-              ee-mode-linkmgr-defn-list
-              (copy-list ee-mode-db-defn-list))
-      'string-lessp)
-     )
+    (concat "\\<" 
+            (regexp-opt 
+             (sort
+              ;; The order of the following is important, since:
+              ;; (1) `append' doesn't copy its last arg
+              ;; (2) `sort' modifies the list passed to it.
+              (append ee-mode-generic-blockdefn-list
+                      ee-mode-expression-defn-list
+                      ee-mode-error-defn-list
+                      ee-mode-linkmgr-defn-list
+                      (copy-list ee-mode-db-defn-list))
+              'string-lessp)
+             )
+            )
     ) ;; end eval-when-compile
   ) ;;end defconst
 
@@ -338,7 +340,7 @@ or other form of messages.
 
 
 (defconst ee-mode-var-re
-  "\\(\\w+\\)\\(##?[sid]\\)")
+  "\\<\\(\\w+\\)\\(##?[sid]\\)\\>")
 
 
 ;;
@@ -368,7 +370,9 @@ or other form of messages.
     (modify-syntax-entry ?\" "$" nutable)
     (modify-syntax-entry ?\\ "\\" nutable)
     nutable);;end let
-  "Syntax table for use in ee-mode buffers.")
+  "Syntax table for use in ee-mode buffers.
+Makes '_' into a word character and turns \' and \" into paired delimiters,
+instead of string quote delimiters.")
 
 
 ;;------------------------------------------------------------
@@ -429,8 +433,14 @@ or other form of messages.
 ;; 
 
 
+;;
+;; Support var, consts, & defsubsts (i.e. ones used by the Font-Lock MATCHER
+;; defuns and keyword lists).
+;;
+
+
 (defconst ee-mode-font-lock-comment-re
-  "\\(!\\(==+.*\\|[^=].*\\|\\)$\\)")
+  "\\(!$\\|!\\(==+.*\\|[^=].*\\)$\\)")
 
 
 (defconst ee-mode-font-lock-keywords
@@ -439,6 +449,91 @@ or other form of messages.
           '(1 'font-lock-keyword-face nil)
           ))
   )
+
+
+;;
+;; Font-lock MATCHER functions.
+;;
+;; Must be a function instead of a regexp.  Will be called with
+;; a single arg:  the limit of the search, and on success:
+;;   1. Must return non-nil
+;;   2. Must set `match-data' accordingly.
+;;   3. It must move `point' past `match-beginning', or font-lock will loop
+;;      forever.
+;;
+
+
+(defun ee-mode-find-comment (upper-limit)
+  ;; Leave docstring blank, except for date.  Use doc-comments, instead.
+  "{jpw: 10/05}"
+  ;;
+  ;; Examines region between `point' and `upper-limit', looking for all
+  ;; comments.  Sets the `match-data' to a list of points as
+  ;; follows:
+  ;; 
+  ;;    ( all-matched-begin-p  all-matched-end-p
+  ;;      comment-begin-p      comment-end-p )
+  ;;
+  ;; Unfortunately, EE uses the '!' char for comment start, which makes it
+  ;; difficult to tell it apart from the boolean negation operator.  This
+  ;; function performs the extra analysis needed to discern the two.
+  (let* ((search-start-p (point))
+         ;; Perform the search at var-defn time.
+         (found-match
+          (re-search-forward ee-mode-font-lock-comment-re upper-limit t))
+         (comment-start-p (match-beginning 0))
+         (comment-end-p (match-end 0))
+         first-word-end-p
+         );; end var defs
+
+    ;; First, check for simple overzealous cases, where the negated flag
+    ;; follows a boolean operator or starts an expression.
+    (and
+     found-match
+     (goto-char (1+ comment-start-p))
+     (re-search-backward "\\(?:&&\\|||\\)\\s *!" 
+                         (min (line-beginning-position) search-start-p)
+                         t)
+     ;; If we match, skip it.
+     (setq found-match nil)
+     ) ;; end and
+    (and
+     ;; Find where the first "word" after the '!' char ends.
+     ;; This search is needed by subsequent checks.
+     found-match
+     (goto-char comment-start-p)
+     (re-search-forward "!\\s *\\w\\S *" 
+                        (min (line-end-position) upper-limit) t)
+     (setq first-word-end-p (match-end 0))
+     ;; Check if the negated flag preceeds any boolean operators or a
+     ;; close-paren.
+     (goto-char first-word-end-p) ;; For emacs elisp-mode (
+     (or
+      ;; Boolean operator follows 1st word, with optional whitespace between.
+      (looking-at "\\s *\\(?:&&\\|||\\)")
+      ;; Whitespace, then comma or paren, follows 1st word
+      (looking-at "\\s +[,)]")
+      )
+     ;; If we match, skip it.
+     (setq found-match nil)
+     ) ;; end and
+
+    ;; Prepare the results.
+    (if found-match
+        (progn (set-match-data (list comment-start-p comment-end-p 
+                                     comment-start-p comment-end-p))
+               (goto-char comment-end-p)
+               )
+      );; end if
+    );; end let
+  )
+
+
+;;
+;; Individual `font-lock-keyword' lists.  Each value is of the same form as an
+;; element of `font-lock-keywords'; see that variable's documentation for more
+;; info.
+;;
 
 
 (defconst ee-mode-font-lock-keywords-1
@@ -474,7 +569,8 @@ or other form of messages.
     '(1 'ee-mode-syntactic-punctuation-face prepend))
    ;; Does definition ordering matter for FontLock?  If so, these must come
    ;; last.
-   (list ee-mode-font-lock-comment-re '(1 'font-lock-comment-face t))
+;;   (list ee-mode-font-lock-comment-re '(1 'font-lock-comment-face t))
+   (list 'ee-mode-find-comment '(1 'font-lock-comment-face t))
    (list
     "[^!']*\\('[^\\\\']*\\(\\\\.[^\\\\']*\\)*'\\)"
     '(1 'font-lock-string-face append))
