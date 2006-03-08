@@ -62,7 +62,7 @@
   "The face to use for non-markup jpw-lj tags."
   :group 'jpw-lj)
 
-(defface jpw-lj-size-face 
+(defface jpw-lj-type-face 
   '((t (:inherit font-lock-type-face)))
   "The face to use for size markup."
   :group 'jpw-lj)
@@ -90,25 +90,7 @@
 ;; 
 
 
-(defvar jpw-lj-tag-analysis-cache '()
-  "Contains the most recent result of a call to `jpw-lj-tag-analysis'.
-{jpw: 03/06}")
-
-
-(defvar jpw-lj-t-a-c-l-u-buffer-state '(t 0 0)
-  "Internal variable used by `jpw-lj-tag-analysis'.
-{jpw: 03/06}")
-
-
-;;------------------------------------------------------------
-;;
-;; Tag-Type-Specific Constants
-;; 
-
-
-(defconst jpw-tag-finder-re "<.+>")
-(defconst jpw-tag-end-re "</")
-(defconst jpw-tag-full-startend-re "</?\\([^>=]+\\)\\(=[^>]+\\)?>")
+;...
 
 
 ;;------------------------------------------------------------
@@ -117,485 +99,7 @@
 ;; 
 
 
-(defsubst jpw-lj-tag-find-last (&optional pos boundpos)
-  "Searches backward from `pos' (defaults to `point') for the nearest HTML
-tag.  Returns a list of the form:
-
-\(START-TAG END-TAG\)
-
-Either START-TAG or END-TAG will be nil, indicating the type of tag in that
-direction.  If both are nil (i. e. no tags were found), returns nil instead of
-a list.
-
-The optional `boundpos' is an integer buffer position.  It stops the search at
-that position.  If no tag is found before `boundpos', the function returns
-nil.  The default is to search backward to the beginning of the buffer.
-
-Alters `point'.  Be sure to call this only from within a `save-excursion'.
-{jpw: 03/06}"
-  (if pos (goto-char pos))
-  (let (last-start-tag
-        last-end-tag
-        the-tag) ;; end var defs
-    (if (re-search-backward jpw-tag-finder-re boundpos t)
-        (if (looking-at jpw-tag-end-re)
-            (setq last-end-tag (point))
-          ;;else
-          (setq last-start-tag (point))
-          )
-      ) ;; end if
-    (if (or last-start-tag last-end-tag)
-        (list last-start-tag last-end-tag))
-    ) ;;end let
-  )
-
-
-(defsubst jpw-lj-tag-find-next (&optional pos boundpos)
-  "Searches forward from `pos' (defaults to `point') for the nearest HTML
-tag.  Returns a list of the form:
-
-\(START-TAG END-TAG\)
-
-Either START-TAG or END-TAG will be nil, indicating the type of tag in that
-direction.  If both are nil (i. e. no tags were found), returns nil instead of
-a list.
-
-The optional `boundpos' is an integer buffer position.  It stops the search at
-that position.  If no tag is found before `boundpos', the function returns
-nil.  The default is to search forward to the end of the buffer.
-
-Alters `point'.  Be sure to call this only from within a `save-excursion'.
-{jpw: 03/06}"
-  (if pos (goto-char pos))
-  (let (next-start-tag
-        next-end-tag) ;; end var defs
-    (if (re-search-forward jpw-tag-finder-re boundpos t)
-        (progn
-          (goto-char (match-beginning 0))
-          (if (looking-at jpw-tag-end-re)
-              (setq next-end-tag (point))
-            ;;else
-            (setq next-start-tag (point))
-            )
-          )
-      ) ;; end if
-    (if (or next-start-tag next-end-tag)
-        (list next-start-tag next-end-tag))
-    ) ;;end let
-  )
-
-
-(defsubst jpw-lj-get-tag-at (&optional pos)
-  "Extract the name of the HTML tag at `pos', or `point' if pos is omitted.
-If `pos' is a list, uses the first non-nil element.  (Actually, it checks only
- the `car' or `cadr'.)
-
-Alters `point'.  Be sure to call this only from within a `save-excursion'.
-{jpw 03/05}"
-  (if pos 
-      (if (listp pos)
-          (goto-char (cond ((car pos)) ((cadr pos))))
-        ) ;; end if listp
-    ;; else:  scalar
-    (goto-char pos)
-    )
-  (if (looking-at jpw-tag-full-startend-re)
-      (match-string-no-properties 1)) 
-  )
-
-
-(defsubst jpw-lj-tag-pos-to-syntactic (search-result)
-  "Used by several of the defun's below.  Converts `search-result' the list
-returned by `jpw-lj-tag-find-last' or `jpw-lj-tag-find-next' to a list
-of the form:
-
-\(POS IS_ENDTAG TAG_NAME\)
-
-This defun *greatly* simplifies all of the subsequent syntactic analysis code.
-{jpw: 03/06}"
-  (if search-result
-      (let ((is-end-tag (and (cadr search-result) t))
-            (tag-pos (or (car search-result) (cadr search-result)))
-            ) ;;end var defs
-        (list tag-pos is-end-tag (jpw-lj-get-tag-at tag-pos))
-        ) ;;end let
-    ) ;; end if
-  )
-
-
-(defsubst jpw-lj-tag-find-nearest (&optional pos-last-start 
-                                             pos-next-end
-                                             from-pos
-                                             to-pos)
-  "Used by `jpw-lj-tag-analysis'.  Returns a list of the form:
-
-\(LAST NEXT\)
-
-...or nil if no tags were found.  LAST and NEXT are both lists describing the
-preceding and next nearest tags, respectively.  The lists both take the form:
-
-\(POS IS_ENDTAG TAG_NAME\)
-
-...or `nil' if no tag was found in that direction.
-
-The optional argument `pos-last-start' is the buffer position of the nearest
-start-tag found.  The search for the next start-tag will start here.  (Default
-is to start at `point'.)  Similarly, `pos-next-end' is the position of the
-nearest end-tag found, and will be used as the starting point for the next end
-tag.  (Again, the default is to start searching at `point'.)
-
-`from-pos' and `to-pos' are, respectively, the upper and lower bounds of the
-search.  This lets you narrow the tag search to the region between these two
-positions without having to call `narrow-to-region'.  The default is to search
-the entire buffer.
-
-Alters `point'.  Be sure to call this only from within a `save-excursion'.
-{jpw: 03/06}"
-  (if (not pos-last-start) (setq pos-last-start (point)))
-  (if (not pos-next-end) (setq pos-next-end pos-last-start))
-  (let* ((last (jpw-lj-tag-pos-to-syntactic
-                (jpw-lj-tag-find-last pos-last-start from-pos)))
-         (next (jpw-lj-tag-pos-to-syntactic
-                (jpw-lj-tag-find-next pos-next-end to-pos)))
-         ) ;; end var defs    
-
-    (if (or last next)
-        (list last next))
-    ) ;;end let
-  )
-
-
-(defsubst jpw-lj-tag-analysis-ignore (tag)
-  "Returns `t' when syntactic tag analysis should ignore `tag', `nil'
-otherwise.
-{jpw: 03/06}"
-  (equal tag "*")
-  )
-
-
-(defsubst jpw-lj-tag-skip-ignorable (nearest
-                                     &optional from-pos to-pos)
-  "Extension of `jpw-lj-tag-find-nearest' which skips tags that
-`jpw-lj-tag-analysis-ignore' returns `t' for.  
-
-`nearest' should be the a list of the same form returned by
-`jpw-lj-tag-find-nearest', which is what this defun evals to, as well.
-
-`from-pos' and `to-pos' are, respectively, the upper and lower bounds of the
-search.  This lets you narrow the tag search to the region between these two
-positions without having to call `narrow-to-region'.  The default is to search
-the entire buffer.
-
-Alters `point'.  Be sure to call this only from within a `save-excursion'.
-{jpw: 03/06}"
-  (and 
-   nearest
-   (let* ((info-last-tag (car nearest))
-          (info-next-tag (cadr nearest))
-          ) ;;end var defs
-
-     ;; Check the preceding tag
-     (while (and info-last-tag
-                 (jpw-lj-tag-analysis-ignore (caddr info-last-tag)))
-       (setq info-last-tag 
-             (jpw-lj-tag-pos-to-syntactic
-              (jpw-lj-tag-find-last (car info-last-tag) from-pos)))
-       ) ;; end backward search
-
-     ;; Check the following tag
-     (while (and info-next-tag
-                 (jpw-lj-tag-analysis-ignore (caddr info-next-tag)))
-       (setq info-next-tag 
-             (jpw-lj-tag-pos-to-syntactic
-              (jpw-lj-tag-find-next (1+ (car info-next-tag)) to-pos)))
-       ) ;; end forward search
-
-     ;; The new positions, free of non-syntactic tags.
-     (and info-last-tag info-next-tag
-          (list info-last-tag info-next-tag))
-     ) ;; end let*
-   ) ;; end and
-  )
-
-
-(defun jpw-lj-tag-find-enclosing (&optional pos-last-start 
-                                            pos-next-end
-                                            skip-unanalyzable-tags
-                                            from-pos
-                                            to-pos)
-  "Search forward and backward to see what tags we're immediately
-enclosed in.  Returns a list of the form:
-
-\(TAG \(START END\)\)
-
-START and END denote the locations of the 1st character of the start-tag and
-end-tag, respectively.
-
-The backward search begins from `pos-last-start', or `point' if not set.  The
-forward search begins from `pos-next-end', or `pos-last-start' if not set.
-\(`pos-last-start' is checked first.\)
-
-`from-pos' and `to-pos' are, respectively, the upper and lower bounds of the
-search.  This lets you narrow the tag search to the region between these two
-positions without having to call `narrow-to-region'.  The default is to search
-the entire buffer.
-
-Returns nil if `point' is not enclosed in any HTML tags whatsoever.  
-
-Returns a `nil' TAG when the nearest tags aren't a matching \"[TAG]
-... [/TAG]\" pair.
-{jpw: 03/06}"
-  (if (not pos-last-start) (setq pos-last-start (point)))
-  (if (not pos-next-end) (setq pos-next-end pos-last-start))
-  (save-excursion
-    (let* ((tmp-nearest-pair
-            (if skip-unanalyzable-tags
-                (jpw-lj-tag-skip-ignorable
-                 (jpw-lj-tag-find-nearest pos-last-start pos-next-end
-                                          from-pos to-pos)
-                 from-pos to-pos)
-              ;; else
-              (jpw-lj-tag-find-nearest pos-last-start pos-next-end
-                                       from-pos to-pos)
-              ) ;;end if
-            )
-           (info-last-tag (car tmp-nearest-pair))
-           (info-next-tag (cadr tmp-nearest-pair))
-           (last-tag (caddr info-last-tag))
-           (next-tag (caddr info-next-tag)) 
-           nested-tag-count
-           ) ;;end var defs
-
-      ;; Here are the various cases we're looking for:
-
-      (and
-       ;; Edge Cases:    
-       ;;   ..pt.. [TAG]
-       ;;   ..pt.. [/TAG]
-       ;;   [/TAG] ..pt.. 
-       ;;   [TAG] ..pt.. 
-       ;;   ..pt..
-       ;; Returns `nil'
-       info-last-tag info-next-tag
-       ;; end: edge cases
-
-       ;; Design Note:  The boolean logic of the first case:
-       ;;
-       ;;   (and (not is-edge-case) (cond ... other-cases ...))
-       ;; 
-       ;; makes use of shortcut-side-effects.  When faced with the edge case,
-       ;; the (and ...) will stop here an eval to `nil', as desired.
-       ;;
-       ;; The first case is structured this way because it's a prerequisite to
-       ;; all of the following ones, whose code may puke on a missing
-       ;; last/next tag.
-
-       ;; All subsequent cases.
-       (cond
-        ;; [/TAG] ..pt.. [TAG]
-        ;; [/TAG1] ..pt.. [TAG2]
-        ;; => We are in-between tags.  We may be in a higher-level
-        ;;    outer tag, but that's not this function's concern.
-        ;;    Returns `nil' and the tag positions.
-        ((and (cadr info-last-tag) (not (cadr info-next-tag)))
-         ;; Result List
-         (list nil (list (car info-last-tag) (car info-next-tag)))
-         ) ;; end: between tags
-
-        ;; [TAG] ..pt.. [/TAG]
-        ;; => We're inside the named tag.  This is a simple case.
-        ;; [TAG1] ..pt.. [/TAG2]
-        ;; => Malformed tag.  Returns `nil'
-        ((and (not (cadr info-last-tag)) (cadr info-next-tag))
-         (if (equal last-tag next-tag)
-             ;; Result List
-             (list last-tag (list (car info-last-tag) (car info-next-tag)))
-           ) ;;end if
-         ) ;; end: Inside tags.
-
-        ;; [TAG1] ..pt.. [TAG2]
-        ;; [TAG1] ..pt.. [TAG1]
-        ((not (or (cadr info-last-tag) (cadr info-next-tag)))
-         ;; We're between two start tags.  Search forwards for the
-         ;; matching end tag.
-         ;; The latter case, where a tag is nested inside of itself, is
-         ;; allowed, and must be handled by counting repeated occurrences of
-         ;; "TAG1".
-         (setq nested-tag-count
-               (if (equal last-tag (caddr info-next-tag)) 2 1))
-         (while (and info-next-tag
-                     (> nested-tag-count 0))
-           ;; Note:  To prevent `jpw-lj-tag-find-next' from "getting
-           ;; stuck" at the tag we found on the last iteration, we need to
-           ;; start the search one char forward from `pos-next-end'.
-           (setq info-next-tag 
-                 (jpw-lj-tag-pos-to-syntactic
-                  (jpw-lj-tag-find-next (1+ (car info-next-tag)) to-pos)))
-           (if (equal last-tag (caddr info-next-tag))
-               (if (cadr info-next-tag) ;; is end tag
-                   (setq nested-tag-count (1- nested-tag-count))
-                 ;; else:  it's a nested start tag 
-                 (setq nested-tag-count (1+ nested-tag-count))
-                 ) ;;end if end-or-start tag
-             ) ;;end if equal
-           ) ;; end while
-
-         ;; Loop stopped.  Do we have a result?
-         (if info-next-tag
-             ;; Result List
-             (list last-tag (list (car info-last-tag) (car info-next-tag)))
-           ) ;;end if
-         ) ;; end: Between two start tags.
-
-        ;; [/TAG1] ..pt.. [/TAG2]
-        ;; [/TAG2] ..pt.. [/TAG2]
-        ((and (cadr info-last-tag) (cadr info-next-tag))
-         ;; We're between end start tags.  Search backwards for the
-         ;; matching start tag.
-         ;; The latter case, where a tag is nested inside of itself, is
-         ;; allowed, and must be handled by counting repeated occurrences of
-         ;; "TAG2".
-         (setq nested-tag-count
-               (if (equal (caddr info-last-tag) next-tag) 2 1))
-         (while (and info-last-tag
-                     (> nested-tag-count 0))
-           (setq info-last-tag 
-                 (jpw-lj-tag-pos-to-syntactic
-                  (jpw-lj-tag-find-last (car info-last-tag) from-pos)))
-           (if (equal (caddr info-last-tag) next-tag)
-               (if (cadr info-last-tag) ;; is end tag
-                   (setq nested-tag-count (1+ nested-tag-count))
-                 ;; else:  it's a matching start tag 
-                 (setq nested-tag-count (1- nested-tag-count))
-                 ) ;;end if end-or-start tag
-             ) ;;end if equal
-           ) ;; end while
-
-         ;; Loop stopped.  Do we have a result?
-         (if info-last-tag
-             ;; Result List
-             (list next-tag (list (car info-last-tag) (car info-next-tag)))
-           ) ;;end if
-         ) ;; end: Between two end tags.
-
-        ;; Else:
-        ;; Error - unknown case.  Return nil.
-        (nil)
-        ) ;;end cond : tag cases.
-       ) ;; end edge-case `and'
-      ) ;;end let
-    ) ;;end excursion
-  )
-
-
-(defun jpw-lj-tag-nested-analysis ()
-  "Search forward and backward from `point' to see what tags we're enclosed
-in.  Each pair is the position of the start tag and end tag, respectively.
-The list of pairs is built from the inside-out.  The results are stored in the
-variable `jpw-lj-tag-analysis-cache', in a depth-descending order.
-
-So, `\(car \(caadr \(jpw-lj-tag-analysis-cache\)\)\)' would return the
-position of the outermost start tag.
-
-The result of analysis is nil if `point' is not enclosed in any HTML tags.
-{jpw: 03/06}"
-  (let* ((buffer-state (list (buffer-modified-p) (buffer-modified-tick)
-                             (buffer-size)))
-         ;; Point the iterator at the cdr, so we can manipulate the
-         ;; cache through the iterator.
-         (cache-pos-cdr-iter (cons 'nil jpw-lj-tag-analysis-cache))
-         ;; Simple work variable to make the code more readable; contains the
-         ;; current taginfo list, the cdr of which holds the tag locations.
-         (taginfo-from-iter (cadr cache-pos-cdr-iter))
-         ;; Pull out the first pair of positions.
-         (cached-startag-pos (car (cadr taginfo-from-iter)))
-         (cached-endtag-pos (cadr (cadr taginfo-from-iter)))
-         from-pos 
-         to-pos
-         analysis-cache-working
-         current-tagspec
-         ) ;;end var defs
-
-    ;; Examine cached state, removing any state no longer consistent with our
-    ;; current position.
-    (if (equal jpw-lj-t-a-c-l-u-buffer-state buffer-state)
-        (progn
-          (while (and (not (or (null taginfo-from-iter)
-                               (null cached-startag-pos)
-                               (null cached-endtag-pos))) ;; Guard conds
-                      ;; What we really want to check:
-                      (<= cached-startag-pos (point))
-                      (<= (point) cached-endtag-pos)
-                      )
-            (setq 
-             ;; Update the search bounds with the old position
-             from-pos cached-startag-pos
-             to-pos cached-endtag-pos
-             ;; Bump the iterator.
-             cache-pos-cdr-iter (cdr cache-pos-cdr-iter)
-             taginfo-from-iter (cadr cache-pos-cdr-iter)
-             ;; Pull out the next pair of positions.
-             cached-startag-pos (car (cadr taginfo-from-iter))
-             cached-endtag-pos (cadr (cadr taginfo-from-iter))
-             )
-            ) ;;end while
-          (if taginfo-from-iter
-              (if (car cache-pos-cdr-iter)
-                  ;; Truncate the cache, removing all elements that point is
-                  ;; now outside of.
-                  (setcdr cache-pos-cdr-iter 'nil)
-                ;; else:
-                ;; We never executed the while-loop.  ==> Point is outside of
-                ;; everything in the cache.  Trash the old cache.
-                (setq jpw-lj-tag-analysis-cache '())
-                ) ;;end if
-            ) ;;end if taginfo-from-iter
-          ) ;;end progn
-      ;;
-      ;; else:
-      ;; Force a full reanalysis.
-      (setq jpw-lj-tag-analysis-cache '())
-      ) ;;end if-same-buffer-state
-
-    ;; We still want to attempt a constrained rebuild, however, as we may now
-    ;; be inside of a more deeply nested tag.  Consider this example:
-    ;;     <h1>dolor ipse <em>lorem</em> sit</h1>
-    ;; If point was at "i" on initial analysis, then moved to the "r" in
-    ;; "lorem," we couldn't use the cached analysis, now, could we?
-    (save-excursion
-      ;; Reset the buffer state and start rebuilding.
-      (setq jpw-lj-t-a-c-l-u-buffer-state buffer-state
-            current-tagspec (jpw-lj-tag-find-enclosing nil 
-                                                       nil 
-                                                       t 
-                                                       from-pos 
-                                                       to-pos)  
-            )
-      (while (car current-tagspec)
-        ;; Prepend each new tag pair.  Since we're searching outward, this
-        ;; builds `analysis-cache-working' in depth-descending order.
-        (setq analysis-cache-working
-              (cons current-tagspec analysis-cache-working)
-              )
-        ;;  Note the backward/forward offsetting by one character from the
-        ;;  positions of the last start/end tags.
-        (setq current-tagspec 
-              (jpw-lj-tag-find-enclosing (1- (caadr current-tagspec))
-                                         (1+ (cadadr current-tagspec))
-                                         t
-                                         from-pos
-                                         to-pos))
-        ) ;;end while
-      ) ;;end excursion
-
-    ;; Lastly, append the working analysis cache to the remnant of the old
-    ;; cache (both of which are in depth-descending order).  This will also
-    ;; make the contents of the cache the expression to which this defun
-    ;; evals.
-    (setq jpw-lj-tag-analysis-cache 
-          (nconc jpw-lj-tag-analysis-cache analysis-cache-working))
-    ) ;;end let
-  )
+;...
 
 
 ;;------------------------------------------------------------
@@ -610,8 +114,11 @@ The result of analysis is nil if `point' is not enclosed in any HTML tags.
 (define-skeleton jpw-html-size
   "Insert HTML font resizing tags, or puts the active region inside such tags.
 {jpw: 03/06}"
-  nil
-  "<!-- size>" _ "</size -->")
+  "Relative size change: "
+  "<font size=\"" 
+  (if (>= str 0) '\")
+  str 
+  "\">" _ "</font>")
 
 (define-skeleton jpw-html-italic
   "Insert HTML [physical] italics tags, or puts the active region inside HTML
@@ -649,7 +156,7 @@ strong tags.
   "<strong>" _ "</strong>")
 
 (define-skeleton jpw-html-code
-  "Insert HTML code tags, or puts the active region inside HTML list
+  "Insert HTML code tags, or puts the active region inside HTML code
 tags.
 {jpw: 03/06}"
   nil
@@ -761,7 +268,7 @@ Any other type is an error.
 
 
 (defsubst jpw-unfill-skip-line (next-nonws-char)
-  (char-equal (char-after next-nonws-char) ?\[)
+  (char-equal (char-after next-nonws-char) ?\<)
   )
 
 
@@ -799,9 +306,9 @@ buffer.
 
       (define-key jpw-lj-mode-map "\M-gu" 'jpw-html-underline)
 
-      (define-key jpw-lj-mode-map "\M-gs" 'jpw-html-size)
+      (define-key jpw-lj-mode-map "\M-g\C-s" 'jpw-html-size)
 
-      (define-key jpw-lj-mode-map "\M-po" 'jpw-html-code)
+      (define-key jpw-lj-mode-map "\M-go" 'jpw-html-code)
 
       (define-key jpw-lj-mode-map "\M-p\C-i" 'html-image)
 
@@ -837,81 +344,6 @@ buffer.
 
 
 ;;
-;; Support var, consts, & defsubsts (i.e. ones used by the Font-Lock MATCHER
-;; defuns and keyword lists).
-;;
-
-
-(defconst jpw-lj-re-foo "")
-
-(defsubst jpw-lj-search-foo (ulim-pt)
-  nil
-  )
-
-
-;;
-;; Font-lock MATCHER functions.
-;;
-;; Must be a function instead of a regexp.  Will be called with
-;; a single arg:  the limit of the search, and on success:
-;;   1. Must return non-nil
-;;   2. Must set `match-data' accordingly.
-;;   3. It must move `point' past `match-beginning', or font-lock will loop
-;;      forever.
-;;
-
-
-(defun jpw-lj-find-foo (upper-limit)
-  ;; Leave docstring blank, except for date.  Use doc-comments, instead.
-  "{jpw: 03/06}"
-  ;;
-  ;; Examines region between `point' and `upper-limit', looking for all
-  ;; multiply-nested quotes.  Sets the `match-data' to a list of points as
-  ;; follows:
-  ;; 
-  ;;    ( all-matched-begin-p all-matched-end-p
-  ;;      tag-begin-p                tag-end-p
-  ;;      start-tag-post-arg-begin-p start-tag-post-arg-end-p
-  ;;      singly-quoted-text-begin-p   singly-quoted-text-end-p
-  ;;      multiply-quoted-text-begin-p multiply-quoted-text-end-p )
-  ;;
-  ;; The first 4 elements will never be nil.  Any remaining elements could be
-  ;; nil.  There should never be isolated nil-elements, however.  They should
-  ;; always be pairs of nil's or pairs of positions.
-  ;;
-  ;; The `start-tag-post-arg-*-p' pair will be non-nil for a starting quote
-  ;; tag.  At the moment, it simply indicates the location of the
-  ;; starting-tag's closing square bracket.
-  ;;
-  ;; The last two pairs, `singly-quoted-text-*-p' and
-  ;; `multiply-quoted-text-*-p', are all nil when we find an ending quote tag
-  ;; that isn't nested in any other quote tags.  Otherwise *one* of two pairs
-  ;; will be nil.  The other pair marks the position of the text between quote
-  ;; tags.  As the name implies, which pair is non-nil indicates the type of
-  ;; quoted text (i.e. nested in another quote or not).
-  ;;
-  ;; We have two cases we need to deal with:
-  ;;
-  ;; 1. We're starting afresh, from the bobp.
-  ;; 2. We're starting inside of a tag, one already fontified.  The immediate
-  ;;    enclosing tag *may* be a quote.  Or, it may not.  We dunno.
-  ;;
-  ;; The following code is designed for the first case.  It doesn't work quite
-  ;; right with the second case.  However, the second case usually only arises
-  ;; during editing.  How often do you alter a quote of what someone else
-  ;; said?
-
-;;  (let* (tag1-start-pos 
-;;         tag1-end-pos
-;;         text-end-pos
-;;         quote-match-data
-;;         ) ;; end var defs
-    nil
-;;    ) ;; end let
-  )
-
-
-;;
 ;; Individual `font-lock-keyword' lists.  Each value is of the same form as an
 ;; element of `font-lock-keywords'; see that variable's documentation for more
 ;; info.
@@ -922,13 +354,13 @@ buffer.
   ;; See jpw-lj-font-lock-underline-face-key-1 for info
   (list
    (concat
-    "\\("
     "<strong>"
+    "\\("
     "[^<]*\\(<[^/]+/[^s][^>]*>[^<]*\\)*"
-    "</strong>"
     "\\)"
+    "</strong>"
     ) ;;end concat
-   '(1 'jpw-lj-bold-face prepend)
+   '(1 'jpw-lj-bold-face append)
    ) ;;end list
   ) ;;end defconst
 
@@ -937,13 +369,13 @@ buffer.
   ;; See jpw-lj-font-lock-underline-face-key-1 for info
   (list
    (concat
-    "\\("
     "<em>"
+    "\\("
     "[^<]*\\(<[^/]+/[^e][^>]*>[^<]*\\)*"
-    "</em>"
     "\\)"    
+    "</em>"
     ) ;;end concat
-   '(1 'jpw-lj-italic-face prepend)
+   '(1 'jpw-lj-italic-face append)
    ) ;;end list
   ) ;;end defconst
 
@@ -952,13 +384,13 @@ buffer.
   ;; See jpw-lj-font-lock-underline-face-key-1 for info
   (list
    (concat
-    "\\("
     "<b>"
+    "\\("
     "[^<]*\\(<[^/]+/[^b][^>]*>[^<]*\\)*"
-    "</b>"
     "\\)"
+    "</b>"
     ) ;;end concat
-   '(1 'jpw-lj-bold-face prepend)
+   '(1 'jpw-lj-bold-face append)
    ) ;;end list
   ) ;;end defconst
 
@@ -967,13 +399,13 @@ buffer.
   ;; See jpw-lj-font-lock-underline-face-key-1 for info
   (list
    (concat
-    "\\("
     "<i>"
+    "\\("
     "[^<]*\\(<[^/]+/[^i][^>]*>[^<]*\\)*"
-    "</i>"
     "\\)"    
+    "</i>"
     ) ;;end concat
-   '(1 'jpw-lj-italic-face prepend)
+   '(1 'jpw-lj-italic-face append)
    ) ;;end list
   ) ;;end defconst
 
@@ -983,13 +415,13 @@ buffer.
 (defconst jpw-lj-font-lock-underline-face-key-1
   (list
    (concat
-    "\\("
     "<u>"
+    "\\("
     "[^<]*\\(<[^/]+/[^u][^>]*>[^<]*\\)*"
-    "</u>"
     "\\)"    
+    "</u>"
     ) ;;end concat
-   '(1 'jpw-lj-underline-face prepend)
+   '(1 'jpw-lj-underline-face append)
    ) ;;end list
   ) ;;end defconst
 
@@ -1008,24 +440,24 @@ buffer.
 ;; Regexp for nested multiline "big tags".  This regexp is more general than
 ;; the one for underline, bold, or italic.  It matches tags that are more
 ;; than one character long, and handles tag attributes.
-(defconst jpw-lj-font-lock-size-face-key-2
+(defconst jpw-lj-font-lock-font-face-key-2
   (list
    (concat
-    "\\(<size\\)"
+    "\\(<font\\)"
     "=[^>]+"
     "\\(>\\)"
-    "\\([^<]*\\(<[^/]+/[^s][^]]*>[^<]*\\)*\\)"
-    "\\(</size>\\)"
+    "\\([^<]*\\(<[^/]+/[^f][^]]*>[^<]*\\)*\\)"
+    "\\(</font>\\)"
     ) ;;end concat
    '(1 'jpw-lj-tag-face t)
    '(2 'jpw-lj-tag-face t)
-   '(3 'jpw-lj-size-face append)
+   '(3 'jpw-lj-font-face append)
    '(5 'jpw-lj-tag-face t)
    ) ;;end list
   ) ;;end defconst
 
 
-;; Regexp similar to `jpw-lj-font-lock-size-face-key-2', but does not expect
+;; Regexp similar to `jpw-lj-font-lock-font-face-key-2', but does not expect
 ;; tag attributes.
 (defconst jpw-lj-font-lock-code-face-key-3
   (list
@@ -1041,55 +473,37 @@ buffer.
   ) ;;end defconst
 
 
-;; Regexp similar to `jpw-lj-font-lock-size-face-key-2', but does not expect
-;; tag attributes.
-(defconst jpw-lj-font-lock-pre-face-key-3
-  (list
-   (concat
-    "\\(<pre>\\)"
-    "\\([^<]*\\(<[^/]+/[^c][^]]*>[^<]*\\)*\\)"
-    "\\(</pre>\\)"
-    ) ;;end concat
-   '(1 'jpw-lj-tag-face t)
-   '(2 'jpw-lj-code-face t)
-   '(4 'jpw-lj-tag-face t)
-   ) ;;end list
-  ) ;;end defconst
-
-
 ;;
 ;; Variables grouping each font-lock keyword list by font-lock level.
 ;;
 
 
 (defconst jpw-lj-font-lock-keywords-1
-  (list jpw-lj-font-lock-strong-face-key-1
-        jpw-lj-font-lock-em-face-key-1
-        jpw-lj-font-lock-bold-face-key-1
-        jpw-lj-font-lock-italics-face-key-1
-        jpw-lj-font-lock-underline-face-key-1
-        ) ;;end list
+   (list jpw-lj-font-lock-strong-face-key-1
+         jpw-lj-font-lock-em-face-key-1
+         jpw-lj-font-lock-bold-face-key-1
+         jpw-lj-font-lock-italics-face-key-1
+         jpw-lj-font-lock-underline-face-key-1
+         ) ;;end list
   )
 
-(defconst jpw-lj-font-lock-keywords-2-common
+
+(defconst jpw-lj-font-lock-keywords-2
   (append jpw-lj-font-lock-keywords-1
-          (list jpw-lj-font-lock-size-face-key-2
+          (list jpw-lj-font-lock-font-face-key-2
                 jpw-lj-font-lock-string-face-key-2
                 ) ;;end list
           ) ;;end append
   )
-(defconst jpw-lj-font-lock-keywords-2
-  (append jpw-lj-font-lock-keywords-2-common
-          ) ;;end append
-  )
 
 (defconst jpw-lj-font-lock-keywords-3
-  (append jpw-lj-font-lock-keywords-2-common
+  (append jpw-lj-font-lock-keywords-2
           (list jpw-lj-font-lock-code-face-key-3
-                jpw-lj-font-lock-pre-face-key-3
                 ) ;;end list
           ) ;;end append
   )
+
+(defconst jpw-lj-font-lock-keywords jpw-lj-font-lock-keywords-3)
 
 
 ;; The actual value of `font-lock-defaults' for jpw-lj-mode
@@ -1102,9 +516,6 @@ buffer.
    '(jpw-lj-font-lock-keywords-1 jpw-lj-font-lock-keywords-2
                                  jpw-lj-font-lock-keywords-3)
    nil t
-   ;; Syntax table.  None used here.
-   '()
-   'backward-paragraph ;; Always a reasonable defun to use here.
    ) ;;end list
   )
 
@@ -1136,6 +547,8 @@ Key bindings:
   (make-local-variable 'lazy-lock-stealth-load)
   (make-local-variable 'lazy-lock-stealth-nice)
   (make-local-variable 'lazy-lock-stealth-verbose)
+  ;; Changing `font-lock-defaults' won't change the inherited
+  ;; font-locking-behavior.
   (setq font-lock-defaults jpw-lj-font-lock-defaults
         font-lock-multiline t
         ;; `jit-lock-mode' doesn't correctly fontify everything we want it to.
@@ -1163,13 +576,11 @@ Key bindings:
   ;; Things needed to circumvent behavior inherited by HTML mode.
   ;; 
 
-  ;;~~~;; Has no effect:
-  ;;~~~;;(make-local-variable 'sgml-tag-alist)
-  ;;~~~;;(make-local-variable 'sgml-face-tag-alist)
-  ;;~~~;;(setq sgml-tag-alist nil
-  ;;~~~;;      sgml-face-tag-alist nil)
-  ;;~~~;; This doesn't work:
-  ;;~~~;;(sgml-mode-common jpw-lj-font-lock-keywords-3 html-display-text)
+  ;; Override the default HTML-mode font-lock behavior 
+  (setq font-lock-keywords (append font-lock-keywords 
+                                   jpw-lj-font-lock-keywords-3))
+  (if font-lock-mode
+      (font-lock-fontify-buffer))
 
   ;; TODO:
   ;; Eventually, this will be moved into an if-statement controlled by a
