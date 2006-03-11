@@ -39,10 +39,22 @@
 
 
 (defgroup jpw-lj nil
-  "Customizable aspects of jpw-lj-mode.
-{jpw: 03/06}"
+  "Customizable aspects of jpw-lj-mode."
   :group 'hypermedia
   :group 'local)
+
+
+(defcustom jpw-lj-default-html-size-function 'jpw-html-size-relative
+  "Name of the default type of HTML tag to use for adjusting font size.
+
+ The three possible values are `jpw-html-size-relative', `jpw-html-size-small'
+and `jpw-html-size-big'.  The former uses a \"<span\"> tag with a font sizing
+style.  The other two use the HTML 4.0 tags, \"<small>\" or \"<big>\",
+respectively."
+  :type '(choice (const jpw-html-size-relative)
+                 (const jpw-html-size-small)
+                 (const jpw-html-size-big))
+  :group 'jpw-lj)
 
 
 (defface jpw-lj-bold-face 
@@ -90,16 +102,6 @@ replaces the old, deprecated \"<strike>\" tag."
   '((t (:inherit font-lock-keyword-face
                  :underline t :bold t)))
   "The face to use for URLs."
-  :group 'jpw-lj)
-
-
-(defcustom jpw-lj-html-size-function 'jpw-html-size-relative
-  "Name of a function to use for inserting an HTML tag that adjusts the font
-size.  The two possible values are `jpw-html-size-relative' and
-`jpw-html-size-smallbig'.  The former uses a \"<span\"> tag with a font sizing
-style.  The latter uses the two HTML 4.0 tags, \"<small>\" and \"<big>\"."
-  :type '(choice (function-item 'jpw-html-size-relative)
-                 (function-item 'jpw-html-size-smallbig))
   :group 'jpw-lj)
 
 
@@ -249,9 +251,9 @@ sign of the change arg.
 {jpw: 03/06}"
   "Relative size change: "
 ;;  (setq input 0)
-  (if (> str 0) "<small>" "<big>")
+  "<" (if (> str 0) "small" "big") ">"
   _ 
-  (if (> str 0) "</small>" "</big>")
+  "</" (if (> str 0) "small" "big") ">"
   )
 
 
@@ -411,6 +413,27 @@ Any other type is an error.
   )
 
 
+(define-skeleton jpw-html-size-small
+  "Insert HTML font resizing tag \"<small>\".
+{jpw: 03/06}"
+  nil
+  "<small>" _  "</small>"
+  )
+
+
+(define-skeleton jpw-html-size-big
+  "Insert HTML font resizing tag \"<big>\".
+{jpw: 03/06}"
+  nil
+  "<big>" _  "</big>"
+  )
+
+
+(defun jpw-lj-insert-size () 
+  (interactive) 
+  (funcall jpw-lj-default-html-size-function))
+
+
 (defsubst jpw-lj-unfill-buffer ()
   (interactive)
   (jpw-unfill-buffer t)
@@ -423,20 +446,6 @@ Any other type is an error.
   (if (looking-at "\\s ")
       (re-search-forward "\\S " nil 't)
     )
-  )
-
-
-;; Aliases.  These depend on earlier function & variable definitions.
-
-
-(if (eq jpw-lj-html-size-function 'jpw-html-size-smallbig)
-    (defun jpw-lj-insert-size () 
-      (interactive) 
-      (jpw-html-size-smallbig))
-  ;; else
-  (defun jpw-lj-insert-size () 
-    (interactive) 
-    (jpw-html-size-relative))
   )
 
 
@@ -467,8 +476,11 @@ Any other type is an error.
 
       (define-key jpw-lj-mode-map "\M-gd" 'jpw-html-del)
 
+      (define-key jpw-lj-mode-map "\M-g\C-s" 'jpw-html-size-small)
+      (define-key jpw-lj-mode-map "\M-g\C-b" 'jpw-html-size-big)
+      (define-key jpw-lj-mode-map "\M-g\C-r" 'jpw-html-size-relative)
+      (define-key jpw-lj-mode-map "\M-gz" 'jpw-lj-insert-size)
       (define-key jpw-lj-mode-map "\M-g\M-s" 'jpw-lj-insert-size)
-
 
       (define-key jpw-lj-mode-map "\M-p\C-i" 'html-image)
 
@@ -607,20 +619,37 @@ Any other type is an error.
 
 
 ;; Regexp for nested size tags
-(defconst jpw-lj-font-lock-size-face-key-3
+;; Must prepend to keep the default `html-mode' fontification from overriding
+;; this one.
+(defconst jpw-lj-font-lock-small-face-key-3
   (list
    (concat
-    "<\\(small\\|big\\)>"
+    "<small>"
     "\\([^<]*\\(<[^/]+/[^sb][^>]*>[^<]*\\)*\\)"
-    "</\\(small\\|big\\)>"
+    "</small>"
     ) ;;end concat
-   '(2 'jpw-lj-size-face append)
+   '(1 'jpw-lj-size-face prepend)
    ) ;;end list
   ) ;;end defconst
 
 
 ;; Regexp for nested size tags
-(defconst jpw-lj-font-lock-multi-size-face-key-3
+;; Must prepend to keep the default `html-mode' fontification from overriding
+;; this one.
+(defconst jpw-lj-font-lock-big-face-key-3
+  (list
+   (concat
+    "<big>"
+    "\\([^<]*\\(<[^/]+/[^sb][^>]*>[^<]*\\)*\\)"
+    "</big>"
+    ) ;;end concat
+   '(1 'jpw-lj-size-face prepend)
+   ) ;;end list
+  ) ;;end defconst
+
+
+;; Regexp for nested size tags
+(defconst jpw-lj-font-lock-size-face-key-3
   (list
    (concat
      "<span style=\"font-size: [^>]+>" 
@@ -684,7 +713,8 @@ Any other type is an error.
           (list jpw-lj-font-lock-code-face-key-3
                 jpw-lj-font-lock-del-face-key-3
                 jpw-lj-font-lock-size-face-key-3
-                jpw-lj-font-lock-multi-size-face-key-3
+                jpw-lj-font-lock-small-face-key-3
+                jpw-lj-font-lock-big-face-key-3
                 ) ;;end list
           ) ;;end append
   )
