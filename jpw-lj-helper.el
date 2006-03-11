@@ -27,6 +27,9 @@
 
 (require 'sgml-mode)
 (require 'custom-defuns)
+(eval-when-compile
+  (require 'lazy-lock)
+  )
 
 
 ;;------------------------------------------------------------
@@ -44,17 +47,17 @@
 
 (defface jpw-lj-bold-face 
   '((t (:inherit bold)))
-  "How to color [b]...[/b] tags."
+  "How to color <strong>...</strong> and <b>...</b> tags."
   :group 'jpw-lj)
 
 (defface jpw-lj-italic-face
   '((t (:inherit italic)))
-  "How to color [i]...[/i] tags."
+  "How to color <em>...</em> and <i>...</i> tags."
   :group 'jpw-lj)
 
 (defface jpw-lj-underline-face
   '((t (:inherit underline)))
-  "How to color [u]...[/u] tags."
+  "How to color <u>...</u> tags."
   :group 'jpw-lj)
 
 (defface jpw-lj-tag-face 
@@ -62,19 +65,25 @@
   "The face to use for non-markup jpw-lj tags."
   :group 'jpw-lj)
 
-(defface jpw-lj-type-face 
-  '((t (:inherit font-lock-type-face)))
-  "The face to use for size markup."
+(defface jpw-lj-size-face 
+  '((t (foreground "DarkMagenta")))
+  "The face to use for the HTML `FONT' tag."
   :group 'jpw-lj)
 
-(defface jpw-lj-color-face 
-  '((t (:foreground "magenta" :background "PaleGreen")))
-  "The face to use for color markup."
+(defface jpw-lj-header-face 
+  '((t (:inherit font-lock-variable-name-face)))
+  "The face to use for LiveJournal Headers."
   :group 'jpw-lj)
 
 (defface jpw-lj-code-face 
   '((t (:inherit font-lock-constant-face)))
   "The face to use for code markup."
+  :group 'jpw-lj)
+
+(defface jpw-lj-del-face 
+  '((t (:strike-through t)))
+  "The face to use for the <del> ... </del> HTML markup (a logical style that
+replaces the old, deprecated \"<strike>\" tag."
   :group 'jpw-lj)
 
 (defface jpw-lj-url-face 
@@ -84,13 +93,77 @@
   :group 'jpw-lj)
 
 
+(defcustom jpw-lj-html-size-function 'jpw-html-size-relative
+  "Name of a function to use for inserting an HTML tag that adjusts the font
+size.  The two possible values are `jpw-html-size-relative' and
+`jpw-html-size-smallbig'.  The former uses a \"<span\"> tag with a font sizing
+style.  The latter uses the two HTML 4.0 tags, \"<small>\" and \"<big>\"."
+  :type '(choice (function-item 'jpw-html-size-relative)
+                 (function-item 'jpw-html-size-smallbig))
+  :group 'jpw-lj)
+
+
 ;;------------------------------------------------------------
 ;;
 ;; Variables
 ;; 
 
 
-;...
+(defconst jpw-html-size-alist
+  '(("xx-small") ("x-small") ("small") ("smaller") ("medium") ("large")
+    ("larger") ("x-large") ("xx-large"))
+  "Alist of LiveJournal security keywords.
+{jpw: 03/06}")
+
+
+(defconst jpw-lj-security-alist
+  '(("public") ("private") ("friends"))
+  "Alist of LiveJournal security keywords.
+{jpw: 03/06}")
+
+
+(defconst jpw-lj-mood-alist
+  '(("accomplished") ("aggravated") ("amused") ("angry") ("annoyed")
+    ("anxious") ("apathetic") ("artistic") ("awake") ("bitchy") ("blah")
+    ("blank") ("bored") ("bouncy") ("busy") ("calm") ("cheerful") ("chipper")
+    ("cold") ("complacent") ("confused") ("contemplative") ("content")
+    ("cranky") ("crappy") ("crazy") ("creative") ("crushed") ("curious")
+    ("cynical") ("depressed") ("determined") ("devious") ("dirty")
+    ("disappointed") ("discontent") ("distressed") ("ditzy") ("dorky")
+    ("drained") ("drunk") ("ecstatic") ("embarrassed") ("energetic")
+    ("enraged") ("enthralled") ("envious") ("exanimate") ("excited")
+    ("exhausted") ("flirty") ("frustrated") ("full") ("geeky") ("giddy")
+    ("giggly") ("gloomy") ("good") ("grateful") ("groggy") ("grumpy")
+    ("guilty") ("happy") ("high") ("hopeful") ("horny") ("hot") ("hungry")
+    ("hyper") ("impressed") ("indescribable") ("indifferent") ("infuriated")
+    ("intimidated") ("irate") ("irritated") ("jealous") ("jubilant") ("lazy")
+    ("lethargic") ("listless") ("lonely") ("loved") ("melancholy") ("mellow")
+    ("mischievous") ("moody") ("morose") ("naughty") ("nauseated") ("nerdy")
+    ("nervous") ("nostalgic") ("numb") ("okay") ("optimistic") ("peaceful")
+    ("pensive") ("pessimistic") ("pissed off") ("pleased") ("predatory")
+    ("productive") ("quixotic") ("recumbent") ("refreshed") ("rejected")
+    ("rejuvenated") ("relaxed") ("relieved") ("restless") ("rushed") ("sad")
+    ("satisfied") ("scared") ("shocked") ("sick") ("silly") ("sleepy")
+    ("sore") ("stressed") ("surprised") ("sympathetic") ("thankful")
+    ("thirsty") ("thoughtful") ("tired") ("touched") ("uncomfortable")
+    ("weird") ("working") ("worried")) 
+  "Alist of LiveJournal moods.
+{jpw: 03/06}")
+
+
+(defconst jpw-lj-comments-alist 
+  '(("N" . "Don't screen comments.") 
+    ("R" . "Screen anonymous comments only") 
+    ("F" . "Screen comments made by non-friends")
+    ("A" . "Screen *All* comments")) 
+ "Alist of LiveJournal comment-screening flags, along with text descriptions
+of each flag.
+{jpw: 03/06}")
+
+
+(defconst jpw-lj-avatar-alist ()
+  "Alist of user avatars.
+{jpw: 03/06}")
 
 
 ;;------------------------------------------------------------
@@ -110,15 +183,6 @@
 
 ;; Skeleton Templates
 
-
-(define-skeleton jpw-html-size
-  "Insert HTML font resizing tags, or puts the active region inside such tags.
-{jpw: 03/06}"
-  "Relative size change: "
-  "<font size=\"" 
-  (if (>= str 0) '\")
-  str 
-  "\">" _ "</font>")
 
 (define-skeleton jpw-html-italic
   "Insert HTML [physical] italics tags, or puts the active region inside HTML
@@ -155,6 +219,13 @@ strong tags.
   nil
   "<strong>" _ "</strong>")
 
+(define-skeleton jpw-html-del
+  "Insert HTML [logical] \"<del>\" tags, or puts the active region inside HTML
+strong tags.
+{jpw: 03/06}"
+  nil
+  "<del>" _ "</del>")
+
 (define-skeleton jpw-html-code
   "Insert HTML code tags, or puts the active region inside HTML code
 tags.
@@ -163,16 +234,89 @@ tags.
   "<code>" _ "</code>")
 
 
+(define-skeleton jpw-html-href-anchor
+  "HTML anchor tag with href attribute.
+Like the sgml-mode version, but without the annoying \"http:\" defaulting into
+the URL prompt.
+{jpw: 03/06}"
+  "URL: "
+  "<a href=\"" str "\">" _ "</a>")
+
+
+(define-skeleton jpw-html-size-smallbig
+  "Insert HTML font resizing tags \"<small>\" or \"<big>\", depending on the
+sign of the change arg.
+{jpw: 03/06}"
+  "Relative size change: "
+;;  (setq input 0)
+  (if (> str 0) "<small>" "<big>")
+  _ 
+  (if (> str 0) "</small>" "</big>")
+  )
+
+
+(define-skeleton jpw-html-size-relative
+  "Insert HTML font resizing markup
+{jpw: 03/06}"
+  (completing-read "Size: " jpw-html-size-alist nil nil "small")
+  "<span style=\"font-size: " str "\">" _ "</span>")
+
+
 (define-skeleton jpw-lj-user
-  "A LiveJounral \"user\" tag."
+  "A LiveJournal \"user\" tag."
   "Who? "
   "<lj user=" str ">")
 
 
 (define-skeleton jpw-lj-cut
-  "A LiveJounral \"cut\" tag."
+  "A LiveJournal \"cut\" tag."
   "Cut label: "
   "<lj-cut text=\"" str "\">" _ "</lj-cut>")
+
+
+(define-skeleton jpw-lj-raw
+  "A LiveJournal \"raw\" tag."
+  "<lj-raw>" _ "</lj-raw>")
+
+
+(define-skeleton jpw-lj-poll
+  "A LiveJournal \"poll\" tag."
+  "<lj-poll>" _ "</lj-poll>")
+
+
+(define-skeleton jpw-lj-music-hdr
+  "The LiveJournal music header."
+  "Current Music: "
+  (if (bolp) nil ?\n)
+  "lj-music: " str ?\n)
+
+
+(define-skeleton jpw-lj-security-hdr
+  "The LiveJournal security header."
+  (completing-read "Security or FriendGroup: " jpw-lj-security-alist)
+  (if (bolp) nil ?\n)
+  "lj-security: " str \n)
+
+
+(define-skeleton jpw-lj-mood-hdr
+  "The LiveJournal mood header."
+  (completing-read "Current Mood: " jpw-lj-mood-alist nil t)
+  (if (bolp) nil ?\n)
+  "lj-mood: " str \n)
+
+
+(define-skeleton jpw-lj-comments-hdr
+  "The LiveJournal comments header."
+  (completing-read "Screen These Comments: " jpw-lj-comments-alist nil t)
+  (if (bolp) nil ?\n)
+  "lj-comments: " str \n)
+
+
+(define-skeleton jpw-lj-avatar-hdr
+  "The LiveJournal avatar header."
+  (completing-read "Avatar: " jpw-lj-avatar-alist)
+  (if (bolp) nil ?\n)
+  "lj-userpic: " str \n)
 
 
 ;; Redefinition of some of the html-mode skeleton functions, to ensure that
@@ -267,18 +411,32 @@ Any other type is an error.
   )
 
 
-(defsubst jpw-unfill-skip-line (next-nonws-char)
-  (char-equal (char-after next-nonws-char) ?\<)
+(defsubst jpw-lj-unfill-buffer ()
+  (interactive)
+  (jpw-unfill-buffer t)
   )
 
 
-(defun jpw-lj-display-tag-analysis ()
-  "Show the results of `jpw-lj-tag-nested-analysis' in the *Messages*
-buffer.
-{jpw: 03/06}"
+(defsubst jpw-lj-unfill-paragraph ()
   (interactive)
-  (jpw-lj-tag-nested-analysis)
-  (message "%S" jpw-lj-tag-analysis-cache)
+  (jpw-unfill-paragraph t)
+  (if (looking-at "\\s ")
+      (re-search-forward "\\S " nil 't)
+    )
+  )
+
+
+;; Aliases.  These depend on earlier function & variable definitions.
+
+
+(if (eq jpw-lj-html-size-function 'jpw-html-size-smallbig)
+    (defun jpw-lj-insert-size () 
+      (interactive) 
+      (jpw-html-size-smallbig))
+  ;; else
+  (defun jpw-lj-insert-size () 
+    (interactive) 
+    (jpw-html-size-relative))
   )
 
 
@@ -292,9 +450,8 @@ buffer.
 (if (null jpw-lj-mode-map)
     (progn
       (setq jpw-lj-mode-map (make-sparse-keymap))
-      (define-key jpw-lj-mode-map "\M-\"" 'jpw-unfill-paragraph)
-
-      (define-key jpw-lj-mode-map "\C-c\C-s" 'jpw-lj-display-tag-analysis)
+      (define-key jpw-lj-mode-map "\M-\"" 'jpw-lj-unfill-paragraph)
+      (define-key jpw-lj-mode-map "\C-c\"" 'jpw-lj-unfill-buffer)
 
       (define-key jpw-lj-mode-map "\M-gi" 'jpw-html-italic)
       (define-key jpw-lj-mode-map "\M-ge" 'jpw-html-emphasized)
@@ -306,15 +463,17 @@ buffer.
 
       (define-key jpw-lj-mode-map "\M-gu" 'jpw-html-underline)
 
-      (define-key jpw-lj-mode-map "\M-g\C-s" 'jpw-html-size)
-
       (define-key jpw-lj-mode-map "\M-go" 'jpw-html-code)
+
+      (define-key jpw-lj-mode-map "\M-gd" 'jpw-html-del)
+
+      (define-key jpw-lj-mode-map "\M-g\M-s" 'jpw-lj-insert-size)
+
 
       (define-key jpw-lj-mode-map "\M-p\C-i" 'html-image)
 
-
-      (define-key jpw-lj-mode-map "\M-pa" 'html-href-anchor)
-      (define-key jpw-lj-mode-map "\M-p\C-u" 'html-href-anchor)
+      (define-key jpw-lj-mode-map "\M-pa" 'jpw-html-href-anchor)
+      (define-key jpw-lj-mode-map "\M-p\C-u" 'jpw-html-href-anchor)
 
       (define-key jpw-lj-mode-map "\M-pl" 'jpw-lj-insert-list)
 
@@ -333,6 +492,15 @@ buffer.
 
       (define-key jpw-lj-mode-map "\M-p=" 'jpw-lj-cut)
 
+      (define-key jpw-lj-mode-map "\M-p\C-p" 'jpw-lj-poll)
+
+      (define-key jpw-lj-mode-map "\M-pr" 'jpw-lj-raw)
+
+      (define-key jpw-lj-mode-map "\C-cha" 'jpw-lj-avatar-hdr)
+      (define-key jpw-lj-mode-map "\C-cht" 'jpw-lj-music-hdr)
+      (define-key jpw-lj-mode-map "\C-chm" 'jpw-lj-mood-hdr)
+      (define-key jpw-lj-mode-map "\C-chs" 'jpw-lj-security-hdr)
+      (define-key jpw-lj-mode-map "\C-chc" 'jpw-lj-comments-hdr)
       )                                 ;end progn
   )                                     ;end if
 
@@ -426,49 +594,65 @@ buffer.
   ) ;;end defconst
 
 
-;; Simple regexp for quoted strings, whether single or multiline.
-(defconst jpw-lj-font-lock-string-face-key-2
+;; Regexp for LiveJournal headers
+(defconst jpw-lj-font-lock-header-face-key-2
   (list
    (concat
-    "\\(\"[^\"]+\"\\)"
+    "\\(lj-\\sw+:\\) \\(.*\\)$"
     ) ;;end concat
-   '(1 'font-lock-string-face prepend)
+   '(1 'jpw-lj-header-face)
+   '(2 'font-lock-type-face)
    ) ;;end list
   ) ;;end defconst
 
 
-;; Regexp for nested multiline "big tags".  This regexp is more general than
-;; the one for underline, bold, or italic.  It matches tags that are more
-;; than one character long, and handles tag attributes.
-(defconst jpw-lj-font-lock-font-face-key-2
+;; Regexp for nested size tags
+(defconst jpw-lj-font-lock-size-face-key-3
   (list
    (concat
-    "\\(<font\\)"
-    "=[^>]+"
-    "\\(>\\)"
-    "\\([^<]*\\(<[^/]+/[^f][^]]*>[^<]*\\)*\\)"
-    "\\(</font>\\)"
+    "<\\(small\\|big\\)>"
+    "\\([^<]*\\(<[^/]+/[^sb][^>]*>[^<]*\\)*\\)"
+    "</\\(small\\|big\\)>"
     ) ;;end concat
-   '(1 'jpw-lj-tag-face t)
-   '(2 'jpw-lj-tag-face t)
-   '(3 'jpw-lj-font-face append)
-   '(5 'jpw-lj-tag-face t)
+   '(2 'jpw-lj-size-face append)
    ) ;;end list
   ) ;;end defconst
 
 
-;; Regexp similar to `jpw-lj-font-lock-font-face-key-2', but does not expect
-;; tag attributes.
+;; Regexp for nested size tags
+(defconst jpw-lj-font-lock-multi-size-face-key-3
+  (list
+   (concat
+     "<span style=\"font-size: [^>]+>" 
+    "\\([^<]*\\(<[^/]+/[^s][^>]*>[^<]*\\)*\\)"
+    "</span>"
+    ) ;;end concat
+   '(1 'jpw-lj-size-face append)
+   ) ;;end list
+  ) ;;end defconst
+
+
+;; The Logical style "code" ... which is usually equivalent to <tt> ... </tt>.
 (defconst jpw-lj-font-lock-code-face-key-3
   (list
    (concat
-    "\\(<code>\\)"
-    "\\([^<]*\\(<[^/]+/[^c][^]]*>[^<]*\\)*\\)"
-    "\\(</code>\\)"
+    "<code>"
+    "\\([^<]*\\(<[^/]+/[^c][^>]*>[^<]*\\)*\\)"
+    "</code>"
     ) ;;end concat
-   '(1 'jpw-lj-tag-face t)
-   '(2 'jpw-lj-code-face t)
-   '(4 'jpw-lj-tag-face t)
+   '(1 'jpw-lj-code-face t)
+   ) ;;end list
+  ) ;;end defconst
+
+
+(defconst jpw-lj-font-lock-del-face-key-3
+  (list
+   (concat
+    "<del>"
+    "\\([^<]*\\(<[^/]+/[^d][^>]*>[^<]*\\)*\\)"
+    "</del>"
+    ) ;;end concat
+   '(1 'jpw-lj-del-face t)
    ) ;;end list
   ) ;;end defconst
 
@@ -490,8 +674,7 @@ buffer.
 
 (defconst jpw-lj-font-lock-keywords-2
   (append jpw-lj-font-lock-keywords-1
-          (list jpw-lj-font-lock-font-face-key-2
-                jpw-lj-font-lock-string-face-key-2
+          (list jpw-lj-font-lock-header-face-key-2
                 ) ;;end list
           ) ;;end append
   )
@@ -499,6 +682,9 @@ buffer.
 (defconst jpw-lj-font-lock-keywords-3
   (append jpw-lj-font-lock-keywords-2
           (list jpw-lj-font-lock-code-face-key-3
+                jpw-lj-font-lock-del-face-key-3
+                jpw-lj-font-lock-size-face-key-3
+                jpw-lj-font-lock-multi-size-face-key-3
                 ) ;;end list
           ) ;;end append
   )
