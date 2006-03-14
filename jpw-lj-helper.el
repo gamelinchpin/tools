@@ -44,7 +44,37 @@
   :group 'local)
 
 
-(defcustom jpw-lj-default-html-size-function 'jpw-html-size-relative
+(defcustom jpw-lj-unfill-on-save nil
+  "Unfill the buffer [using `jpw-unfill-buffer'] before saving it."
+  :type 'boolean
+  :group 'jpw-lj)
+
+
+(defcustom jpw-lj-user-avatars ()
+  "A list of your avatars.  Each element in the list should be the
+\"official\" LiveJournal name of your avatars.
+
+Manual changes to this setting [i.e. outside of `custom-mode'] won't become
+active until after you restart Emacs.  If you want to make changes effective
+immediately, call the function `jpw-lj-init-customizations'."
+  :type '(repeat string)
+  :set  'jpw-lj-custom-set-var
+  :group 'jpw-lj)
+
+
+(defcustom jpw-lj-friend-groups ()
+  "A list of your LiveJournal \"Friends\" groups.
+It will be used by the `jpw-lj-security-hdr' skeleton.
+
+Manual changes to this setting [i.e. outside of `custom-mode'] won't become
+active until after you restart Emacs.  If you want to make changes effective
+immediately, call the function `jpw-lj-init-customizations'."
+  :type '(repeat string)
+  :set  'jpw-lj-custom-set-var
+  :group 'jpw-lj)
+
+
+(defcustom jpw-lj-default-html-size-function jpw-html-size-relative
   "Name of the default type of HTML tag to use for adjusting font size.
 
  The three possible values are `jpw-html-size-relative', `jpw-html-size-small'
@@ -94,8 +124,8 @@ respectively."
 
 (defface jpw-lj-del-face 
   '((t (:strike-through t)))
-  "The face to use for the <del> ... </del> HTML markup (a logical style that
-replaces the old, deprecated \"<strike>\" tag."
+  "The face to use for the <del> ... </del> HTML markup [a logical style that
+replaces the old, deprecated \"<strike>\" tag]."
   :group 'jpw-lj)
 
 (defface jpw-lj-url-face 
@@ -107,19 +137,13 @@ replaces the old, deprecated \"<strike>\" tag."
 
 ;;------------------------------------------------------------
 ;;
-;; Variables
+;; Constants and Variables
 ;; 
 
 
 (defconst jpw-html-size-alist
   '(("xx-small") ("x-small") ("small") ("smaller") ("medium") ("large")
     ("larger") ("x-large") ("xx-large"))
-  "Alist of LiveJournal security keywords.
-{jpw: 03/06}")
-
-
-(defconst jpw-lj-security-alist
-  '(("public") ("private") ("friends"))
   "Alist of LiveJournal security keywords.
 {jpw: 03/06}")
 
@@ -163,8 +187,17 @@ of each flag.
 {jpw: 03/06}")
 
 
-(defconst jpw-lj-avatar-alist ()
+(defvar jpw-lj-security-alist
+  '(("public") ("private") ("friends"))
+  "Alist of LiveJournal security keywords.
+{jpw: 03/06}")
+
+
+(defvar jpw-lj-avatar-alist '()
   "Alist of user avatars.
+
+Rebuilt from `jpw-lj-user-avatars' by calling `jpw-lj-init-customizations',
+which is called when emacs first loads the \"jpw-lj-helper\" library.
 {jpw: 03/06}")
 
 
@@ -174,7 +207,13 @@ of each flag.
 ;; 
 
 
-;...
+(defun jpw-lj-custom-set-var (symbol val)
+  ;; Add the elements of `val' to the alist, `symbol', as alist keys.
+  (mapcar '(lambda (arg)
+             (add-to-list symbol (list arg) t)
+             )
+          val)
+  )
 
 
 ;;------------------------------------------------------------
@@ -245,15 +284,19 @@ the URL prompt.
   "<a href=\"" str "\">" _ "</a>")
 
 
-(define-skeleton jpw-html-size-smallbig
-  "Insert HTML font resizing tags \"<small>\" or \"<big>\", depending on the
-sign of the change arg.
+(define-skeleton jpw-html-size-small
+  "Insert HTML font resizing tag \"<small>\".
 {jpw: 03/06}"
-  "Relative size change: "
-;;  (setq input 0)
-  "<" (if (> str 0) "small" "big") ">"
-  _ 
-  "</" (if (> str 0) "small" "big") ">"
+  nil
+  "<small>" _  "</small>"
+  )
+
+
+(define-skeleton jpw-html-size-big
+  "Insert HTML font resizing tag \"<big>\".
+{jpw: 03/06}"
+  nil
+  "<big>" _  "</big>"
   )
 
 
@@ -395,7 +438,7 @@ Actually, it uses the logical tag \"<strong>\", unless called with an arg.
   "Insert HTML list tags, or puts the active region inside HTML list
 tags.
 The optional `type' specifies the type of list.  It can be passed directly or
-specified using a prefix-arg.  If `type' is an integer (e.g. a prefix-arg),
+specified using a prefix-arg.  If `type' is an integer [e.g. a prefix-arg],
 then the list will be an ordered list.  Otherwise, the list is unordered.
 Any other type is an error.
 {jpw: 03/06}"
@@ -413,22 +456,6 @@ Any other type is an error.
   )
 
 
-(define-skeleton jpw-html-size-small
-  "Insert HTML font resizing tag \"<small>\".
-{jpw: 03/06}"
-  nil
-  "<small>" _  "</small>"
-  )
-
-
-(define-skeleton jpw-html-size-big
-  "Insert HTML font resizing tag \"<big>\".
-{jpw: 03/06}"
-  nil
-  "<big>" _  "</big>"
-  )
-
-
 (defun jpw-lj-insert-size () 
   (interactive) 
   (funcall jpw-lj-default-html-size-function))
@@ -437,6 +464,8 @@ Any other type is an error.
 (defsubst jpw-lj-unfill-buffer ()
   (interactive)
   (jpw-unfill-buffer t)
+  ;; Return 'nil to make this fn usable with the various `*-write-*-hooks'.
+  nil
   )
 
 
@@ -446,6 +475,18 @@ Any other type is an error.
   (if (looking-at "\\s ")
       (re-search-forward "\\S " nil 't)
     )
+  )
+
+
+(defun jpw-lj-init-customizations ()
+  "Initialize internal variables from customizations.
+
+Call this function after changing certain customization variables manually
+[i.e. outside of `custom-mode'].
+{jpw: 03/06}"
+  (interactive)
+  (jpw-lj-custom-set-var 'jpw-lj-security-alist jpw-lj-friend-groups)
+  (jpw-lj-custom-set-var 'jpw-lj-avatar-alist jpw-lj-user-avatars)
   )
 
 
@@ -515,6 +556,7 @@ Any other type is an error.
       (define-key jpw-lj-mode-map "\C-chc" 'jpw-lj-comments-hdr)
       )                                 ;end progn
   )                                     ;end if
+(global-set-key "\M-p\M-j" 'jpw-lj-mode)
 
 
 ;;------------------------------------------------------------
@@ -787,7 +829,6 @@ Key bindings:
         lazy-lock-stealth-nice 0.1
         lazy-lock-stealth-load nil)
 
-  ;; FIXME:
   ;;
   ;; Things needed to circumvent behavior inherited by HTML mode.
   ;; 
@@ -798,15 +839,18 @@ Key bindings:
   (if font-lock-mode
       (font-lock-fontify-buffer))
 
-  ;; TODO:
-  ;; Eventually, this will be moved into an if-statement controlled by a
-  ;; customization flag.  That flag will also need to perform an unfill-buffer
-  ;; before saving/killing.  Will need to build in that functionality, as
-  ;; well. 
-  (progn (setq fill-column 0) (auto-fill-mode -1))
+  (if jpw-lj-unfill-on-save
+      (add-hook 'local-write-file-hooks 'jpw-lj-unfill-buffer)
+      )
+
+  ;; Change the use in phpBB-mode, too.  And use skeletons there, while we're
+  ;; at it.
   )
 
-(global-set-key "\M-p\M-j" 'jpw-lj-mode)
+
+;; TODO:
+;; - Add support to make this a minor-mode, compatible with emailing
+;;   lj-entries.
 
 
 ;;------------------------------------------------------------
@@ -815,43 +859,7 @@ Key bindings:
 ;; 
 
 
-;; (defun jpw-lj-test-tag-find-last ()
-;;   (interactive)
-;;   (save-excursion
-;;     (let* ( (tagspec (jpw-lj-tag-find-last))
-;;             (starttag (car tagspec))
-;;             (endtag (cadr tagspec)) )
-;;       (cond 
-;;        (starttag (goto-char starttag))
-;;        (endtag (goto-char endtag))
-;;        ))))
-;; (defun jpw-lj-test-tag-find-next ()
-;;   (interactive)
-;;   (save-excursion
-;;     (let* ( (tagspec (jpw-lj-tag-find-next))
-;;             (starttag (car tagspec))
-;;             (endtag (cadr tagspec)) )
-;;       (cond 
-;;        (starttag (goto-char starttag))
-;;        (endtag (goto-char endtag))
-;;        ))))
-;; (defun jpw-lj-test-tag-find-nearest ()
-;;   (interactive)
-;;   (message "%S" (jpw-lj-tag-find-nearest)))
-;; (defun jpw-lj-test-get-tag-last ()
-;;   (interactive)
-;;   (save-excursion
-;;     (let* ( (tagspec (jpw-lj-tag-find-last))
-;;             (tagval (jpw-lj-get-tag-at tagspec))
-;;             )
-;;       (message tagval))))
-;; (defun jpw-lj-test-get-tag-next ()
-;;   (interactive)
-;;   (save-excursion
-;;     (let* ( (tagspec (jpw-lj-tag-find-next))
-;;             (tagval (jpw-lj-get-tag-at tagspec))
-;;             )
-;;       (message tagval))))
+;;...
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
