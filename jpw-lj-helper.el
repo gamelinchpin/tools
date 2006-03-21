@@ -1,8 +1,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
-;; A major mode for editing LiveJournal entries.
+;; Major and Minor modes for editing LiveJournal entries.
 ;;
-;;  Copyright © 2005 John P. Weiss
+;;  Copyright © 2006 John P. Weiss except as documented below
 ;;  
 ;;  This package is free software; you can redistribute it and/or modify
 ;;  it under the terms of the Artistic License, included as the file
@@ -15,8 +15,22 @@
 ;;  You should have received a copy of the file "LICENSE", containing
 ;;  the License John Weiss originally placed this program under.
 ;;
+;; Certain code in this file was taken, lock, stock, and barrel fro Jamie
+;; Zawinski's "jwz-lj.el" file.  That code has the following copyright:
+;; 
+;;   Copyright © 2002, 2003, 2004, 2005 Jamie Zawinski <jwz@jwz.org>.
+;;
+;;   Permission to use, copy, modify, distribute, and sell this software and
+;;   its documentation for any purpose is hereby granted without fee, provided
+;;   that the above copyright notice appear in all copies and that both that
+;;   copyright notice and this permission notice appear in supporting
+;;   documentation.  No representations are made about the suitability of this
+;;   software for any purpose.  It is provided "as is" without express or
+;;   implied warranty.
 ;;  
-;; You can enter this mode using `\M-p\M-j'.
+;;
+;; You can enter the major-mode using `\M-p\M-j'.
+;; You enter the minor-mode using `\M-x jpw-lj-minor-mode'.
 ;;
 ;;  
 ;; RCS $Id$
@@ -24,11 +38,32 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
-
 (require 'sgml-mode)
 (require 'custom-defuns)
 (eval-when-compile
   (require 'lazy-lock)
+  (require 'mule)
+  )
+
+
+;;------------------------------------------------------------
+;;
+;; Utility Functions ... Required by Customizations
+;; 
+
+
+(defun jpw-lj-custom-set-var (symbol val)
+  ;; Add the elements of `val' to the alist, `symbol', as alist keys.
+  (if (not (boundp symbol))
+      (set symbol (list))
+      )
+  (let (l-add-to-sym)
+    (fset 'l-add-to-sym (lambda (arg) 
+                          (add-to-list symbol (list arg) t)
+                          )
+          )
+    (mapcar 'l-add-to-sym val)
+    )
   )
 
 
@@ -38,7 +73,7 @@
 ;; 
 
 
-(defgroup jpw-lj nil
+(defgroup jpw-lj 'nil
   "Customizable aspects of jpw-lj-mode."
   :group 'hypermedia
   :group 'local)
@@ -50,7 +85,14 @@
   :group 'jpw-lj)
 
 
-(defcustom jpw-lj-user-avatars ()
+(defcustom jpw-lj-xlate-entities-on-save nil
+  "Translate all Latin-1 chars in the buffer to HTML entites [using
+`jwz-lj-entify'] before saving."
+  :type 'boolean
+  :group 'jpw-lj)
+
+
+(defcustom jpw-lj-user-avatars nil
   "A list of your avatars.  Each element in the list should be the
 \"official\" LiveJournal name of your avatars.
 
@@ -62,7 +104,7 @@ immediately, call the function `jpw-lj-init-customizations'."
   :group 'jpw-lj)
 
 
-(defcustom jpw-lj-friend-groups ()
+(defcustom jpw-lj-friend-groups nil
   "A list of your LiveJournal \"Friends\" groups.
 It will be used by the `jpw-lj-security-hdr' skeleton.
 
@@ -74,11 +116,13 @@ immediately, call the function `jpw-lj-init-customizations'."
   :group 'jpw-lj)
 
 
-(defcustom jpw-lj-default-html-size-function jpw-html-size-relative
+;; N.B.: Must quote the initial value, or emacs complains of an undefined
+;; variable.
+(defcustom jpw-lj-default-html-size-function 'jpw-html-size-relative
   "Name of the default type of HTML tag to use for adjusting font size.
 
  The three possible values are `jpw-html-size-relative', `jpw-html-size-small'
-and `jpw-html-size-big'.  The former uses a \"<span\"> tag with a font sizing
+and `jpw-html-size-big'.  The former uses a \"<span>\" tag with a font sizing
 style.  The other two use the HTML 4.0 tags, \"<small>\" or \"<big>\",
 respectively."
   :type '(choice (const jpw-html-size-relative)
@@ -182,7 +226,7 @@ replaces the old, deprecated \"<strike>\" tag]."
     ("R" . "Screen anonymous comments only") 
     ("F" . "Screen comments made by non-friends")
     ("A" . "Screen *All* comments")) 
- "Alist of LiveJournal comment-screening flags, along with text descriptions
+  "Alist of LiveJournal comment-screening flags, along with text descriptions
 of each flag.
 {jpw: 03/06}")
 
@@ -201,18 +245,329 @@ which is called when emacs first loads the \"jpw-lj-helper\" library.
 {jpw: 03/06}")
 
 
+(defvar jpw-lj-minor-mode-original-font-lock-keywords 'nil)
+
+
+(defconst jpw-lj-entity-table
+  (eval-when-compile
+    (list
+     (cons "nbsp"     (decode-char 'ucs ?\xa0))
+     (cons "OElig"    (decode-char 'ucs ?\x152))
+     (cons "oelig"    (decode-char 'ucs ?\x153))
+     (cons "Scaron"   (decode-char 'ucs ?\x160))
+     (cons "scaron"   (decode-char 'ucs ?\x161))
+     (cons "Yuml"     (decode-char 'ucs ?\x178))
+     (cons "fnof"     (decode-char 'ucs ?\x192))
+     (cons "Alpha"    (decode-char 'ucs ?\x391))
+     (cons "Beta"     (decode-char 'ucs ?\x392))
+     (cons "Gamma"    (decode-char 'ucs ?\x393))
+     (cons "Delta"    (decode-char 'ucs ?\x394))
+     (cons "Epsilon"  (decode-char 'ucs ?\x395))
+     (cons "Zeta"     (decode-char 'ucs ?\x396))
+     (cons "Eta"      (decode-char 'ucs ?\x397))
+     (cons "Theta"    (decode-char 'ucs ?\x398))
+     (cons "Iota"     (decode-char 'ucs ?\x399))
+     (cons "Kappa"    (decode-char 'ucs ?\x39a))
+     (cons "Lambda"   (decode-char 'ucs ?\x39b))
+     (cons "Mu"       (decode-char 'ucs ?\x39c))
+     (cons "Nu"       (decode-char 'ucs ?\x39d))
+     (cons "Xi"       (decode-char 'ucs ?\x39e))
+     (cons "Omicron"  (decode-char 'ucs ?\x39f))
+     (cons "Pi"       (decode-char 'ucs ?\x3a0))
+     (cons "Rho"      (decode-char 'ucs ?\x3a1))
+     (cons "Sigma"    (decode-char 'ucs ?\x3a3))
+     (cons "Tau"      (decode-char 'ucs ?\x3a4))
+     (cons "Upsilon"  (decode-char 'ucs ?\x3a5))
+     (cons "Phi"      (decode-char 'ucs ?\x3a6))
+     (cons "Chi"      (decode-char 'ucs ?\x3a7))
+     (cons "Psi"      (decode-char 'ucs ?\x3a8))
+     (cons "Omega"    (decode-char 'ucs ?\x3a9))
+     (cons "alpha"    (decode-char 'ucs ?\x3b1))
+     (cons "beta"     (decode-char 'ucs ?\x3b2))
+     (cons "gamma"    (decode-char 'ucs ?\x3b3))
+     (cons "delta"    (decode-char 'ucs ?\x3b4))
+     (cons "epsilon"  (decode-char 'ucs ?\x3b5))
+     (cons "zeta"     (decode-char 'ucs ?\x3b6))
+     (cons "eta"      (decode-char 'ucs ?\x3b7))
+     (cons "theta"    (decode-char 'ucs ?\x3b8))
+     (cons "iota"     (decode-char 'ucs ?\x3b9))
+     (cons "kappa"    (decode-char 'ucs ?\x3ba))
+     (cons "lambda"   (decode-char 'ucs ?\x3bb))
+     (cons "mu"       (decode-char 'ucs ?\x3bc))
+     (cons "nu"       (decode-char 'ucs ?\x3bd))
+     (cons "xi"       (decode-char 'ucs ?\x3be))
+     (cons "omicron"  (decode-char 'ucs ?\x3bf))
+     (cons "pi"       (decode-char 'ucs ?\x3c0))
+     (cons "rho"      (decode-char 'ucs ?\x3c1))
+     (cons "sigmaf"   (decode-char 'ucs ?\x3c2))
+     (cons "sigma"    (decode-char 'ucs ?\x3c3))
+     (cons "tau"      (decode-char 'ucs ?\x3c4))
+     (cons "upsilon"  (decode-char 'ucs ?\x3c5))
+     (cons "phi"      (decode-char 'ucs ?\x3c6))
+     (cons "chi"      (decode-char 'ucs ?\x3c7))
+     (cons "psi"      (decode-char 'ucs ?\x3c8))
+     (cons "omega"    (decode-char 'ucs ?\x3c9))
+     (cons "thetasym" (decode-char 'ucs ?\x3d1))
+     (cons "upsih"    (decode-char 'ucs ?\x3d2))
+     (cons "piv"      (decode-char 'ucs ?\x3d6))
+     (cons "ensp"     (decode-char 'ucs ?\x2002))
+     (cons "emsp"     (decode-char 'ucs ?\x2003))
+     (cons "thinsp"   (decode-char 'ucs ?\x2009))
+     (cons "zwj"      (decode-char 'ucs ?\x200d))
+     (cons "lrm"      (decode-char 'ucs ?\x200e))
+     (cons "zwnj"     (decode-char 'ucs ?\x200c))
+     (cons "rlm"      (decode-char 'ucs ?\x200f))
+     (cons "ndash"    (decode-char 'ucs ?\x2013))
+     (cons "mdash"    (decode-char 'ucs ?\x2014))
+     (cons "lsquo"    (decode-char 'ucs ?\x2018))
+     (cons "rsquo"    (decode-char 'ucs ?\x2019))
+     (cons "sbquo"    (decode-char 'ucs ?\x201a))
+     (cons "ldquo"    (decode-char 'ucs ?\x201c))
+     (cons "rdquo"    (decode-char 'ucs ?\x201d))
+     (cons "bdquo"    (decode-char 'ucs ?\x201e))
+     (cons "dagger"   (decode-char 'ucs ?\x2020))
+     (cons "Dagger"   (decode-char 'ucs ?\x2021))
+     (cons "bull"     (decode-char 'ucs ?\x2022))
+     (cons "hellip"   (decode-char 'ucs ?\x2026))
+     (cons "permil"   (decode-char 'ucs ?\x2030))
+     (cons "prime"    (decode-char 'ucs ?\x2032))
+     (cons "Prime"    (decode-char 'ucs ?\x2033))
+     (cons "oline"    (decode-char 'ucs ?\x203e))
+     (cons "frasl"    (decode-char 'ucs ?\x2044))
+     (cons "euro"     (decode-char 'ucs ?\x20ac))
+     (cons "image"    (decode-char 'ucs ?\x2111))
+     (cons "weierp"   (decode-char 'ucs ?\x2118))
+     (cons "real"     (decode-char 'ucs ?\x211c))
+     (cons "trade"    (decode-char 'ucs ?\x2122))
+     (cons "alefsym"  (decode-char 'ucs ?\x2135))
+     (cons "larr"     (decode-char 'ucs ?\x2190))
+     (cons "uarr"     (decode-char 'ucs ?\x2191))
+     (cons "rarr"     (decode-char 'ucs ?\x2192))
+     (cons "darr"     (decode-char 'ucs ?\x2193))
+     (cons "harr"     (decode-char 'ucs ?\x2194))
+     (cons "crarr"    (decode-char 'ucs ?\x21b5))
+     (cons "lArr"     (decode-char 'ucs ?\x21d0))
+     (cons "uArr"     (decode-char 'ucs ?\x21d1))
+     (cons "rArr"     (decode-char 'ucs ?\x21d2))
+     (cons "dArr"     (decode-char 'ucs ?\x21d3))
+     (cons "hArr"     (decode-char 'ucs ?\x21d4))
+     (cons "forall"   (decode-char 'ucs ?\x2200))
+     (cons "part"     (decode-char 'ucs ?\x2202))
+     (cons "exist"    (decode-char 'ucs ?\x2203))
+     (cons "empty"    (decode-char 'ucs ?\x2205))
+     (cons "nabla"    (decode-char 'ucs ?\x2207))
+     (cons "isin"     (decode-char 'ucs ?\x2208))
+     (cons "notin"    (decode-char 'ucs ?\x2209))
+     (cons "prod"     (decode-char 'ucs ?\x220f))
+     (cons "sum"      (decode-char 'ucs ?\x2211))
+     (cons "minus"    (decode-char 'ucs ?\x2212))
+     (cons "lowast"   (decode-char 'ucs ?\x2217))
+     (cons "radic"    (decode-char 'ucs ?\x221a))
+     (cons "prop"     (decode-char 'ucs ?\x221d))
+     (cons "infin"    (decode-char 'ucs ?\x221e))
+     (cons "ang"      (decode-char 'ucs ?\x2220))
+     (cons "and"      (decode-char 'ucs ?\x2227))
+     (cons "or"       (decode-char 'ucs ?\x2228))
+     (cons "cap"      (decode-char 'ucs ?\x2229))
+     (cons "cup"      (decode-char 'ucs ?\x222a))
+     (cons "int"      (decode-char 'ucs ?\x222b))
+     (cons "there4"   (decode-char 'ucs ?\x2234))
+     (cons "sim"      (decode-char 'ucs ?\x223c))
+     (cons "cong"     (decode-char 'ucs ?\x2245))
+     (cons "asymp"    (decode-char 'ucs ?\x2248))
+     (cons "ne"       (decode-char 'ucs ?\x2260))
+     (cons "equiv"    (decode-char 'ucs ?\x2261))
+     (cons "le"       (decode-char 'ucs ?\x2264))
+     (cons "ge"       (decode-char 'ucs ?\x2265))
+     (cons "sub"      (decode-char 'ucs ?\x2282))
+     (cons "sup"      (decode-char 'ucs ?\x2283))
+     (cons "nsub"     (decode-char 'ucs ?\x2284))
+     (cons "sube"     (decode-char 'ucs ?\x2286))
+     (cons "supe"     (decode-char 'ucs ?\x2287))
+     (cons "oplus"    (decode-char 'ucs ?\x2295))
+     (cons "otimes"   (decode-char 'ucs ?\x2297))
+     (cons "perp"     (decode-char 'ucs ?\x22a5))
+     (cons "sdot"     (decode-char 'ucs ?\x22c5))
+     (cons "lceil"    (decode-char 'ucs ?\x2308))
+     (cons "rceil"    (decode-char 'ucs ?\x2309))
+     (cons "lfloor"   (decode-char 'ucs ?\x230a))
+     (cons "rfloor"   (decode-char 'ucs ?\x230b))
+     (cons "lang"     (decode-char 'ucs ?\x2329))
+     (cons "rang"     (decode-char 'ucs ?\x232a))
+     (cons "loz"      (decode-char 'ucs ?\x25ca))
+     (cons "spades"   (decode-char 'ucs ?\x2660))
+     (cons "clubs"    (decode-char 'ucs ?\x2663))
+     (cons "hearts"   (decode-char 'ucs ?\x2665))
+     (cons "diams"    (decode-char 'ucs ?\x2666))
+     ))
+  "HTML entities to Unicode characters.
+The Unicode characters in this table include the Greek alphabet, math symbols,
+and a few typography symbols.")
+
+
+;; This next variable (C) 2002-2005 by Jamie Zawinski <jwz@jwz.org>
+;; Taken lock, stock, and barrel from "jwz-lj.el".
+;; This entire variable, including my additions, fall under the copyright
+;; notice at the top of this file.
+(defconst jwz-lj-entity-table
+  ;; [jpw; 03/06] Append my own additions to jwz's original list
+  (append
+   ;; [jpw; 03/06] The original contents of jwz-lj-entity-table
+   '(
+     ;("quot"   . ?\") ("amp"    . ?\&) ("lt"     . ?\<) ("gt"     . ?\>)
+     ;("nbsp"   . ?\ )
+     ("iexcl"  . ?\¡) ("cent"   . ?\¢) ("pound"  . ?\£)
+     ("curren" . ?\¤) ("yen"    . ?\¥) ("brvbar" . ?\¦) ("sect"   . ?\§)
+     ("uml"    . ?\¨) ("copy"   . ?\©) ("ordf"   . ?\ª) ("laquo"  . ?\«)
+     ("not"    . ?\¬) ("shy"    . ?\­) ("reg"    . ?\®) ("macr"   . ?\¯)
+     ("deg"    . ?\°) ("plusmn" . ?\±) ("sup2"   . ?\²) ("sup3"   . ?\³)
+     ("acute"  . ?\´) ("micro"  . ?\µ) ("para"   . ?\¶) ("middot" . ?\·)
+     ("cedil"  . ?\¸) ("sup1"   . ?\¹) ("ordm"   . ?\º) ("raquo"  . ?\»)
+     ("frac14" . ?\¼) ("frac12" . ?\½) ("frac34" . ?\¾) ("iquest" . ?\¿)
+     ("Agrave" . ?\À) ("Aacute" . ?\Á) ("Acirc"  . ?\Â) ("Atilde" . ?\Ã)
+     ("Auml"   . ?\Ä) ("Aring"  . ?\Å) ("AElig"  . ?\Æ) ("Ccedil" . ?\Ç)
+     ("Egrave" . ?\È) ("Eacute" . ?\É) ("Ecirc"  . ?\Ê) ("Euml"   . ?\Ë)
+     ("Igrave" . ?\Ì) ("Iacute" . ?\Í) ("Icirc"  . ?\Î) ("Iuml"   . ?\Ï)
+     ("ETH"    . ?\Ð) ("Ntilde" . ?\Ñ) ("Ograve" . ?\Ò) ("Oacute" . ?\Ó)
+     ("Ocirc"  . ?\Ô) ("Otilde" . ?\Õ) ("Ouml"   . ?\Ö) ("times"  . ?\×)
+     ("Oslash" . ?\Ø) ("Ugrave" . ?\Ù) ("Uacute" . ?\Ú) ("Ucirc"  . ?\Û)
+     ("Uuml"   . ?\Ü) ("Yacute" . ?\Ý) ("THORN"  . ?\Þ) ("szlig"  . ?\ß)
+     ("agrave" . ?\à) ("aacute" . ?\á) ("acirc"  . ?\â) ("atilde" . ?\ã)
+     ("auml"   . ?\ä) ("aring"  . ?\å) ("aelig"  . ?\æ) ("ccedil" . ?\ç)
+     ("egrave" . ?\è) ("eacute" . ?\é) ("ecirc"  . ?\ê) ("euml"   . ?\ë)
+     ("igrave" . ?\ì) ("iacute" . ?\í) ("icirc"  . ?\î) ("iuml"   . ?\ï)
+     ("eth"    . ?\ð) ("ntilde" . ?\ñ) ("ograve" . ?\ò) ("oacute" . ?\ó)
+     ("ocirc"  . ?\ô) ("otilde" . ?\õ) ("ouml"   . ?\ö) ("divide" . ?\÷)
+     ("oslash" . ?\ø) ("ugrave" . ?\ù) ("uacute" . ?\ú) ("ucirc"  . ?\û)
+     ("uuml"   . ?\ü) ("yacute" . ?\ý) ("thorn"  . ?\þ) ("yuml"   . ?\ÿ))
+   ;; [jpw; 03/06] My own additions:
+   jpw-lj-entity-table
+   )
+  "HTML entities to Latin1 characters.
+
+{jpw: 03/06} Added:  Several forms of Unicode characters.  See
+`jpw-lj-entity-table' for details.")
+
+
+(defconst jpw-lj-entity-shortcut-table
+  '(
+    (":<=" . "&le;")
+    (":>=" . "&ge;")
+    (":===" . "&equiv;")
+    (":~=" . "&cong;")
+    (":~" . "&sim;")
+    (":~~" . "&asymp;")
+    ("<->" . "&darr;")
+    ("<-" . "&larr;")
+    ("->" . "&rarr;")
+    ("<==" . "&lArr;")
+    ("==>" . "&rArr;")
+    ("---" . "&mdash;")
+    ("--" . "&ndash;")
+    ("\\..." . "&hellip;")
+    )
+  "A set of visual shortcuts for certain HTML entities.
+
+NOTE: The order in which these are listed is important for the proper construction
+of search regexps.
+{jpw: 03/06}")
+
+
+(defconst jpw-jwz-lj-entity-table-re 
+  (eval-when-compile
+    (set-buffer-multibyte t)
+    (concat "["
+            (mapconcat #'(lambda (x) 
+                             (make-string 1 (cdr x))
+                             )
+                       jwz-lj-entity-table nil)
+            "]")
+    )
+    "A cached regexp that matches any of the characters in
+`jwz-lj-entity-table'.  Replaces code for on-the-fly construction of this
+regexp in `jwz-lj-entify'.
+{jpw; 03/06}")
+
+
+(defconst jpw-lj-entity-shortcut-table-re 
+  (regexp-opt-group 
+   (mapcar 'car jpw-lj-entity-shortcut-table)
+   t)
+  "A cached regexp that matches any of the entity shortcuts in
+`jpw-lj-entity-shortcut-table'.
+{jpw; 03/06}")
+
+
 ;;------------------------------------------------------------
 ;;
 ;; Utility Functions
 ;; 
 
 
-(defun jpw-lj-custom-set-var (symbol val)
-  ;; Add the elements of `val' to the alist, `symbol', as alist keys.
-  (mapcar '(lambda (arg)
-             (add-to-list symbol (list arg) t)
-             )
-          val)
+(defsubst jpw-lj-enhanced-entify (start end)
+  (save-excursion
+    (goto-char start)
+    (while (re-search-forward jpw-lj-entity-shortcut-table-re end t)
+      (let* ((entity (cdr 
+                      (assoc (match-string 0) jpw-lj-entity-shortcut-table)))
+             );;end bindings
+        (replace-match entity t t)
+        );;end let
+      );;end while
+    );;end excursion
+  )
+
+
+(defsubst find-non-ascii-charset-region (beg end)
+  "Something to shut up the compilation errors in GNU Emacs
+{jpw: 03/06}"
+  (delq 'ascii (find-charset-region beg end))
+  )
+
+
+;; This next defun (C) 2002-2005 by Jamie Zawinski <jwz@jwz.org>
+;; Taken lock, stock, and barrel from "jwz-lj.el".
+;; This entire defun, including my additions, fall under the copyright
+;; notice at the top of this file.
+(defun jwz-lj-entify (&optional start end)
+  "Convert any non-ASCII characters in the region to HTML entities.
+If there is no region, use the whole buffer."
+  (interactive)
+  (let ((re ;;(concat "["
+            ;;        (mapconcat #'(lambda (x) (make-string 1 (cdr x)))
+            ;;                   jwz-lj-entity-table nil)
+            ;;        "]")
+         ;; [jpw; 03/06] Use my cached version instead of computing it every
+         ;; time we call this defun.
+         jpw-jwz-lj-entity-table-re)
+        (case-fold-search nil))
+    (cond ((or start end)
+           (or start (setq start (point-min)))
+           (or end   (setq end   (point-max))))
+          (t
+           (setq start (point-min))
+           (setq end (point-max)))
+          (if (region-active-p)
+              (setq start (if (< (point) (mark)) (point) (mark))
+                    end   (if (< (point) (mark)) (mark) (point)))))
+    (save-excursion
+      (goto-char start)
+      (setq end (copy-marker end))
+      (while (search-forward-regexp re end t)
+        (let* ((ch (preceding-char))
+               (entity (or (car (rassq ch jwz-lj-entity-table))
+                           (error "no entity %c" ch))))
+          (delete-char -1)
+          (insert-before-markers "&" entity ";"))))
+
+    ;; [jpw; 03/06] My own special additions
+    (jpw-lj-enhanced-entify start end)
+    )
+
+  (if (and (boundp 'find-non-ascii-charset-region)
+           (fboundp 'find-non-ascii-charset-region)
+           (find-non-ascii-charset-region start end))
+      (error "non-ascii characters exist in this buffer!"))
   )
 
 
@@ -301,7 +656,7 @@ the URL prompt.
 
 
 (define-skeleton jpw-html-size-relative
-  "Insert HTML font resizing markup
+  "Insert XHTML font resizing markup.
 {jpw: 03/06}"
   (completing-read "Size: " jpw-html-size-alist nil nil "small")
   "<span style=\"font-size: " str "\">" _ "</span>")
@@ -482,11 +837,13 @@ Any other type is an error.
   "Initialize internal variables from customizations.
 
 Call this function after changing certain customization variables manually
-[i.e. outside of `custom-mode'].
+\\=\\[i.e. outside of `custom-mode'\\=\\]
 {jpw: 03/06}"
   (interactive)
-  (jpw-lj-custom-set-var 'jpw-lj-security-alist jpw-lj-friend-groups)
-  (jpw-lj-custom-set-var 'jpw-lj-avatar-alist jpw-lj-user-avatars)
+  (funcall 'jpw-lj-custom-set-var 
+           'jpw-lj-security-alist jpw-lj-friend-groups)
+  (funcall 'jpw-lj-custom-set-var 
+           'jpw-lj-avatar-alist jpw-lj-user-avatars)
   )
 
 
@@ -652,10 +1009,10 @@ Call this function after changing certain customization variables manually
 (defconst jpw-lj-font-lock-header-face-key-2
   (list
    (concat
-    "\\(lj-\\sw+:\\) \\(.*\\)$"
+    "\\(lj-\\sw+:\\)\\s +\\(.*\\)$"
     ) ;;end concat
-   '(1 'jpw-lj-header-face)
-   '(2 'font-lock-type-face)
+   '(1 'jpw-lj-header-face append)
+   '(2 'font-lock-type-face append)
    ) ;;end list
   ) ;;end defconst
 
@@ -761,10 +1118,14 @@ Call this function after changing certain customization variables manually
           ) ;;end append
   )
 
-(defconst jpw-lj-font-lock-keywords jpw-lj-font-lock-keywords-3)
+(defvar jpw-lj-font-lock-keywords jpw-lj-font-lock-keywords-3
+  "The actual set of keywords passed to `font-lock' by `jpw-lj-mode' and
+`jpw-lj-minor-mode'.
+{jpw: 03/06")
 
 
-;; The actual value of `font-lock-defaults' for jpw-lj-mode
+;; What *would* be the actual value of `font-lock-defaults' for jpw-lj-mode,
+;; if we weren't inheriting from `htl=mode'.
 ;;
 
 (defconst jpw-lj-font-lock-defaults
@@ -784,15 +1145,44 @@ Call this function after changing certain customization variables manually
 ;; 
 
 
-
-;;;###autoload (jpw-lj-mode)
-(define-derived-mode jpw-lj-mode html-mode "jpw-lj"
-  "A major mode for editing LiveJournal messages.  Derived from `html-mode'.
+(defun jpw-lj-add-to-font-lock-keywords (arg)
+  (add-to-list 'font-lock-keywords arg (not jpw-lj-minor-mode)))
 
-Key bindings:
-\\{jpw-lj-mode-map}
 
+(defsubst jpw-lj-set-font-lock-level ()
+  "Set `jpw-lj-font-lock-keywords' to the appropriate level, as determined by
+`font-lock-maximum-decoration'.  Uses `jpw-lj-font-lock-defaults' to select
+the actual keywords to fontify.
 {jpw: 03/06}"
+  (interactive)
+  (let* ((jpw-lj-font-lock-level-list (car jpw-lj-font-lock-defaults))
+         (my-deco1 (if (listp font-lock-maximum-decoration)
+                       (or (assq 'jpw-lj-mode font-lock-maximum-decoration)
+                           (assq 'jpw-lj-minor-mode 
+                                 font-lock-maximum-decoration)
+                           (assq 't font-lock-maximum-decoration)
+                           )
+                     ;; else
+                     font-lock-maximum-decoration                    
+                     );; end if
+                   )
+         (my-deco2 (if (listp my-deco1) (cdr my-deco1) my-deco1))
+         (my-level (1- (cond
+                        ((numberp my-deco2) (max 1 my-deco2))
+                        (my-deco2 1000)
+                        (t 1)
+                        )))
+         );; end varbinds
+    (setq jpw-lj-font-lock-keywords 
+          (eval
+           (nth (min my-level (1- (length jpw-lj-font-lock-level-list)))
+                jpw-lj-font-lock-level-list)))
+    );; end let
+  )
+
+(defun jpw-lj-mode-common ()
+  (jpw-lj-set-font-lock-level)
+
   ;; Set up font-lock for jpw-lj-mode
   (make-local-variable 'font-lock-defaults)
   (make-local-variable 'font-lock-multiline)
@@ -833,24 +1223,86 @@ Key bindings:
   ;; Things needed to circumvent behavior inherited by HTML mode.
   ;; 
 
-  ;; Override the default HTML-mode font-lock behavior 
-  (setq font-lock-keywords (append font-lock-keywords 
-                                   jpw-lj-font-lock-keywords-3))
+  ;; Override the default HTML-mode font-lock behavior
+  (mapcar 'jpw-lj-add-to-font-lock-keywords jpw-lj-font-lock-keywords)
   (if font-lock-mode
       (font-lock-fontify-buffer))
+
+  ;;
+  ;; Behavior specific to LJ mode.
+  ;;
 
   (if jpw-lj-unfill-on-save
       (add-hook 'local-write-file-hooks 'jpw-lj-unfill-buffer)
       )
-
-  ;; Change the use in phpBB-mode, too.  And use skeletons there, while we're
-  ;; at it.
+  (if jpw-lj-xlate-entities-on-save
+      (add-hook 'local-write-file-hooks 'jwz-lj-entify)
+      )
   )
 
 
-;; TODO:
-;; - Add support to make this a minor-mode, compatible with emailing
-;;   lj-entries.
+
+;;;###autoload (jpw-lj-mode)
+(define-derived-mode jpw-lj-mode html-mode "jpw-lj"
+  "A major mode for editing LiveJournal messages.  Derived from `html-mode'.
+
+Key bindings:
+\\{jpw-lj-mode-map}
+
+{jpw: 03/06}"
+  ;; Must call this outside of `jpw-lj-mode-common', due to
+  ;; different call-order in the major and minor modes.
+  (make-local-variable 'font-lock-keywords)
+  (jpw-lj-mode-common)
+  )
+
+
+
+;;;###autoload (jpw-lj-mode)
+(define-minor-mode jpw-lj-minor-mode
+  "A minor mode for editing LiveJournal messages.
+
+Key bindings:
+\\{jpw-lj-mode-map}
+
+{jpw: 03/06}"
+  nil " jpw-LJ" jpw-lj-mode-map
+  (if jpw-lj-minor-mode
+      (progn
+        ;; Must call this outside of `jpw-lj-mode-common', due to
+        ;; different call-order in the major and minor modes.
+        (make-local-variable 'font-lock-keywords)
+        ;; Cache the original font-lock keywords
+        (and (not jpw-lj-minor-mode-original-font-lock-keywords)
+             font-lock-mode
+             (setq 
+              jpw-lj-minor-mode-original-font-lock-keywords
+              font-lock-keywords)
+             );;end and
+        ;; WARNING:  This next line depends on internal implementation of
+        ;; sgml.el.  We need it here, however, for the HTML tag font-locking.
+        (mapcar 'jpw-lj-add-to-font-lock-keywords sgml-font-lock-keywords-1)
+        (jpw-lj-mode-common)
+        );; end progn
+
+    ;;else
+    (and jpw-lj-minor-mode-original-font-lock-keywords
+         font-lock-mode
+         (setq font-lock-keywords
+               jpw-lj-minor-mode-original-font-lock-keywords)
+         );;end and
+    (if jpw-lj-unfill-on-save
+        (remove-hook 'local-write-file-hooks 'jpw-lj-unfill-buffer)
+      )
+    (if jpw-lj-xlate-entities-on-save
+        (remove-hook 'local-write-file-hooks 'jwz-lj-entify)
+      )
+    );;end if (outer)
+
+  ;; Whether turning the minor mode on or off, refontify the buffer if needed.
+  (if font-lock-mode
+      (font-lock-fontify-buffer))
+  )
 
 
 ;;------------------------------------------------------------
