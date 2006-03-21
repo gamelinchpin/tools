@@ -57,9 +57,15 @@
   (if (not (boundp symbol))
       (set symbol (list))
       )
-  (let (l-add-to-sym)
+  (let ((sym-alist (car 
+                    (rassq symbol 
+                           '((jpw-lj-avatar-alist . jpw-lj-user-avatars)
+                             (jpw-lj-security-alist . jpw-lj-friend-groups)
+                             ))))
+        l-add-to-sym)
     (fset 'l-add-to-sym (lambda (arg) 
-                          (add-to-list symbol (list arg) t)
+                          (add-to-list symbol arg t)
+                          (if sym-alist (add-to-list sym-alist (list arg) t))
                           )
           )
     (mapcar 'l-add-to-sym val)
