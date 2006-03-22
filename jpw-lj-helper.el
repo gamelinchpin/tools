@@ -90,6 +90,15 @@
   :type 'boolean
   :group 'jpw-lj)
 
+(defcustom jpw-lj-unfill-removes-blank-line nil
+  "When unfilling a paragraph or the buffer [using `jpw-lj-unfill-paragraph'
+or `jpw-lj-unfill-buffer'] remove interparagraph blank lines.  Sort of.
+
+The first blank line following a paragraph will be removed.  Any additional
+blank lines are ignored."
+  :type 'boolean
+  :group 'jpw-lj)
+
 
 (defcustom jpw-lj-xlate-entities-on-save nil
   "Translate all Latin-1 chars in the buffer to HTML entites [using
@@ -824,7 +833,7 @@ Any other type is an error.
 
 (defsubst jpw-lj-unfill-buffer ()
   (interactive)
-  (jpw-unfill-buffer t)
+  (jpw-unfill-buffer jpw-lj-unfill-removes-blank-line)
   ;; Return 'nil to make this fn usable with the various `*-write-*-hooks'.
   nil
   )
@@ -832,7 +841,7 @@ Any other type is an error.
 
 (defsubst jpw-lj-unfill-paragraph ()
   (interactive)
-  (jpw-unfill-paragraph t)
+  (jpw-unfill-paragraph jpw-lj-unfill-removes-blank-line)
   (if (looking-at "\\s ")
       (re-search-forward "\\S " nil 't)
     )
