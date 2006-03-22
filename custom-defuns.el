@@ -125,7 +125,7 @@ region.
   )
 
 
-;; FIXME:  Move these two defuns into more appropriate elisp files.
+;; FIXME:  Move this defun into a more appropriate elisp file.
 (defun jpw-insert-xml-tag (tag)
   "Inserts the begin- and end-tags for the XML entity named `tag', inserting
 them on either side of `point'.  If a region is active, it inserts the two
@@ -161,17 +161,26 @@ tags on either side of the region.
   )
 
 
-(defun jpw-unfill-paragraph (&optional remove-blank-line)
+(defsubst jpw-unfill-paragraph-engine (remove-blank-lines
+                                       jpw-unfill-skip-line)
   "Takes paragraphs separated by blank lines and merges the paragraph into a
 single line.  The inter-paragraph blank lines are preserved by default.
 
 Evaluates to `nil' if this is the current paragraph is the last paragraph in
 the buffer.  Evaluates to `t' otherwise.
 
-If `remove-blank-line' is non-nil, the first inter-paragraph blank line will
-be removed.  The others will be left alone.
-{jpw: 09/2005}"
-  (interactive "P")
+When `remove-blank-lines' is `t', all consecutive inter-paragraph blank lines
+{i.e. empty lines} will be removed.  If set to `collapse', the consecutive
+inter-paragraph blank lines will be collapsed into a single blank line.  If
+set to `first', the first inter-paragraph blank line will be removed.  The
+others will be left alone.
+
+`jpw-unfill-skip-line' should be either nil or the name of a function to
+call.  The function will take a single arg, the position of the first
+non-whitespace character on a line.  If that line should not be unfolded into
+the preceding one, the function specified in `jpw-unfill-skip-line' must eval
+to `nil'.
+{jpw: 03/2006}"
   (save-excursion
     ;; Position at 1st char of the paragraph proper.
     (backward-paragraph)
@@ -180,8 +189,8 @@ be removed.  The others will be left alone.
     (end-of-line)
     ;; Main Loop
     (while (looking-at "\n\\([ \t]*\\)\\([^ \t\n]\\)")
-      (if (and (functionp 'jpw-unfill-skip-line)
-               (jpw-unfill-skip-line (match-beginning 2)))
+      (if (and (functionp jpw-unfill-skip-line)
+               (funcall jpw-unfill-skip-line (match-beginning 2)))
           (forward-line)
         ;; else:
         ;; Merge the two lines.
@@ -202,30 +211,67 @@ be removed.  The others will be left alone.
         );; end skip-line-if
       (end-of-line)
       );;end Main Loop
-    (if (and remove-blank-line (looking-at "\n\n"))
-        (replace-match "\n"))
+    (cond ((eq remove-blank-lines 'collapse)
+           (if (looking-at "\n\n\n+")
+               (replace-match "\n\n"))
+           )
+          ((eq remove-blank-lines 'first)
+           (if (looking-at "\n\n")
+               (replace-match "\n"))
+           )
+          (remove-blank-lines 
+           (if (looking-at "\n\n+")
+               (replace-match "\n"))
+           )
+          );; end cond
     );;end excursion
   (not (eobp))
   )
 
 
-;; N.B.:  When byte-compiling this file, you'll get warning about
-;;        `jpw-unfill-skip-line not being defined.  Ignore it; the file still
-;;        compiles.
-;;        I tried several techniques to remove this warning, but was
-;;        unsuccessful.
-(defun jpw-unfill-buffer (&optional remove-blank-line)
-  "Calls `jpw-unfill-paragraph' on every paragraph in the buffer.
+(defsubst jpw-unfill-buffer-engine (remove-blank-lines jpw-unfill-skip-line)
+  "Calls `jpw-unfill-paragraph-engine' on every paragraph in the buffer (or
+the narrowed region).
 
-The optional `remove-blank-line' will be passed to every underlying
-`jpw-unfill-paragraph' call.
+The optional `remove-blank-lines' will be passed to every underlying
+`jpw-unfill-paragraph-engine' call.
 {jpw: 09/2005}"
-  (interactive)
   (save-excursion
-    (while (jpw-unfill-paragraph remove-blank-line)
+    (goto-char (point-min))
+    (while (jpw-unfill-paragraph-engine remove-blank-lines 
+                                        jpw-unfill-skip-line)
       (forward-word 1)
       );; end while.
     );; end excursion
+  )
+
+
+(defun jpw-unfill-paragraph (&optional remove-blank-lines)
+  "Takes paragraphs separated by blank lines and merges the paragraph into a
+single line.  The inter-paragraph blank lines are preserved by default.
+
+Evaluates to `nil' if this is the current paragraph is the last paragraph in
+the buffer.  Evaluates to `t' otherwise.
+
+If `remove-blank-lines' is non-nil, the inter-paragraph blank lines will
+be removed completely.  {See `jpw-unfill-paragraph-engine' for more possible
+values of `remove-blank-lines'.}
+{jpw: 03/2006}"
+  (interactive "P")
+  (jpw-unfill-paragraph-engine remove-blank-lines nil)
+  )
+
+
+(defsubst jpw-unfill-buffer (&optional remove-blank-lines)
+  "Calls `jpw-unfill-buffer-engine' on every paragraph in the buffer (or
+the narrowed region).
+
+The optional `remove-blank-lines' will be passed to
+`jpw-unfill-buffer-engine'.  See `jpw-unfill-paragraph-engine' for further
+details regarding this arg.
+{jpw: 09/2005}"
+  (interactive "P")
+  (jpw-unfill-buffer-engine remove-blank-lines nil)
   )
 
 

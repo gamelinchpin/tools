@@ -43,6 +43,7 @@
 (eval-when-compile
   (require 'lazy-lock)
   (require 'mule)
+  (require 'custom-defuns)
   )
 
 
@@ -90,12 +91,10 @@
   :type 'boolean
   :group 'jpw-lj)
 
+
 (defcustom jpw-lj-unfill-removes-blank-line nil
   "When unfilling a paragraph or the buffer [using `jpw-lj-unfill-paragraph'
-or `jpw-lj-unfill-buffer'] remove interparagraph blank lines.  Sort of.
-
-The first blank line following a paragraph will be removed.  Any additional
-blank lines are ignored."
+or `jpw-lj-unfill-buffer'] remove all interparagraph blank lines."
   :type 'boolean
   :group 'jpw-lj)
 
@@ -204,7 +203,7 @@ replaces the old, deprecated \"<strike>\" tag]."
   '(("xx-small") ("x-small") ("small") ("smaller") ("medium") ("large")
     ("larger") ("x-large") ("xx-large"))
   "Alist of LiveJournal security keywords.
-{jpw: 03/06}")
+{jpw: 03/2006}")
 
 
 (defconst jpw-lj-mood-alist
@@ -233,7 +232,7 @@ replaces the old, deprecated \"<strike>\" tag]."
     ("thirsty") ("thoughtful") ("tired") ("touched") ("uncomfortable")
     ("weird") ("working") ("worried")) 
   "Alist of LiveJournal moods.
-{jpw: 03/06}")
+{jpw: 03/2006}")
 
 
 (defconst jpw-lj-comments-alist 
@@ -243,13 +242,13 @@ replaces the old, deprecated \"<strike>\" tag]."
     ("A" . "Screen *All* comments")) 
   "Alist of LiveJournal comment-screening flags, along with text descriptions
 of each flag.
-{jpw: 03/06}")
+{jpw: 03/2006}")
 
 
 (defvar jpw-lj-security-alist
   '(("public") ("private") ("friends"))
   "Alist of LiveJournal security keywords.
-{jpw: 03/06}")
+{jpw: 03/2006}")
 
 
 (defvar jpw-lj-avatar-alist '()
@@ -257,7 +256,7 @@ of each flag.
 
 Rebuilt from `jpw-lj-user-avatars' by calling `jpw-lj-init-customizations',
 which is called when emacs first loads the \"jpw-lj-helper\" library.
-{jpw: 03/06}")
+{jpw: 03/2006}")
 
 
 (defvar jpw-lj-minor-mode-original-font-lock-keywords 'nil)
@@ -425,9 +424,9 @@ and a few typography symbols.")
 ;; This entire variable, including my additions, fall under the copyright
 ;; notice at the top of this file.
 (defconst jwz-lj-entity-table
-  ;; [jpw; 03/06] Append my own additions to jwz's original list
+  ;; [jpw; 03/2006] Append my own additions to jwz's original list
   (append
-   ;; [jpw; 03/06] The original contents of jwz-lj-entity-table
+   ;; [jpw; 03/2006] The original contents of jwz-lj-entity-table
    '(
      ;("quot"   . ?\") ("amp"    . ?\&) ("lt"     . ?\<) ("gt"     . ?\>)
      ;("nbsp"   . ?\ )
@@ -455,12 +454,12 @@ and a few typography symbols.")
      ("ocirc"  . ?\ô) ("otilde" . ?\õ) ("ouml"   . ?\ö) ("divide" . ?\÷)
      ("oslash" . ?\ø) ("ugrave" . ?\ù) ("uacute" . ?\ú) ("ucirc"  . ?\û)
      ("uuml"   . ?\ü) ("yacute" . ?\ý) ("thorn"  . ?\þ) ("yuml"   . ?\ÿ))
-   ;; [jpw; 03/06] My own additions:
+   ;; [jpw; 03/2006] My own additions:
    jpw-lj-entity-table
    )
   "HTML entities to Latin1 characters.
 
-{jpw: 03/06} Added:  Several forms of Unicode characters.  See
+{jpw: 03/2006} Added:  Several forms of Unicode characters.  See
 `jpw-lj-entity-table' for details.")
 
 
@@ -485,7 +484,7 @@ and a few typography symbols.")
 
 NOTE: The order in which these are listed is important for the proper construction
 of search regexps.
-{jpw: 03/06}")
+{jpw: 03/2006}")
 
 
 (defconst jpw-jwz-lj-entity-table-re 
@@ -501,7 +500,7 @@ of search regexps.
     "A cached regexp that matches any of the characters in
 `jwz-lj-entity-table'.  Replaces code for on-the-fly construction of this
 regexp in `jwz-lj-entify'.
-{jpw; 03/06}")
+{jpw; 03/2006}")
 
 
 (defconst jpw-lj-entity-shortcut-table-re 
@@ -510,13 +509,24 @@ regexp in `jwz-lj-entify'.
    t)
   "A cached regexp that matches any of the entity shortcuts in
 `jpw-lj-entity-shortcut-table'.
-{jpw; 03/06}")
+{jpw; 03/2006}")
 
 
 ;;------------------------------------------------------------
 ;;
 ;; Utility Functions
 ;; 
+
+
+;; FIXME:
+;; This won't work.  We need to pass this to lj at runtime.
+(defsubst jpw-lj-unfill-skip-line (next-nonws-char)
+  (and (or (char-equal (char-before next-nonws-char) ?\n)
+           (bobp)
+           )
+       (char-equal (char-after next-nonws-char) ?<)
+       )
+  )
 
 
 (defsubst jpw-lj-enhanced-entify (start end)
@@ -535,7 +545,7 @@ regexp in `jwz-lj-entify'.
 
 (defsubst find-non-ascii-charset-region (beg end)
   "Something to shut up the compilation errors in GNU Emacs
-{jpw: 03/06}"
+{jpw: 03/2006}"
   (delq 'ascii (find-charset-region beg end))
   )
 
@@ -552,7 +562,7 @@ If there is no region, use the whole buffer."
             ;;        (mapconcat #'(lambda (x) (make-string 1 (cdr x)))
             ;;                   jwz-lj-entity-table nil)
             ;;        "]")
-         ;; [jpw; 03/06] Use my cached version instead of computing it every
+         ;; [jpw; 03/2006] Use my cached version instead of computing it every
          ;; time we call this defun.
          jpw-jwz-lj-entity-table-re)
         (case-fold-search nil))
@@ -575,7 +585,7 @@ If there is no region, use the whole buffer."
           (delete-char -1)
           (insert-before-markers "&" entity ";"))))
 
-    ;; [jpw; 03/06] My own special additions
+    ;; [jpw; 03/2006] My own special additions
     (jpw-lj-enhanced-entify start end)
     )
 
@@ -598,49 +608,49 @@ If there is no region, use the whole buffer."
 (define-skeleton jpw-html-italic
   "Insert HTML [physical] italics tags, or puts the active region inside HTML
 italics tags.
-{jpw: 03/06}"
+{jpw: 03/2006}"
   nil
   "<i>" _ "</i>")
 
 (define-skeleton jpw-html-bold
   "Insert HTML [physical] bold tags, or puts the active region inside HTML
 bold tags.
-{jpw: 03/06}"
+{jpw: 03/2006}"
   nil
   "<b>" _ "</b>")
 
 (define-skeleton jpw-html-underline
   "Insert HTML [physical] underline tags, or puts the active region inside
 HTML underline tags.
-{jpw: 03/06}"
+{jpw: 03/2006}"
   nil
   "<u>" _ "</u>")
 
 (define-skeleton jpw-html-emphasized
   "Insert HTML [logical] emphasized tags, or puts the active region inside
 HTML emphasized tags.
-{jpw: 03/06}"
+{jpw: 03/2006}"
   nil
   "<em>" _ "</em>")
 
 (define-skeleton jpw-html-strong
   "Insert HTML [logical] strong tags, or puts the active region inside HTML
 strong tags.
-{jpw: 03/06}"
+{jpw: 03/2006}"
   nil
   "<strong>" _ "</strong>")
 
 (define-skeleton jpw-html-del
   "Insert HTML [logical] \"<del>\" tags, or puts the active region inside HTML
 strong tags.
-{jpw: 03/06}"
+{jpw: 03/2006}"
   nil
   "<del>" _ "</del>")
 
 (define-skeleton jpw-html-code
   "Insert HTML code tags, or puts the active region inside HTML code
 tags.
-{jpw: 03/06}"
+{jpw: 03/2006}"
   nil
   "<code>" _ "</code>")
 
@@ -649,14 +659,14 @@ tags.
   "HTML anchor tag with href attribute.
 Like the sgml-mode version, but without the annoying \"http:\" defaulting into
 the URL prompt.
-{jpw: 03/06}"
+{jpw: 03/2006}"
   "URL: "
   "<a href=\"" str "\">" _ "</a>")
 
 
 (define-skeleton jpw-html-size-small
   "Insert HTML font resizing tag \"<small>\".
-{jpw: 03/06}"
+{jpw: 03/2006}"
   nil
   "<small>" _  "</small>"
   )
@@ -664,7 +674,7 @@ the URL prompt.
 
 (define-skeleton jpw-html-size-big
   "Insert HTML font resizing tag \"<big>\".
-{jpw: 03/06}"
+{jpw: 03/2006}"
   nil
   "<big>" _  "</big>"
   )
@@ -672,7 +682,7 @@ the URL prompt.
 
 (define-skeleton jpw-html-size-relative
   "Insert XHTML font resizing markup.
-{jpw: 03/06}"
+{jpw: 03/2006}"
   (completing-read "Size: " jpw-html-size-alist nil nil "small")
   "<span style=\"font-size: " str "\">" _ "</span>")
 
@@ -782,7 +792,7 @@ the URL prompt.
   "Insert HTML italics tags, or puts the active region inside HTML italics
 tags.
 Actually, it uses the logical tag \"<em>\", unless called with an arg.
-{jpw: 03/06}"
+{jpw: 03/2006}"
   (interactive "P")
   (if (null type)
       (jpw-html-emphasized)
@@ -795,7 +805,7 @@ Actually, it uses the logical tag \"<em>\", unless called with an arg.
   "Insert HTML bold tags, or puts the active region inside HTML bold
 tags.
 Actually, it uses the logical tag \"<strong>\", unless called with an arg.
-{jpw: 03/06}"
+{jpw: 03/2006}"
   (interactive "P")
   (if (null type)
       (jpw-html-strong)
@@ -811,7 +821,7 @@ The optional `type' specifies the type of list.  It can be passed directly or
 specified using a prefix-arg.  If `type' is an integer [e.g. a prefix-arg],
 then the list will be an ordered list.  Otherwise, the list is unordered.
 Any other type is an error.
-{jpw: 03/06}"
+{jpw: 03/2006}"
   (interactive "P")
   ;; Validation check.
   (or (null type)
@@ -831,7 +841,32 @@ Any other type is an error.
   (funcall jpw-lj-default-html-size-function))
 
 
+(defun jpw-lj-unfill-paragraph ()
+  "Unfills a paragraph using `jpw-unfill-paragraph-engine'.
+
+Any line beginning with a '<' character will no be joined to the preceding
+line.  This is to permit you break the line at a markup tag without having to
+stick in an entire blank line.
+{jpw: 03/2006}"
+  (interactive)
+  (jpw-unfill-paragraph-engine jpw-lj-unfill-removes-blank-line
+                               'jpw-lj-unfill-skip-line)
+  (if (looking-at "\\s ")
+      (re-search-forward "\\S " nil 't)
+    )
+  )
+
+
 (defsubst jpw-lj-unfill-buffer ()
+  "Unfills the entire buffer, using `jpw-unfill-buffer-engine'.
+
+As for `jpw-lj-unfill-paragraph', any line beginning with a '<' character will
+no be joined to the preceding line.  This is to permit you break the line at a
+markup tag without having to stick in an entire blank line.
+Furthermore, any block of headers at the top of the buffer are ignored.
+`jpw-lj-unfill-buffer' considers any line beginning with word characters
+followed by a ':' as a header.
+{jpw: 03/2006}"
   (interactive)
   (save-excursion
     (save-restriction
@@ -841,20 +876,12 @@ Any other type is an error.
       (while (re-search-forward "^\\(lj-\\)?\\(\\sw+\\): " nil t))
       (re-search-forward "\\S " nil t)
       (narrow-to-region (point) (point-max))
-      (jpw-unfill-buffer jpw-lj-unfill-removes-blank-line)
+      (jpw-unfill-buffer-engine jpw-lj-unfill-removes-blank-line
+                                'jpw-lj-unfill-skip-line)
       );; end restriction
     );; end excursion
   ;; Return 'nil to make this fn usable with the various `*-write-*-hooks'.
   nil
-  )
-
-
-(defsubst jpw-lj-unfill-paragraph ()
-  (interactive)
-  (jpw-unfill-paragraph jpw-lj-unfill-removes-blank-line)
-  (if (looking-at "\\s ")
-      (re-search-forward "\\S " nil 't)
-    )
   )
 
 
@@ -863,7 +890,7 @@ Any other type is an error.
 
 Call this function after changing certain customization variables manually
 \\=\\[i.e. outside of `custom-mode'\\=\\]
-{jpw: 03/06}"
+{jpw: 03/2006}"
   (interactive)
   (funcall 'jpw-lj-custom-set-var 
            'jpw-lj-security-alist jpw-lj-friend-groups)
@@ -1146,7 +1173,7 @@ Call this function after changing certain customization variables manually
 (defvar jpw-lj-font-lock-keywords jpw-lj-font-lock-keywords-3
   "The actual set of keywords passed to `font-lock' by `jpw-lj-mode' and
 `jpw-lj-minor-mode'.
-{jpw: 03/06")
+{jpw: 03/2006")
 
 
 ;; What *would* be the actual value of `font-lock-defaults' for jpw-lj-mode,
@@ -1178,7 +1205,7 @@ Call this function after changing certain customization variables manually
   "Set `jpw-lj-font-lock-keywords' to the appropriate level, as determined by
 `font-lock-maximum-decoration'.  Uses `jpw-lj-font-lock-defaults' to select
 the actual keywords to fontify.
-{jpw: 03/06}"
+{jpw: 03/2006}"
   (interactive)
   (let* ((jpw-lj-font-lock-level-list (car jpw-lj-font-lock-defaults))
          (my-deco1 (if (listp font-lock-maximum-decoration)
@@ -1274,7 +1301,7 @@ the actual keywords to fontify.
 Key bindings:
 \\{jpw-lj-mode-map}
 
-{jpw: 03/06}"
+{jpw: 03/2006}"
   ;; Must call this outside of `jpw-lj-mode-common', due to
   ;; different call-order in the major and minor modes.
   (make-local-variable 'font-lock-keywords)
@@ -1290,7 +1317,7 @@ Key bindings:
 Key bindings:
 \\{jpw-lj-mode-map}
 
-{jpw: 03/06}"
+{jpw: 03/2006}"
   nil " jpw-LJ" jpw-lj-mode-map
   (if jpw-lj-minor-mode
       (progn

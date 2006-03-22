@@ -643,6 +643,11 @@ The result of analysis is nil if `point' is not enclosed in any phpBB tags.
   )
 
 
+(defsubst jpw-phpBB-unfill-skip-line (next-nonws-char)
+  (char-equal (char-after next-nonws-char) ?\[)
+  )
+
+
 ;;------------------------------------------------------------
 ;;
 ;; Mode Interactive Functions
@@ -811,11 +816,6 @@ Evals to `nil' and does nothing if we're not inside of a quote environment.
   )
 
 
-(defsubst jpw-unfill-skip-line (next-nonws-char)
-  (char-equal (char-after next-nonws-char) ?\[)
-  )
-
-
 (defun jpw-phpBB-display-tag-analysis ()
   "Show the results of `jpw-phpBB-tag-nested-analysis' in the *Messages*
 buffer.
@@ -823,6 +823,16 @@ buffer.
   (interactive)
   (jpw-phpBB-tag-nested-analysis)
   (message "%S" jpw-phpBB-tag-analysis-cache)
+  )
+
+
+(defun jpw-phpBB-unfill-paragraph (&optional remove-blank-line)
+  "Behaves almost identically to `jpw-unfill-paragraph' with one exception:
+lines that begin with a phpBB tag are not unfilled.
+{jpw: 03/2006}"
+  (interactive "P")
+  (jpw-unfill-paragraph-engine (not (eq remove-blank-line nil)) 
+                               'jpw-phpBB-unfill-skip-line)
   )
 
 
@@ -836,7 +846,7 @@ buffer.
 (if (null phpBB-mode-map)
     (progn
       (setq phpBB-mode-map (make-sparse-keymap))
-      (define-key phpBB-mode-map "\M-\"" 'jpw-unfill-paragraph)
+      (define-key phpBB-mode-map "\M-\"" 'jpw-phpBB-unfill-paragraph)
 
       (define-key phpBB-mode-map "\C-c\C-s" 'jpw-phpBB-display-tag-analysis)
 
