@@ -833,7 +833,17 @@ Any other type is an error.
 
 (defsubst jpw-lj-unfill-buffer ()
   (interactive)
-  (jpw-unfill-buffer jpw-lj-unfill-removes-blank-line)
+  (save-excursion
+    (save-restriction
+      (widen)
+      (goto-char (point-min))
+      ;; Skip over any headers at the top of the buffer.
+      (while (re-search-forward "^\\(lj-\\)?\\(\\sw+\\): " nil t))
+      (re-search-forward "\\S " nil t)
+      (narrow-to-region (point) (point-max))
+      (jpw-unfill-buffer jpw-lj-unfill-removes-blank-line)
+      );; end restriction
+    );; end excursion
   ;; Return 'nil to make this fn usable with the various `*-write-*-hooks'.
   nil
   )
