@@ -2,7 +2,7 @@
 ;;    
 ;; Custom Functions
 ;;
-;;  Copyright © 1995-2005 John P. Weiss
+;;  Copyright © 1995-2006 John P. Weiss
 ;;  
 ;;  This package is free software; you can redistribute it and/or modify
 ;;  it under the terms of the Artistic License, included as the file
@@ -583,7 +583,8 @@ extended using an EOL-\"\\\"-char.  {jpw; 12/04}"
           (re-search-forward
            (concat "\\\\[ \t]*\nexec .*" 
                    regex  
-                   ".* `basename \"?\\${?0}?\"?` .*\"?\\${?[@*1]}?\"?")
+                   ".* \\(`basename \\)?\"?\\${?0}?\"?`?"
+                   " .*\"?\\${?[@*1]}?\"?")
            (point-max) t)
           ))
    (funcall mode)
@@ -601,20 +602,20 @@ extended using an EOL-\"\\\"-char.  {jpw; 12/04}"
   (interactive)
   ;; Create keymap
   ;; Define doc-comment keybindings.
-  (local-set-key [?\C-c ?\C-e] (lambda() (interactive)
+  (local-set-key [?\M-g e] (lambda() (interactive)
                                    (jpw-insert-doxygen-tag "em")))
-  (local-set-key [?\C-c ?\C-t] (lambda() (interactive)
+  (local-set-key [?\M-g t] (lambda() (interactive)
                                  (jpw-insert-doxygen-tag "tt")))
-  (local-set-key [?\C-c ?\C-b] (lambda() (interactive)
+  (local-set-key [?\M-g b] (lambda() (interactive)
                                  (jpw-insert-doxygen-tag "b")))
+  (local-set-key [?\C-c ?\C-q] (lambda() (interactive)
+                                 (jpw-insert-doxygen-cmdblock "code")))
   (local-set-key [?\C-c ?\C-j] 
                  (lambda () (interactive)
                    (do-comment-line-break) 
                    (insert "<p>") 
                    (do-comment-line-break))
                  )
-  (local-set-key [?\C-c ?\C-q] (lambda() (interactive)
-                                 (jpw-insert-doxygen-cmdblock "code")))
   )
 
 
@@ -684,7 +685,7 @@ extended using an EOL-\"\\\"-char.  {jpw; 12/04}"
 
 (defun use-jpw-style-c ()
   (interactive)
-  (c-set-style "jpw")
+  (c-set-style 'jpw-c-style)
   ;; Make sure this is set correctly...
   (local-unset-key [f4])
   )

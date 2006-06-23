@@ -2,7 +2,7 @@
 ;;
 ;; Core Emacs Setup File
 ;;
-;;  Copyright Å© 1995-2005 John P. Weiss
+;;  Copyright Å© 1995-2006 John P. Weiss
 ;;  
 ;;  This package is free software; you can redistribute it and/or modify
 ;;  it under the terms of the Artistic License, included as the file
@@ -407,6 +407,13 @@ You shouldn't change the value of this variable.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
+(defvar jpw-c-style "jpw"
+  "The style that the c-mode autohook should use by default.  Provided as a
+variable rather than hardcoded.
+
+{jpw; 06/06}")
+
+
 ;; Create a style for use with c-mode, c++-mode, and objc-mode
 (c-add-style "jpw" 
              '("whitesmith" 
@@ -432,26 +439,37 @@ You shouldn't change the value of this variable.
                 (topmost-intro . 0)
                 (topmost-intro-cont . 0)
                 (statement-block-intro . +)
+                (case-label . *)
                 (statement-case-intro . *)
-                (statement-case-open . *)
+                (statement-case-open . 0)
                 (substatement . +)
                 ;(substatement-open . +)
                 (substatement-open . 0)
-                (case-label . *)
                 (access-label . -)
                 (label . 0)
                 (inclass . +)
                 (innamespace . 1)
                 )
-                (c-hanging-comment-starter-p . nil)
-                (c-hanging-comment-ender-p . nil)
-                (c-comment-only-line-offset . 0)
-                (c-comment-continuation-stars . "* ")
+               (c-hanging-comment-starter-p . nil)
+               (c-hanging-comment-ender-p . nil)
+               (c-comment-only-line-offset . 0)
+               (c-comment-continuation-stars . "* ")
                ) ;; end list literal
              ;;'t  ;; Activate it now
              )
 
 
+(c-add-style "jpw-flat-case"
+             '("jpw"
+               (c-offsets-alist
+                (case-label . 0)
+                (statement-case-intro . +)
+                )
+               ) ;; end list literal
+             ;;'t  ;; Activate it now
+             )
+
+                
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;    Java Mode Setup
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

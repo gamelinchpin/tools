@@ -2,7 +2,7 @@
 ;;
 ;; M$ WinBlows-specific setup.
 ;;
-;;  Copyright © 1995-2005 John P. Weiss
+;;  Copyright © 1995-2006 John P. Weiss
 ;;  
 ;;  This package is free software; you can redistribute it and/or modify
 ;;  it under the terms of the Artistic License, included as the file
@@ -51,15 +51,16 @@
 
 ;; CygWin
 ;;
-(defvar cygwin-basepath "D:/cygwin")
+(defvar cygwin-basepath "C:/cygwin")
+;;(defvar cygwin-basepath "D:/cygwin")
 ;;(defvar cygwin-basepath "D:/local/cygwin") ;Keep changin' my mind...
 (defvar cygwin-tmppath (or (getenv "TEMP") 
                            (getenv "TMP")
                            ;; Customize below, or set one of the envvars above.
-                           "D:/TEMP"))
+                           "C:/home/tmp"))
 (defvar cygwin-home (or (getenv "HOME") 
                         ;; Customize below, or set the envvar above.
-                        "D:/TEMP"))
+                        "C:/home/tmp"))
 
 ;; Visual Source Safe
 ;;
@@ -148,6 +149,11 @@
   ;;; "-*-Lucida Console-normal-r-*-*-15-*-*-*-c-*-*")
   ;; For larger fonts, one could do this:
   (setcdr (assoc 'height initial-frame-alist) '43)
+  (set-default-font 
+   "-*-Lucida Console-normal-r-*-*-17-*-*-*-c-*-*")
+  )
+ ((equal res "1280x1024")
+  (setcdr (assoc 'height initial-frame-alist) '53)
   (set-default-font 
    "-*-Lucida Console-normal-r-*-*-17-*-*-*-c-*-*")
   )

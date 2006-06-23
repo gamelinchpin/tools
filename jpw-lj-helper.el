@@ -751,7 +751,7 @@ the URL prompt.
 (define-skeleton html-line
   "XHTML line break tag."
   nil
-  "<br />" \n)
+  "<br/>" \n)
 
 (define-skeleton html-ordered-list
   "XHTML ordered list tags."
@@ -782,7 +782,7 @@ the URL prompt.
 (define-skeleton html-horizontal-rule
   "XHTML horizontal rule tag."
   nil
-  "<hr />" \n)
+  "<hr/>" \n)
 
 
 ;; Other functions.
@@ -794,6 +794,10 @@ tags.
 Actually, it uses the logical tag \"<em>\", unless called with an arg.
 {jpw: 03/2006}"
   (interactive "P")
+  ;; Clear the prefix arg so it doesn't screw up the behavior of the
+  ;; `skeleton-insert' call.
+  (if type (setq prefix-arg nil
+                 current-prefix-arg nil))
   (if (null type)
       (jpw-html-emphasized)
     (jpw-html-italic)
@@ -807,6 +811,10 @@ tags.
 Actually, it uses the logical tag \"<strong>\", unless called with an arg.
 {jpw: 03/2006}"
   (interactive "P")
+  ;; Clear the prefix arg so it doesn't screw up the behavior of the
+  ;; `skeleton-insert' call.
+  (if type (setq prefix-arg nil
+                 current-prefix-arg nil))
   (if (null type)
       (jpw-html-strong)
     (jpw-html-bold)
@@ -828,6 +836,10 @@ Any other type is an error.
       (char-or-string-p type)
       (signal 'wrong-type-argument 
               (list 'char-or-string-p type)))
+  ;; Clear the prefix arg so it doesn't screw up the behavior of the
+  ;; `skeleton-insert' call.
+  (if type (setq prefix-arg nil
+                 current-prefix-arg nil))
   (if (or (null type)
           (stringp type))
       (html-unordered-list)
