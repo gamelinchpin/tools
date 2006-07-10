@@ -2,7 +2,7 @@
 ;;
 ;; Some enhancements for the default TCL-mode that comes with Emacs
 ;;
-;;  Copyright © 2005 John P. Weiss
+;;  Copyright © 2005-2006 John P. Weiss
 ;;  
 ;;  This package is free software; you can redistribute it and/or modify
 ;;  it under the terms of the Artistic License, included as the file
@@ -57,6 +57,14 @@ builtins (e.g. 'array', 'string').
 keywords, such as 'namespace'.  Inherits from `tcl-builtin-arg1-face' by
 default, but is provided for finer-grained control.
 {jpw: 6/05}"
+  :group 'tcl)
+
+
+(defcustom jpw-tcl-allow-comment-unindent t
+  "When set to non-nil, allows the function `jpw-tcl-comment-indent-command'
+to \"indent backward\".  By default, `jpw-tcl-comment-indent-command' ignores
+comments with internal indentation deeper than the previous line.
+{jpw: 7/06}"
   :group 'tcl)
 
 
@@ -312,8 +320,93 @@ plus `tcl-misc-builtins'.
 ;; 
 
 
+(defun jpw-tcl-comment-indent-command (&optional arg)
+  "When inside of a comment, perform two kinds of indentation:
+1. Normal indentation of the comment, using ARG (if specified).
+2. Internal indentation of the comment's contents, relative to the content of
+the previous comment line.
+
+The latter is skipped if the previous line isn't a comment or is a comment
+containing only whitespace.
+{jpw: 6/05}"
+  (interactive "p")
+  (tcl-indent-command arg)
+  (back-to-indentation)
+  (skip-syntax-forward " <")
+  (let* ((current-internal-indent (current-column))
+         (prev-line-internal-indent current-internal-indent)
+         );; end bindings
+    (save-excursion 
+      (forward-line -1)
+      (beginning-of-line)
+      (if (looking-at "^\\s *#\\s *\\S ")
+          (progn
+            (back-to-indentation)
+            (skip-syntax-forward " <")
+            (setq prev-line-internal-indent (current-column))
+            );;end progn
+        );;end if
+      );; end excursion
+    (if (or jpw-tcl-allow-comment-unindent
+            (> prev-line-internal-indent current-internal-indent))
+        (indent-to prev-line-internal-indent)
+        );;end if
+    );;end let
+  )
+
+
+(defun jpw-tcl-comment-indent-relative ()
+  "Do not call this function directly.  Instead, use
+`jpw-smart-indent-relative'.
+{jpw: 6/05}"
+  (back-to-indentation)
+  (skip-syntax-forward " <")
+  (indent-relative)
+  )
+
+
+(defun jpw-tcl-indent-command (&optional arg)
+  "Enhanced indentation for TCL code.
+{jpw: 6/05}"
+  (interactive "p")
+  (cond
+   ;; Comment Case 
+   ((or (= (following-char) ?#)
+        (save-excursion
+          (beginning-of-line)
+          (looking-at "^\\s *#"))
+        );;end or
+    (jpw-tcl-comment-indent-command arg)
+    );; end Comment Case
+   ;; Default
+   (t
+    (tcl-indent-command arg)
+    );; end default case
+   );; end cond
+  )
+
+
+(defun jpw-smart-indent-relative (&optional arg)
+  "Context-sensitive version of indent-relative.
+{jpw: 6/05}"
+  (interactive "p")
+  (back-to-indentation)
+  (if (or (= (following-char) ?#)
+          (save-excursion (beginning-of-line)
+                          (looking-at "^\\s *#"))
+          );;end or
+      (jpw-tcl-comment-indent-relative)
+    ;; else
+    (indent-relative)
+    )
+  )
+
+
 (defun tcl-indent-command-toggler (&optional arg)
-  "{jpw: 6/05}"
+  "Perform \"normal\" indenting on the first stroke of the TAB key.
+Back-to-back TAB keystrokes, however, indent relative to the current
+position.
+{jpw: 6/05}"
   (interactive "p")
   (let* ( (last-100-keys (recent-keys))
           (i (1- (length last-100-keys)))
@@ -324,30 +417,19 @@ plus `tcl-misc-builtins'.
     (setq next-to-last-key (aref last-100-keys i))
     (if (and (equal (vector last-key) [tab])
              (equal last-key next-to-last-key))
-        (if (> (current-column) (current-indentation))
-            (save-excursion 
-              (back-to-indentation)
-              (indent-relative)
-              )
-          ;; else:  We're in the indentation region.
-          ;; The excursion doesn't quite work, possibly due to the change in
-          ;; the indentation.  So, we'll fake it and just move to the end of
-          ;; the indentation.
-          (back-to-indentation)
-          (indent-relative)
-          (back-to-indentation)
-          )
+        (jpw-smart-indent-relative)
       ;; else:  Not a back-to-back [tab] keypress.
       ;; Indent normally.
-      (tcl-indent-command arg)
+      (jpw-tcl-indent-command arg)
       );; end if
     );;end let
   )
 
 
 (defun tcl-enhance-indentation () 
-  ;; Fix the binding of TAB to the normal, std. value.
-  (global-set-key [tab] 'indent-for-tab-command)
+  ;; Fix the binding of TAB to the normal, std. value, but only for the
+  ;; current TCL-mode buffer.
+  (local-set-key [tab] 'indent-for-tab-command)
   (set (make-local-variable 'indent-line-function) 
        'tcl-indent-command-toggler)
   )
