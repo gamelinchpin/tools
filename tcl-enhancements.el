@@ -328,7 +328,7 @@ the previous comment line.
 
 The latter is skipped if the previous line isn't a comment or is a comment
 containing only whitespace.
-{jpw: 6/05}"
+{jpw: 7/06}"
   (interactive "p")
   (tcl-indent-command arg)
   (back-to-indentation)
@@ -358,43 +358,101 @@ containing only whitespace.
 (defun jpw-tcl-comment-indent-relative ()
   "Do not call this function directly.  Instead, use
 `jpw-smart-indent-relative'.
-{jpw: 6/05}"
+{jpw: 7/06}"
+  (tcl-indent-command)
   (back-to-indentation)
   (skip-syntax-forward " <")
   (indent-relative)
   )
 
 
+(defun jpw-back-to-matching (delim inv-delim)
+  "Move backward until DELIM is found, ignoring any intermediate
+\"DELIM ... INV-DELIM\" in the buffer.
+{jpw: 7/06}"
+  )
+
+
+(defun jpw-indent-to-matching-brace ()
+  "Do not call this function directly.
+{jpw: 7/06}"
+  (back-to-indentation)
+  (let ((old-indent-pos (point))
+        (matching-brace-col (if (jpw-back-to-matching '?{ '?})
+                                (current-column)))
+        );; end bindings
+    (goto-char old-indent-pos)
+    (if matching-brace-col
+        (indent-to matching-brace-col)
+      )
+    );;end let
+  )
+
+
 (defun jpw-tcl-indent-command (&optional arg)
   "Enhanced indentation for TCL code.
-{jpw: 6/05}"
+{jpw: 7/06}"
   (interactive "p")
-  (cond
-   ;; Comment Case 
-   ((or (= (following-char) ?#)
-        (save-excursion
-          (beginning-of-line)
-          (looking-at "^\\s *#"))
-        );;end or
-    (jpw-tcl-comment-indent-command arg)
-    );; end Comment Case
-   ;; Default
-   (t
-    (tcl-indent-command arg)
-    );; end default case
-   );; end cond
+  (case (save-excursion (back-to-indentation)
+                        (following-char))
+    ;; Comment Case 
+    ('?#
+     (jpw-tcl-comment-indent-command arg)
+     ) ;; end Comment Case
+    ('?}
+     (message "Is block end")
+     (if (looking-at "} +{")
+         (jpw-indent-to-matching-brace)
+       ;;else
+       (tcl-indent-command arg)
+       )
+     ) ;; end block-close case
+    ;; Default
+    (t
+     (tcl-indent-command arg)
+     ) ;; end default case
+    ) ;; end case
   )
+
+;; FIXME: The following TCL code is valid style:
+;; 
+;;     for { set i 79 } \
+;;         { $i < [string length $outStr] } \
+;;         { set i [expr $i_0 + 80] } {
+;;
+;;         set nextspc [string wordstart $outStr [expr $i - 1]]
+;;
+;; The official TCL mode screws this code up, however:  It double-indents the
+;; body of the for-loop.
+;; 
+;; This should also be permissible:
+;; 
+;;     for { 
+;;        set i 79 
+;;     } { 
+;;        $i < [string length $outStr]
+;;     } { 
+;;         set i [expr $i_0 + 80] 
+;;     } {
+;;
+;;         set nextspc [string wordstart $outStr [expr $i - 1]]
+;; :
+;; :
+;; :
+;; ...with tunable indentation level inside of the loop-control-expressions.
+;;
+;; FIXME: Actually, now that I look at it, all line-continuation from inside
+;; of "syntactic" {...} strings is fubar.  It all gets overindented.
+;;
+;; Look at the TCL mode code & fix it.
 
 
 (defun jpw-smart-indent-relative (&optional arg)
   "Context-sensitive version of indent-relative.
-{jpw: 6/05}"
+{jpw: 7/06}"
   (interactive "p")
   (back-to-indentation)
-  (if (or (= (following-char) ?#)
-          (save-excursion (beginning-of-line)
-                          (looking-at "^\\s *#"))
-          );;end or
+  (if (comment-beginning)
       (jpw-tcl-comment-indent-relative)
     ;; else
     (indent-relative)
@@ -406,7 +464,7 @@ containing only whitespace.
   "Perform \"normal\" indenting on the first stroke of the TAB key.
 Back-to-back TAB keystrokes, however, indent relative to the current
 position.
-{jpw: 6/05}"
+{jpw: 7/06}"
   (interactive "p")
   (let* ( (last-100-keys (recent-keys))
           (i (1- (length last-100-keys)))
@@ -432,6 +490,9 @@ position.
   (local-set-key [tab] 'indent-for-tab-command)
   (set (make-local-variable 'indent-line-function) 
        'tcl-indent-command-toggler)
+  (unless comment-end-skip
+    (set (make-local-variable 'comment-end-skip) 
+         "[ 	]*\\(\\s>\\|\n\\)"))
   )
 (remove-hook 'tcl-mode-hook 'tcl-enhance-indentation)
 (add-hook 'tcl-mode-hook 'tcl-enhance-indentation)
