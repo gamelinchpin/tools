@@ -50,12 +50,16 @@
 
 (defsubst jpw-comment-internal-indentation ()
   ;; Return the indentation of the body of a comment.  For this to work,
-  ;; `comment-start-skip' must be set correctly.
+  ;; `comment-start-skip' and `comment-end-skip' must be set correctly.
   ;; Leaves `point' at the start of the comment body
-  (if (comment-beginning)
-      (progn (re-search-forward "[ \t]*" (line-end-position) t)
-             (current-column))
-    )
+  (if (or (comment-beginning)
+          (looking-at comment-start-skip))
+      (progn (skip-syntax-forward " <")
+             (if (looking-at comment-end-skip)
+                 0
+               ;;else
+               (current-column)))
+    );;end outer if
   )
 
 
@@ -85,32 +89,86 @@
 ;; 
 
 
-(defsubst jpw-comment-indent (&optional comment-offset indent-style)
+(defun jpw-indent-comment (&optional comment-offset)
+  "If the current line is a comment, indent it according to a set of rules
+\(see below\).  Evals to `nil' if the current line is not a comment or if
+indenting fails.
+
+The indentation rules are as follows:
+- If the current comment line is indented to the same column as the
+  previous comment line, then do one of the following:
+  1. Do nothing if the previous line isn't a comment.
+  2. Indent the body to the same level as the body of the previous comment
+     line.  See below for the rules governing comment body indentation.
+  3. If unable to do #2, then indent the body relatively.
+
+- If the current comment line and the preceding comment line have different
+  indentation, do each of the following:
+  1. Indent the entire comment line.  The current line is
+     indented to the same column as the previous line \(whether it was a
+     comment or not\), plus anything specified in the optional arg
+     COMMENT-OFFSET.
+  2. Indent the body to the same level as the body of the previous comment
+     line.
+     The body isn't indented if:
+     a. The previous line isn't a comment.
+     b. The previous line is an empty comment.
+     c. The this line's \"body\" is already indented more deeply than the
+        previous line's.
+
+In both cases, if the previous line wasn't a comment, or is a comment with *no*
+body \(not even whitespace\), body indentation doesn't occur.  You'll have to
+add whitespace to the comment manually for that line.
+
+{jpw: 7/06}"
   ;; Indenting comments:
-  ;; 1. If the current comment line isn't indented to the same column as the
-  ;;    previous line, indent the entire comment line.  The current line is
-  ;;    indented to the same column as the previous one, plus anything
-  ;;    specified in the optional arg COMMENT-OFFSET.
-  ;; 2. Otherwise, indent relative within the comment.
   ;;
   ;; Evals to `nil' if not in a comment.
   ;; Leaves `point' at arbitrary location on the current line.
-  (let* ((last-indent (jpw-last-line-indentation))
+  (let* (;; `jpw-comment-internal-indentation' leaves point at the start of
+         ;; the body, so make sure these two are always grouped together, in
+         ;; order.
+         (body-indent  (jpw-comment-internal-indentation))
+         (body-pos (point))
+         (last-indent (jpw-last-line-indentation))
+         (last-body-indent (jpw-prev-comment-internal-indentation))
+         (last-comment-has-body (> last-body-indent 0))
          (new-indent (if comment-offset 
                          (+ last-indent comment-offset)
-                       last-indent)
-         (body-indent  (jpw-comment-internal-indentation))
+                       last-indent))
          );; end vars
     (and 
-     ;; A two-fer:  tells us if we're in a comment (non-nil) and where the
-     ;; comment body's indented to.
+     ;; A two-fer:  It not only tells us where the comment body's indented to,
+     ;; but if we're even in a comment (non-nil value).
      body-indent
-     (if (not (= (current-indentation) new-indent))
-         (indent-line-to new-indent)
-       ;; else:  Indent the body
-       (indent-relative)
-       );; end if
-     t
+     (if (= (current-indentation) last-indent)
+         (if (and last-body-indent
+                  last-comment-has-body)
+              ;; Indent the body only, using indent-relative.
+             (progn
+               (goto-char body-pos)
+               (if (> last-body-indent body-indent)
+                   (indent-to last-body-indent)
+                 ;;else
+                 (indent-relative)
+                 )
+               t);; end progn
+           )
+       ;; else: Indent the comment itself
+       (indent-line-to new-indent)
+       ;; Indent the comment body (which may have moved as a result of the
+       ;; indent.
+       ;; (back-to-indentation)  ;; Done by `indent-line-to'
+       (skip-syntax-forward " <")
+       (if (and last-body-indent
+                last-comment-has-body
+                (> last-body-indent body-indent))
+           (indent-to last-body-indent))
+       t);; end if
+     ;; Move `point' to the body indentation, ensuring that the defun evals to
+     ;; `t'.
+     (or (jpw-comment-internal-indentation)
+         t)
      );;end and
     );;end let
   )

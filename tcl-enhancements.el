@@ -25,6 +25,7 @@
 
 
 (require 'tcl)
+(require 'jpw-indent-tools)
 
 
 ;;------------------------------------------------------------
@@ -320,52 +321,6 @@ plus `tcl-misc-builtins'.
 ;; 
 
 
-(defun jpw-tcl-comment-indent-command (&optional arg)
-  "When inside of a comment, perform two kinds of indentation:
-1. Normal indentation of the comment, using ARG (if specified).
-2. Internal indentation of the comment's contents, relative to the content of
-the previous comment line.
-
-The latter is skipped if the previous line isn't a comment or is a comment
-containing only whitespace.
-{jpw: 7/06}"
-  (interactive "p")
-  (tcl-indent-command arg)
-  (back-to-indentation)
-  (skip-syntax-forward " <")
-  (let* ((current-internal-indent (current-column))
-         (prev-line-internal-indent current-internal-indent)
-         );; end bindings
-    (save-excursion 
-      (forward-line -1)
-      (beginning-of-line)
-      (if (looking-at "^\\s *#\\s *\\S ")
-          (progn
-            (back-to-indentation)
-            (skip-syntax-forward " <")
-            (setq prev-line-internal-indent (current-column))
-            );;end progn
-        );;end if
-      );; end excursion
-    (if (or jpw-tcl-allow-comment-unindent
-            (> prev-line-internal-indent current-internal-indent))
-        (indent-to prev-line-internal-indent)
-        );;end if
-    );;end let
-  )
-
-
-(defun jpw-tcl-comment-indent-relative ()
-  "Do not call this function directly.  Instead, use
-`jpw-smart-indent-relative'.
-{jpw: 7/06}"
-  (tcl-indent-command)
-  (back-to-indentation)
-  (skip-syntax-forward " <")
-  (indent-relative)
-  )
-
-
 (defun jpw-back-to-matching (delim inv-delim)
   "Move backward until DELIM is found, ignoring any intermediate
 \"DELIM ... INV-DELIM\" in the buffer.
@@ -397,7 +352,7 @@ containing only whitespace.
                         (following-char))
     ;; Comment Case 
     ('?#
-     (jpw-tcl-comment-indent-command arg)
+     (jpw-comment-indent)
      ) ;; end Comment Case
     ('?}
      (message "Is block end")
@@ -452,11 +407,8 @@ containing only whitespace.
 {jpw: 7/06}"
   (interactive "p")
   (back-to-indentation)
-  (if (comment-beginning)
-      (jpw-tcl-comment-indent-relative)
-    ;; else
-    (indent-relative)
-    )
+  (unless (jpw-comment-indent)
+    (indent-relative))
   )
 
 
