@@ -327,48 +327,6 @@ plus `tcl-misc-builtins'.
 {jpw: 7/06}"
   )
 
-
-(defun jpw-indent-to-matching-brace ()
-  "Do not call this function directly.
-{jpw: 7/06}"
-  (back-to-indentation)
-  (let ((old-indent-pos (point))
-        (matching-brace-col (if (jpw-back-to-matching '?{ '?})
-                                (current-column)))
-        );; end bindings
-    (goto-char old-indent-pos)
-    (if matching-brace-col
-        (indent-to matching-brace-col)
-      )
-    );;end let
-  )
-
-
-(defun jpw-tcl-indent-command (&optional arg)
-  "Enhanced indentation for TCL code.
-{jpw: 7/06}"
-  (interactive "p")
-  (case (save-excursion (back-to-indentation)
-                        (following-char))
-    ;; Comment Case 
-    ('?#
-     (jpw-comment-indent)
-     ) ;; end Comment Case
-    ('?}
-     (message "Is block end")
-     (if (looking-at "} +{")
-         (jpw-indent-to-matching-brace)
-       ;;else
-       (tcl-indent-command arg)
-       )
-     ) ;; end block-close case
-    ;; Default
-    (t
-     (tcl-indent-command arg)
-     ) ;; end default case
-    ) ;; end case
-  )
-
 ;; FIXME: The following TCL code is valid style:
 ;; 
 ;;     for { set i 79 } \
@@ -402,12 +360,61 @@ plus `tcl-misc-builtins'.
 ;; Look at the TCL mode code & fix it.
 
 
+(defun jpw-indent-to-matching-brace ()
+  "Do not call this function directly.
+{jpw: 7/06}"
+  (back-to-indentation)
+  (let ((old-indent-pos (point))
+        (matching-brace-col (if (jpw-back-to-matching '?{ '?})
+                                (current-column)))
+        );; end bindings
+    (goto-char old-indent-pos)
+    (if matching-brace-col
+        (indent-to matching-brace-col)
+      )
+    );;end let
+  )
+
+
+(defsubst jpw-tcl-indent-comment (&optional arg)
+  ;; Mode-specific version of `jpw-indent-comment'
+  (jpw-indent-comment)
+  (tcl-indent-command arg)
+  )
+
+
+(defun jpw-tcl-indent-command (&optional arg)
+  "Enhanced indentation for TCL code.
+{jpw: 7/06}"
+  (interactive "p")
+  (case (save-excursion (back-to-indentation)
+                        (following-char))
+    ;; Comment Case 
+    ('?#
+     (jpw-tcl-indent-comment)
+     ) ;; end Comment Case
+    ('?}
+     (message "Is block end")
+     (if (looking-at "} +{")
+         (jpw-indent-to-matching-brace)
+       ;;else
+       (tcl-indent-command arg)
+       )
+     ) ;; end block-close case
+    ;; Default
+    (t
+     (tcl-indent-command arg)
+     ) ;; end default case
+    ) ;; end case
+  )
+
+
 (defun jpw-smart-indent-relative (&optional arg)
   "Context-sensitive version of indent-relative.
 {jpw: 7/06}"
   (interactive "p")
   (back-to-indentation)
-  (unless (jpw-comment-indent)
+  (unless (jpw-tcl-indent-comment)
     (indent-relative))
   )
 

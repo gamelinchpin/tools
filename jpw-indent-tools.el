@@ -92,7 +92,7 @@
 (defun jpw-indent-comment (&optional comment-offset)
   "If the current line is a comment, indent it according to a set of rules
 \(see below\).  Evals to `nil' if the current line is not a comment or if
-indenting fails.
+no indentation whatesoever occurs.
 
 The indentation rules are as follows:
 - If the current comment line is indented to the same column as the
@@ -120,23 +120,37 @@ In both cases, if the previous line wasn't a comment, or is a comment with *no*
 body \(not even whitespace\), body indentation doesn't occur.  You'll have to
 add whitespace to the comment manually for that line.
 
+When using this within a programming mode, you may want to call the
+mode-specific indent command before or after this one.
+
+Leaves `point' unchanged if no indentation took place.  Otherwise, `point'
+will move to the start of the comment \"body\".
+
 {jpw: 7/06}"
   ;; Indenting comments:
   ;;
   ;; Evals to `nil' if not in a comment.
   ;; Leaves `point' at arbitrary location on the current line.
-  (let* (;; `jpw-comment-internal-indentation' leaves point at the start of
+  (let* ((orig-pos (point))
+         ;; `jpw-comment-internal-indentation' leaves point at the start of
          ;; the body, so make sure these two are always grouped together, in
          ;; order.
          (body-indent  (jpw-comment-internal-indentation))
          (body-pos (point))
          (last-indent (jpw-last-line-indentation))
          (last-body-indent (jpw-prev-comment-internal-indentation))
-         (last-comment-has-body (> last-body-indent 0))
+         (last-comment-has-body (if last-body-indent
+                                    (> last-body-indent 0)))
          (new-indent (if comment-offset 
                          (+ last-indent comment-offset)
                        last-indent))
          );; end vars
+
+    ;; Before doing anything, back up to where `point' was when this function
+    ;; was called.
+    ;; This way, if no indentation takes place, we leave `point' unchanged. 
+    (goto-char orig-pos)
+
     (and 
      ;; A two-fer:  It not only tells us where the comment body's indented to,
      ;; but if we're even in a comment (non-nil value).
@@ -158,7 +172,7 @@ add whitespace to the comment manually for that line.
        (indent-line-to new-indent)
        ;; Indent the comment body (which may have moved as a result of the
        ;; indent.
-       ;; (back-to-indentation)  ;; Done by `indent-line-to'
+       ;;;(back-to-indentation)  ;; Done by `indent-line-to'
        (skip-syntax-forward " <")
        (if (and last-body-indent
                 last-comment-has-body
