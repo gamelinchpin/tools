@@ -27,7 +27,7 @@
 
 
 (require 'font-lock)
-(require 'newcomment)
+(require 'jpw-indent-tools)
 (eval-when-compile
   (require 'lazy-lock)
   (require 'jit-lock))
@@ -381,6 +381,10 @@ instead of string quote delimiters.")
 ;; 
 
 
+(defun ee-comment-indent ()
+  (if (jpw-indent-comment) 0))
+
+
 ;;
 ;; Inlines
 ;;
@@ -401,13 +405,25 @@ instead of string quote delimiters.")
 ;; 
 
 
-(defun ee-mode-indent ()
+(defun ee-mode-indent-line ()
   (interactive)
-  nil
+  ;; FIXME : Finish this defun.
   ;; if ina-comment and comment begin properly indented
   ;;   (indent-relative)
   ;;  else indent comment correctly
   ;; Else - not in a comment
+  (if (not (jpw-indent-comment))
+    (indent-to-left-margin))
+  )
+
+
+(defun ee-mode-auto-fill ()
+  ;; FIXME:  Do whatever's needed to get comment auto-fill working properly.
+  ;; (setq auto-fill-function ...)
+  ;; do-auto-fill :== the default auto-fill-function
+  ;; (setq adaptive-fill-mode t) did nothing.
+  ;; Don't touch comment-line-break-function.
+  ;; Must set indent-line-function
   )
 
 
@@ -622,6 +638,10 @@ Key bindings:
   (kill-all-local-variables)
   (set-syntax-table ee-mode-syntax-table)
 
+  ;; Define indentation function
+  (make-local-variable 'indent-line-function)
+  (setq indent-line-function 'ee-mode-indent-line)
+
   ;; Define comment syntax.
   ;; All of these should be defined, or the built-in comment functions may not
   ;; work.
@@ -631,10 +651,11 @@ Key bindings:
   (make-local-variable 'comment-start-skip)
   (make-local-variable 'comment-use-syntax)
   (setq comment-start "! "
-        comment-start-skip "!+ *"
+        comment-start-skip " *!+ *"
         comment-end ""
         comment-end-skip "\n"
-        comment-use-syntax nil)
+        comment-use-syntax nil
+        comment-indent-function 'ee-comment-indent)
   ;; `comment-indent-function' should be set to something that returns the
   ;; indentation of the previous line.  Well, probably...
 
@@ -662,9 +683,6 @@ Key bindings:
         ;; is useful for multiline syntactic contexts.
         jit-lock-defer-contextually  nil
         lazy-lock-defer-contextually  nil)
-
-;;  (make-local-variable 'indent-line-function)
-;;  (setq indent-line-function 'ee-mode-indent)
 
   ;; Set the mode line
   ;; FIXME:  We shouldn't need to do this.  Not required for phpBB-mode.  So,

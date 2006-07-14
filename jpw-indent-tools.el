@@ -26,6 +26,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
+(require 'newcomment)
+
 
 ;;------------------------------------------------------------
 ;;
@@ -48,27 +50,129 @@
   )
 
 
-(defsubst jpw-comment-internal-indentation ()
-  ;; Return the indentation of the body of a comment.  For this to work,
-  ;; `comment-start-skip' and `comment-end-skip' must be set correctly.
-  ;; Leaves `point' at the start of the comment body
-  (if (or (comment-beginning)
-          (looking-at comment-start-skip))
-      (progn (skip-syntax-forward " <")
-             (if (looking-at comment-end-skip)
-                 0
-               ;;else
-               (current-column)))
-    );;end outer if
-  )
-
-
 (defsubst jpw-last-line-indentation ()
   ;; Return the indentation of the last non-blank line.
   ;; Returns 0 if the previous line is the first in the buffer.
   (save-excursion
     (jpw-next-nonblank-line -1)
     (current-indentation)
+    )
+  )
+
+
+(defun jpw-back-to-matching (delim inv-delim &optional pos boundpos)
+  "Move backward until `delim' is found, ignoring any intermediate
+\"`delim' ... `inv-delim'\" in the buffer.
+
+At present, both `delim' and `inv-delim' must be characters.
+
+Normally, you'd use `backward-list' or `backward-up-list' instead of this
+function.  Those two functions operate on any character pairs with parenthesis
+syntax.  From the Emacs-Lisp manual:
+   | In English text, and in C code, the parenthesis pairs are `\(\)',
+   | `[]', and `{}'.  In Emacs Lisp, the delimiters for lists and
+   | vectors \(`\(\)' and `[]'\) are classified as parenthesis characters.
+Other modes may not be so generous.  TCL mode, for example, only defines `\(\)'
+as parenthesis characters.
+
+The search begins at either the optional arg `pos' or at `point', and
+continues until `boundpos' or a match is reached.  The optional `boundpos'
+defaults to the beginning of buffer.  If no match is found before `boundpos',
+the function returns `nil'.
+
+{jpw: 7/06}"
+  (if pos (goto-char pos))
+  (let* ((nested-delim-count 1)
+         (delim-re (concat "[" 
+                           (char-to-string delim)
+                           (char-to-string inv-delim)
+                           "]"))
+         );; end bindings
+
+    (while (and (> nested-delim-count 0)
+                (re-search-backward delim-re boundpos t))
+      (cond 
+       ((eq (following-char) delim)
+        (setq nested-delim-count (1- nested-delim-count))
+        )
+       ((eq (following-char) inv-delim)
+        (setq nested-delim-count (1+ nested-delim-count))
+        )
+       );;end cond
+      );;end while
+
+    (= nested-delim-count 0)
+    );;end let
+  )
+
+
+(defun jpw-backward-extended-line ()
+  "Move backward to the beginning of an extended line.  If the current line
+isn't an extension of the previous one, no motion occurs at all.  Otherwise,
+`point' is left at the end of the first line in the chain.
+
+Assumes that the line-continuation delimiter is the single char \"\\\".
+
+Evaulates to 'nil' if the current line isn't a continuation of a previous
+one.
+{jpw: 7/06}"
+  (let ((pos-stack (list (point)))
+        (not-done t)
+        );; end bindings
+
+    (save-excursion
+      (while not-done
+        (end-of-line 0) ;; moves to end of previous line
+        (nconc pos-stack (list (point)))
+        (skip-syntax-backward " ")
+        (setq not-done (eq (preceding-char) '?\\))
+        );;end while
+      );;end excursion
+
+    (goto-char (cadr (reverse pos-stack)))
+    (> (length pos-stack) 2)
+    );;end let
+  )
+
+
+;;------------------------------------------------------------
+;;
+;; Comment Indentation Functions
+;; 
+
+
+(defsubst jpw-back-to-comment-body ()
+  ;; Moves to the beginning of the comment body, only using syntax checking if
+  ;; `comment-use-syntax' is explicitly `t'.
+  (let (comment-start-pos)
+    (if (or (looking-at comment-start-skip)
+            (setq comment-start-pos (comment-beginning)))
+        ;; Only reach here if we're in a comment.
+        ;; We're also at the start of the comment.
+        (if (eq comment-use-syntax t)
+            (skip-syntax-forward " <")
+          ;;else
+          (if comment-start-pos (goto-char comment-start-pos))
+          (and (looking-at comment-start-skip)
+               ;; Only goto the match-end if we're looking at the comment
+               ;; start.
+               (goto-char (match-end 0)))
+          )
+      );;end if
+    );;end let
+  )
+
+
+(defsubst jpw-comment-internal-indentation ()
+  ;; Return the indentation of the body of a comment.  For this to work,
+  ;; `comment-start-skip' and `comment-end-skip' must be set correctly.
+  ;; Leaves `point' at the start of the comment body.
+  ;; Returns nil if the current line isn't a comment.
+  (if (jpw-back-to-comment-body)
+      (if (looking-at comment-end-skip)
+          0
+        ;;else
+        (current-column))
     )
   )
 
@@ -81,12 +185,6 @@
     (jpw-comment-internal-indentation)
     )
   )
-
-
-;;------------------------------------------------------------
-;;
-;; Comment Indentation Functions
-;; 
 
 
 (defun jpw-indent-comment (&optional comment-offset)
@@ -107,7 +205,7 @@ The indentation rules are as follows:
   1. Indent the entire comment line.  The current line is
      indented to the same column as the previous line \(whether it was a
      comment or not\), plus anything specified in the optional arg
-     COMMENT-OFFSET.
+     `comment-offset'.
   2. Indent the body to the same level as the body of the previous comment
      line.
      The body isn't indented if:
@@ -135,7 +233,7 @@ will move to the start of the comment \"body\".
          ;; `jpw-comment-internal-indentation' leaves point at the start of
          ;; the body, so make sure these two are always grouped together, in
          ;; order.
-         (body-indent  (jpw-comment-internal-indentation))
+         (body-indent (jpw-comment-internal-indentation))
          (body-pos (point))
          (last-indent (jpw-last-line-indentation))
          (last-body-indent (jpw-prev-comment-internal-indentation))
@@ -172,8 +270,7 @@ will move to the start of the comment \"body\".
        (indent-line-to new-indent)
        ;; Indent the comment body (which may have moved as a result of the
        ;; indent.
-       ;;;(back-to-indentation)  ;; Done by `indent-line-to'
-       (skip-syntax-forward " <")
+       (jpw-back-to-comment-body)
        (if (and last-body-indent
                 last-comment-has-body
                 (> last-body-indent body-indent))
@@ -207,13 +304,23 @@ will move to the start of the comment \"body\".
 ;; forward-list
 ;; backward-up-list
 ;; down-list
-
+;;
 ;; Causes the sexp/list fns to skip comments.
 ;; (setq parse-sexp-ignore-comments t)
-
-
+;;
 ;; Most of the Emacs internal indentation functions use the
 ;; `indent-line-function' var.
+
+;;_._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._._
+;;
+;; Unit Tests
+;;
+(defun utest-jpw-back-to-matching () 
+  (interactive) 
+  (message "%S" (jpw-back-to-matching '?\{ '?\})))
+(defun utest-jpw-backward-extended-line ()
+  (interactive) 
+  (message "%S" (jpw-backward-extended-line)))
 
 
 (provide 'jpw-indent-tools)

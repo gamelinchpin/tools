@@ -321,12 +321,6 @@ plus `tcl-misc-builtins'.
 ;; 
 
 
-(defun jpw-back-to-matching (delim inv-delim)
-  "Move backward until DELIM is found, ignoring any intermediate
-\"DELIM ... INV-DELIM\" in the buffer.
-{jpw: 7/06}"
-  )
-
 ;; FIXME: The following TCL code is valid style:
 ;; 
 ;;     for { set i 79 } \
@@ -360,17 +354,20 @@ plus `tcl-misc-builtins'.
 ;; Look at the TCL mode code & fix it.
 
 
-(defun jpw-indent-to-matching-brace ()
+(defun jpw-indent-to-matching-brace (&optional offset)
   "Do not call this function directly.
 {jpw: 7/06}"
   (back-to-indentation)
   (let ((old-indent-pos (point))
         (matching-brace-col (if (jpw-back-to-matching '?{ '?})
                                 (current-column)))
+        (matching-brace-indent (progn (jpw-backward-extended-line)
+                                      (back-to-indentation)
+                                      (current-column)))
         );; end bindings
     (goto-char old-indent-pos)
     (if matching-brace-col
-        (indent-to matching-brace-col)
+        (indent-to (+ matching-brace-indent offset))
       )
     );;end let
   )
