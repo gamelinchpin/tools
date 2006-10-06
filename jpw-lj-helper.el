@@ -1292,6 +1292,10 @@ the actual keywords to fontify.
   (if font-lock-mode
       (font-lock-fontify-buffer))
 
+  ;; Override the skeleton-mode hooks
+  (make-local-variable 'skeleton-end-newline)
+  (setq skeleton-end-newline nil)
+
   ;;
   ;; Behavior specific to LJ mode.
   ;;
