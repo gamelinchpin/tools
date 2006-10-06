@@ -56,7 +56,7 @@
 
 ;; Scripting languages
 (add-hook 'awk-mode-hook 'turn-on-auto-fill)
-(add-hook 'tcl-mode-hook 'tcl-auto-fill-mode)
+(add-hook 'tcl-mode-hook 'use-jpw-style-tcl t)
 (add-hook 'perl-mode-hook 'turn-on-auto-fill)
 (add-hook 'cperl-mode-hook 'use-jpw-style-cperl)
 (add-hook 'octave-mode-hook 'use-jpw-style-octave)

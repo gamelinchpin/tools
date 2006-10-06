@@ -141,6 +141,27 @@ tags on either side of the region.
 ;;
 
 
+(defun ebuffer-files (buffer-A buffer-B &optional startup-hooks job-name)
+  "Like `ebuffers', does an `ediff' on the two buffers underlying files.
+{jpw: 9/06}"
+  ;; [jpw] Stolen lock, stock, and barrel from "ediff.el"
+  (interactive 
+   (let (bf)
+     (list (setq bf (read-buffer "Buffer A to compare: "
+                                 (ediff-other-buffer "") t))
+           (read-buffer "Buffer B to compare: "
+                        (progn
+                          ;; realign buffers so that two visible bufs will be
+                          ;; at the top
+                          (save-window-excursion (other-window 1))
+                          (ediff-other-buffer bf))
+                        t))))
+  (ediff-files (buffer-file-name (get-buffer buffer-A))
+               (buffer-file-name (get-buffer buffer-B))
+               startup-hooks)
+  )
+
+
 (defun kill-ring-save-entire-buffer ()
   "Like kill-ring-save, but grabs the entire buffer."
   (interactive)
@@ -150,7 +171,8 @@ tags on either side of the region.
 
 
 (defun join-next-line ()
-  "Join the current line to the next line. {jpw: 2/99}"
+  "Join the current line to the next line.
+{jpw: 2/99}"
   (interactive)
   (end-of-line)
   (let ((oldeolpos (point)))
@@ -276,7 +298,8 @@ details regarding this arg.
 
 
 (defun reverse-indent-line ()
-  "Remove a level of indentation from the current line. {jpw: 10/01}"
+  "Remove a level of indentation from the current line.
+{jpw: 10/01}"
   (interactive)
   (save-excursion
     (beginning-of-line)
@@ -289,7 +312,8 @@ details regarding this arg.
 
 
 (defun unindent-line ()
-  "Remove all indentation from the current line. {jpw: 12/99}"
+  "Remove all indentation from the current line.
+{jpw: 12/99}"
   (interactive)
   (save-excursion
     (beginning-of-line)
@@ -302,14 +326,16 @@ details regarding this arg.
 
 
 (defun untabify-buffer ()
-  "Untabify the current buffer. {jpw: 12/98}"
+  "Untabify the current buffer.
+{jpw: 12/98}"
   (interactive)
   (untabify (point-min) (point-max))
   )
 
 
 (defun save-buffer-untabified ()
-  "Saves the current buffer, untabifying it beforehand.  {jpw: 9/98}"
+  "Saves the current buffer, untabifying it beforehand. 
+{jpw: 9/98}"
   (interactive)
   (untabify-buffer)
   (save-buffer)
@@ -317,7 +343,8 @@ details regarding this arg.
 
 
 (defun kill-buffer-untabified ()
-  "Untabify the current buffer, save it, then kill it.  {jpw: 9/98}"
+  "Untabify the current buffer, save it, then kill it. 
+{jpw: 9/98}"
   (interactive)
   (save-buffer-untabified)
   (kill-this-buffer)
@@ -326,7 +353,8 @@ details regarding this arg.
 
 (defun server-quit-l ()
   "Saves the server-buffer, does a (server-edit), then kills the
-buffer.  {jpw: 11/04}"
+buffer. 
+{jpw: 11/04}"
   (interactive)
   (save-buffer)
   (if (not (or is-winblows is-cygwin))
@@ -340,7 +368,8 @@ buffer.  {jpw: 11/04}"
 
 
 (defun kill-buffer-other-window ()
-  "Kill the buffer in the next open window.  {jpw: 12/04}"
+  "Kill the buffer in the next open window. 
+{jpw: 12/04}"
   (interactive)
   (other-window 1)
   (kill-this-buffer)
@@ -350,7 +379,8 @@ buffer.  {jpw: 11/04}"
 
 (defun kill-next-buffer-and-close-other-windows ()
   "Kill the buffer in the next open window, then close all of the other
-windows.  {jpw: 2/05}"
+windows. 
+{jpw: 2/05}"
   (interactive)
   (other-window 1)
   (kill-this-buffer)
@@ -360,7 +390,8 @@ windows.  {jpw: 2/05}"
 
 
 (defun bury-buffer-other-window ()
-  "Bury the buffer in the next open window.  {jpw: 12/04}"
+  "Bury the buffer in the next open window. 
+{jpw: 12/04}"
   (interactive)
   (other-window 1)
   (bury-buffer)
@@ -417,41 +448,58 @@ whatever buffer is presently open.
 
 
 (defun dos2unix-buffer ()
-  "Convert a DOS buffer to raw unix text {jpw: 5/00}."
+  "Convert a DOS buffer to raw unix text
+{jpw: 5/00}."
   (interactive)
   (set-buffer-file-coding-system 'raw-text-unix nil))
 
 
 (defun unix2dos-buffer ()
-  "Convert a DOS buffer to raw unix text {jpw: 11/00}."
+  "Convert a DOS buffer to raw unix text
+{jpw: 11/00}."
   (interactive)
   (set-buffer-file-coding-system 'raw-text-dos nil))
 
 
-(defun jpw-insert-doxygen-tag (tagname)
-  "Insert a doxygen/javadoc HTML style/font tag pair {jpw: 07/04}"
+(defun jpw-insert-doc-unitag (tagname)
+  "Insert an HTML tag that is self-closing.
+{jpw: 07/04}"
   (interactive "*sEnter HTML tag: ")
-  (insert "<" tagname ">")
-  (save-excursion (insert "</" tagname ">"))
+  (insert "<" tagname "/>")
   )
 
 
-(defun jpw-insert-doxygen-tagblock (tagname)
+(defun jpw-insert-doc-tag (tagname)
+  "Insert a doxygen/javadoc HTML style/font tag pair.
+{jpw: 07/04}"
+  (interactive "*sEnter HTML tag: ")
+  (jpw-insert-xml-tag tagname)
+  )
+
+
+(defun jpw-insert-doc-tagblock (tagname)
   "Insert a doxygen/javadoc HTML style/font tag pair block, with each tag on
-its own comment line {jpw: 07/04}"
+its own comment line.
+{jpw: 07/04}"
   (interactive "*sEnter HTML tag: ")
   (do-comment-line-break) 
-  (insert "<" tagname ">")
-  (do-comment-line-break)
-  (save-excursion 
-    (do-comment-line-break) 
-    (insert "</" tagname ">")
-    (do-comment-line-break))
+  (jpw-insert-xml-tag tagname)
+  (do-comment-line-break) 
+  (if mark-active
+      (save-excursion
+        ;; Do end first, to preserve position of start of the region.
+        (goto-char (region-end))
+        (do-comment-line-break)
+        (goto-char (region-beginning))
+        (do-comment-line-break)
+        )
+    )
   )
 
 
 (defun jpw-insert-doxygen-cmdblock (cmdname)
-  "Insert a doxygen '\\command'...'\\endcommand' pair on separate lines. {jpw: 07/04}"
+  "Insert a doxygen '\\command'...'\\endcommand' pair on separate lines. 
+{jpw: 07/04}"
   (interactive "*sEnter doxygen command: ")
   (do-comment-line-break) 
   (insert "\\" cmdname) 
@@ -464,10 +512,26 @@ its own comment line {jpw: 07/04}"
 
 
 (defun jpw-insert-javadoc-link ()
-  "Insert a javadoc '@link' field {jpw: 07/04}"
+  "Insert a javadoc '@link' field
+{jpw: 07/04}"
   (interactive )
   (insert "{@link ")
   (save-excursion (insert "}"))
+  )
+
+
+(defun jpw-insert-tcldoc-tag (tagname)
+  "Insert a TCLDoc '@' tag.
+{jpw: 09/06}"
+  (interactive "*sEnter TCLDoc tag: ")
+  (do-comment-line-break) 
+  (insert " @" tagname " ")
+  (if (equal tagname "param")
+      (save-excursion
+        (jpw-insert-doc-unitag "br")
+        (do-comment-line-break)
+        )
+    )
   )
 
 
@@ -480,14 +544,16 @@ its own comment line {jpw: 07/04}"
 
 
 (defun set8tab ()
-  "Sets tab width to 8 {jpw: 7/00}."
+  "Sets tab width to 8
+{jpw: 7/00}."
   (interactive)
   (setq tab-width 8)
   (recenter))
 
 
 (defun set4tab ()
-  "Sets tab width to 4 {jpw: 7/00}."
+  "Sets tab width to 4
+{jpw: 7/00}."
   (interactive)
   (setq tab-width 4)
   (recenter))
@@ -503,7 +569,8 @@ its own comment line {jpw: 07/04}"
 
 (defun do-comment-line-break () 
   "Calls the function that the variable `comment-line-break-function'
-is set to {jpw: 3/02}."
+is set to
+{jpw: 3/02}."
   (interactive)
   (funcall comment-line-break-function))
 
@@ -525,7 +592,8 @@ is set to {jpw: 3/02}."
 
 
 (defun decode-utf16 ()
-  "Decode a buffer in utf-16 {jpw: 11/05}."
+  "Decode a buffer in utf-16
+{jpw: 11/05}."
   (interactive)
   (use-utf)
   (decode-coding-region (point-min) (point-max) 'utf-16-le-dos))
@@ -534,7 +602,8 @@ is set to {jpw: 3/02}."
 
 (defun rebind-to (key map-or-cmd required-lib-name)
   "Custom function to do take over for `autoload' when it fails to do its 
-job (which happens from time to time) {jpw: 02/05}."
+job (which happens from time to time)
+{jpw: 02/05}."
   (or (vectorp key) (stringp key)
       (signal 'wrong-type-argument (list 'arrayp key)))
   ;; Signals an error, so no need to handle specially.
@@ -598,37 +667,65 @@ extended using an EOL-\"\\\"-char.  {jpw; 12/04}"
   )
 
 
+(defun bind-jpw-doc-comment ()
+  (interactive)
+  ;; Universal doc-comment keybindings
+  (local-set-key "\M-ge" (lambda() (interactive)
+                                   (jpw-insert-doc-tag "em")))
+  (local-set-key "\M-gt" (lambda() (interactive)
+                                 (jpw-insert-doc-tag "tt")))
+  (local-set-key "\M-gb" (lambda() (interactive)
+                                 (jpw-insert-doc-tag "b")))
+  (local-set-key "\M-gi" (lambda() (interactive)
+                                 (jpw-insert-doc-tag "i")))
+  (local-set-key "\M-gu" (lambda() (interactive)
+                                 (jpw-insert-doc-tag "u")))
+  (local-set-key "\M-g_" (lambda() (interactive)
+                                 (jpw-insert-doc-tag "u")))
+  (local-set-key [?\M-p ?\C-m] (lambda() (interactive)
+                                 (jpw-insert-doc-unitag "br")))
+  (local-set-key [?\M-p ?\C-j] (lambda() (interactive)
+                                 (jpw-insert-doc-tagblock "p")))
+  (local-set-key "\M-p-" (lambda() (interactive)
+                           (jpw-insert-doc-tagblock "li")))
+  (local-set-key "\M-p*" (lambda() (interactive)
+                           (jpw-insert-doc-tagblock "li")))
+  (local-set-key "\M-p1" (lambda() (interactive)
+                           (jpw-insert-doc-tagblock "ol")
+                           (jpw-insert-doc-tagblock "li")))
+  (local-set-key "\M-p0" (lambda() (interactive)
+                           (jpw-insert-doc-tagblock "ol")
+                           (jpw-insert-doc-tagblock "li")))
+  (local-set-key "\M-p." (lambda() (interactive)
+                           (jpw-insert-doc-tagblock "ul")
+                           (jpw-insert-doc-tagblock "li")))
+  (local-set-key "\M-p+" (lambda() (interactive)
+                           (jpw-insert-doc-tagblock "ul")
+                           (jpw-insert-doc-tagblock "li")))
+  (local-set-key "\M-p=" (lambda() (interactive)
+                           (jpw-insert-doc-unitag "hr")))
+  )
+
 (defun bind-jpw-c-mode-doxy ()
   (interactive)
   ;; Create keymap
   ;; Define doc-comment keybindings.
-  (local-set-key [?\M-g e] (lambda() (interactive)
-                                   (jpw-insert-doxygen-tag "em")))
-  (local-set-key [?\M-g t] (lambda() (interactive)
-                                 (jpw-insert-doxygen-tag "tt")))
-  (local-set-key [?\M-g b] (lambda() (interactive)
-                                 (jpw-insert-doxygen-tag "b")))
-  (local-set-key [?\C-c ?\C-q] (lambda() (interactive)
-                                 (jpw-insert-doxygen-cmdblock "code")))
-  (local-set-key [?\C-c ?\C-j] 
-                 (lambda () (interactive)
-                   (do-comment-line-break) 
-                   (insert "<p>") 
-                   (do-comment-line-break))
-                 )
+  (bind-jpw-doc-comment)
+  (local-set-key "\M-po" (lambda() (interactive)
+                           (jpw-insert-doxygen-cmdblock "code")))
   )
 
 
 (defun bind-jpw-javadoc ()
   (interactive)
   ;; Define doc-comment keybindings.
-  (bind-jpw-c-mode-doxy)
-  (local-set-key [?\C-c ?\C-c] (lambda() (interactive)
-                                   (jpw-insert-doxygen-tag "code")))
-  (local-set-key [?\C-c ?\C-q] (lambda() (interactive)
-                                 (jpw-insert-doxygen-tagblock "pre")))
-  (local-set-key [?\C-c ?\C-r] 'jpw-insert-javadoc-link)
-  (local-set-key [?\C-c l] 'jpw-insert-javadoc-link)
+  (bind-jpw-doc-comment)
+  (local-set-key "\M-po" (lambda() (interactive)
+                           (jpw-insert-doc-tag "code")))
+  (local-set-key "\M-pq" (lambda() (interactive)
+                           (jpw-insert-doc-tagblock "pre")))
+  (local-set-key "\M-pr" 'jpw-insert-javadoc-link)
+  (local-set-key "\M-pl" 'jpw-insert-javadoc-link)
   )
 
 
@@ -674,9 +771,9 @@ extended using an EOL-\"\\\"-char.  {jpw; 12/04}"
   ;; Moves forward by capitalizations or words.  Very useful for C++ &
   ;; Java programming.
   (local-set-key [?\C-c right] 'c-forward-into-nomenclature)
-  (local-set-key [\C-\S-right] 'c-forward-into-nomenclature)
+  (local-set-key [?\C-\S-right] 'c-forward-into-nomenclature)
   (local-set-key [?\C-c left] 'c-backward-into-nomenclature)
-  (local-set-key [\C-\S-left] 'c-backward-into-nomenclature)
+  (local-set-key [?\C-\S-left] 'c-backward-into-nomenclature)
   ;; Force use of correct comment-break-fn.  
   (local-set-key "\M-j" 'do-comment-line-break)
   (bind-jpw-c-mode-doxy)
@@ -731,8 +828,28 @@ extended using an EOL-\"\\\"-char.  {jpw; 12/04}"
   )
 
 
+(defun use-jpw-style-tcl ()
+  (interactive)
+  (turn-on-auto-fill)
+  (font-lock-mode t)
+  (bind-jpw-doc-comment)
+  (local-set-key "\M-po" (lambda() (interactive)
+                             (jpw-insert-doc-tag "code")))
+  (local-set-key "\M-pp" (lambda() (interactive)
+                             (jpw-insert-tcldoc-tag "param")))
+  (local-set-key "\M-pa" (lambda() (interactive)
+                             (jpw-insert-tcldoc-tag "param")))
+  (local-set-key "\M-pr" (lambda() (interactive)
+                             (jpw-insert-tcldoc-tag "return")))
+  (local-set-key "\M-ps" (lambda() (interactive)
+                             (jpw-insert-tcldoc-tag "see")))
+  (local-set-key "\M-pl" 'jpw-insert-javadoc-link)
+  )
+
+
 (defun jpw-set-sgml-indent (arg)
- "Set indentation size(s) for SGML modes. {jpw: 11/05}"
+ "Set indentation size(s) for SGML modes.
+{jpw: 11/05}"
  (interactive "nIndent Size: ")
  (make-local-variable 'tab-width)
  (make-local-variable 'custom-buffer-indent)
@@ -752,7 +869,8 @@ extended using an EOL-\"\\\"-char.  {jpw; 12/04}"
 
 
 (defun jpw-set-xml-lite-indent (arg)
-  "Set indentation size for XML-Lite mode. {jpw: 3/03}"
+  "Set indentation size for XML-Lite mode.
+{jpw: 3/03}"
   (interactive "nIndent Size: ")
   (jpw-set-sgml-indent arg)
   (setq xml-lite-indent-comment-offset arg

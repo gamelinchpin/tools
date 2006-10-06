@@ -104,6 +104,22 @@
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; General Defuns
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+(defun jpw-win-or-unix (win-val unix-val)
+  "Return the appropriate value, depending on which OS we're running in.
+{jpw: 09/06}"
+  (if is-winblows
+      win-val
+    ;; else
+    unix-val
+    )
+  )
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; General Cygwin Environment
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -124,20 +140,21 @@
 
 ;; Frame Geometry & Font
 ;;
+(defvar win-default-frame-height '53)
+(defvar res (downcase (or (getenv "SCREENRES") "none")))
 (setq initial-frame-alist
       '((top . 0) (left . 0) 
         (width . 80) (height . 46)
         (user-position t))
       )
-(setq res (downcase (or (getenv "SCREENRES") "none")))
 (cond 
  ((equal res "800x600")
-  (setcdr (assoc 'height initial-frame-alist) '37)
+  (setq win-default-frame-height '37)
   (set-default-font 
    "-*-Lucida Console-normal-r-*-*-12-*-*-*-c-*-*")
   )
  ((equal res "1024x768")
-  (setcdr (assoc 'height initial-frame-alist) '45)
+  (setq win-default-frame-height '45)
   (set-default-font 
 ;;   "-*-Lucida Sans Typewriter-normal-r-*-*-13-*-*-*-*-*-*")
    "-*-Lucida Console-normal-r-*-*-15-*-*-*-c-*-*")
@@ -148,22 +165,26 @@
   ;;;(set-default-font 
   ;;; "-*-Lucida Console-normal-r-*-*-15-*-*-*-c-*-*")
   ;; For larger fonts, one could do this:
-  (setcdr (assoc 'height initial-frame-alist) '43)
+  (setq win-default-frame-height '43)
   (set-default-font 
    "-*-Lucida Console-normal-r-*-*-17-*-*-*-c-*-*")
   )
  ((equal res "1280x1024")
-  (setcdr (assoc 'height initial-frame-alist) '53)
+  (setq win-default-frame-height '53)
   (set-default-font 
    "-*-Lucida Console-normal-r-*-*-17-*-*-*-c-*-*")
   )
   ;;else
  (t
-  (setcdr (assoc 'height initial-frame-alist) '24)
+  (setq win-default-frame-height '24)
   (set-default-font 
    "-*-Lucida Console-normal-r-*-*-13-*-*-*-c-*-*")
   )
  );;end cond
+(setcdr (assoc 'height initial-frame-alist) win-default-frame-height)
+(if (not (assoc 'height default-frame-alist))
+    (add-to-list 'default-frame-alist '(height . nil) t))
+(setcdr (assoc 'height default-frame-alist) win-default-frame-height)
 
 
 ;(set-fontset-font name charset-symbol fontname)
