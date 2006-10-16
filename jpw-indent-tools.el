@@ -2,7 +2,7 @@
 ;;
 ;; My custom indentation tools.
 ;;
-;;  Copyright © 2005 John P. Weiss
+;;  Copyright © 2005-2006 John P. Weiss
 ;;  
 ;;  This package is free software; you can redistribute it and/or modify
 ;;  it under the terms of the Artistic License, included as the file
@@ -56,6 +56,20 @@
   (save-excursion
     (jpw-next-nonblank-line -1)
     (current-indentation)
+    )
+  )
+
+
+(defsubst jpw-last-line-column-of (re)
+  ;; Searches backwards for the last non-blank line, then returns the column
+  ;; of the first instance of RE on that line.
+  ;; Returns nil if RE didn't match anything.
+  (save-excursion
+    (jpw-next-nonblank-line -1)
+    (back-to-indentation)
+    (and (re-search-forward re (line-end-position) t)
+         (goto-char (match-beginning 0))
+         (current-column))
     )
   )
 
@@ -144,6 +158,8 @@ one.
 (defsubst jpw-back-to-comment-body ()
   ;; Moves to the beginning of the comment body, only using syntax checking if
   ;; `comment-use-syntax' is explicitly `t'.
+  (if (< (current-column) (current-indentation))
+      (back-to-indentation))
   (let (comment-start-pos)
     (if (or (looking-at comment-start-skip)
             (setq comment-start-pos (comment-beginning)))
@@ -163,13 +179,14 @@ one.
   )
 
 
-(defsubst jpw-comment-internal-indentation ()
+(defsubst jpw-comment-internal-indentation (&optional empty-body-ok)
   ;; Return the indentation of the body of a comment.  For this to work,
   ;; `comment-start-skip' and `comment-end-skip' must be set correctly.
   ;; Leaves `point' at the start of the comment body.
   ;; Returns nil if the current line isn't a comment.
   (if (jpw-back-to-comment-body)
-      (if (looking-at comment-end-skip)
+      (if (and (looking-at comment-end-skip)
+               (not empty-body-ok))
           0
         ;;else
         (current-column))
@@ -177,12 +194,12 @@ one.
   )
 
 
-(defsubst jpw-prev-comment-internal-indentation ()
+(defsubst jpw-prev-comment-internal-indentation (&optional empty-body-ok)
   ;; Return the indentation of the body of the comment in the preceding line,
   ;; or nil of the preceding line isn't a comment.
   (save-excursion
     (forward-line -1)
-    (jpw-comment-internal-indentation)
+    (jpw-comment-internal-indentation empty-body-ok)
     )
   )
 
@@ -236,7 +253,7 @@ will move to the start of the comment \"body\".
          (body-indent (jpw-comment-internal-indentation))
          (body-pos (point))
          (last-indent (jpw-last-line-indentation))
-         (last-body-indent (jpw-prev-comment-internal-indentation))
+         (last-body-indent (jpw-prev-comment-internal-indentation t))
          (last-comment-has-body (if last-body-indent
                                     (> last-body-indent 0)))
          (new-indent (if comment-offset 
@@ -254,8 +271,7 @@ will move to the start of the comment \"body\".
      ;; but if we're even in a comment (non-nil value).
      body-indent
      (if (= (current-indentation) last-indent)
-         (if (and last-body-indent
-                  last-comment-has-body)
+         (if last-comment-has-body
               ;; Indent the body only, using indent-relative.
              (progn
                (goto-char body-pos)
@@ -265,7 +281,10 @@ will move to the start of the comment \"body\".
                  (indent-relative)
                  )
                t);; end progn
-           )
+           ;; else:  Last comment either (a) had no body; or (b) didn't indent
+           ;;        its body relative to the comment starter.  This isn't an
+           ;;        error, just a no-op.
+           t)
        ;; else: Indent the comment itself
        (indent-line-to new-indent)
        ;; Indent the comment body (which may have moved as a result of the

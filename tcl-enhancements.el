@@ -373,6 +373,16 @@ plus `tcl-misc-builtins'.
   )
 
 
+(defun jpw-tcl-indent-new-comment-line (&optional soft)
+  "Wrapper around `comment-indent-new-line' that corrects the indendation
+after breaking the line.
+{jpw: 10/06}"
+  (interactive)
+  (comment-indent-new-line soft)
+  (jpw-tcl-indent-comment)
+)
+
+
 (defsubst jpw-tcl-indent-comment (&optional arg)
   ;; Mode-specific version of `jpw-indent-comment'
   (jpw-indent-comment)
@@ -392,11 +402,11 @@ plus `tcl-misc-builtins'.
      ) ;; end Comment Case
     ('?}
      (message "Is block end")
-     (if (looking-at "} +{")
-         (jpw-indent-to-matching-brace)
+;;     (if (looking-at "} +{")
+;;         (jpw-indent-to-matching-brace)
        ;;else
        (tcl-indent-command arg)
-       )
+;;       )
      ) ;; end block-close case
     ;; Default
     (t
@@ -411,7 +421,8 @@ plus `tcl-misc-builtins'.
 {jpw: 7/06}"
   (interactive "p")
   (back-to-indentation)
-  (unless (jpw-tcl-indent-comment)
+  (if (jpw-comment-internal-indentation)
+      (jpw-tcl-indent-comment)
     (indent-relative))
   )
 
@@ -444,6 +455,7 @@ position.
   ;; Fix the binding of TAB to the normal, std. value, but only for the
   ;; current TCL-mode buffer.
   (local-set-key [tab] 'indent-for-tab-command)
+  (local-set-key "\M-j" 'jpw-tcl-indent-new-comment-line)
   (set (make-local-variable 'indent-line-function) 
        'tcl-indent-command-toggler)
   (unless comment-end-skip
