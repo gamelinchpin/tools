@@ -133,6 +133,18 @@ expressions.
 ;;
 
 
+(defconst ee-mode-type-re
+  "\\(double\\|int\\|string\\)"
+  "Expression Evaluator data types.  Found mainly in typecast expressions.
+{jpw: 10/05}")
+
+
+(defconst ee-mode-typecast-re
+  (concat "{" ee-mode-type-re "}")
+  "Expression Evaluator typecast expression.
+{jpw: 10/05}")
+
+
 (defconst ee-mode-language-fn-list
   '("AddFn"
     "AndExpr"
@@ -349,6 +361,16 @@ or other form of messages.
   "!\\(==\\|[^=]\\|$\\)")
 
 
+(defconst ee-mode-fill-prefix-re
+  ;; Controls the behavior of auto-fill.
+  "[ 	]*\\(![ 	]*\\([-:#*|+.][ 	]*\\)?\\)")
+
+
+(defconst ee-mode-paragraph-start-re
+  ;; How a paragraph starts in ee-mode
+  "[ 	]*\\([!\({,}]\\|\)[,;]\\)?[ 	]*$\\|^\f")
+
+
 (defconst ee-mode-var-re
   "\\<\\(\\w+\\)\\(##?[sid]\\)\\>")
 
@@ -402,7 +424,7 @@ delimiters.")
 ;;
 
 
-(defsubst ee-at-or-inside-comment ()
+(defsubst ee-mode-at-or-inside-comment ()
   ;; Wraps `comment-beginning' in an excursion, and also checks if we're at
   ;; the start of a comment or inside the margin before a comment-only line.
   (save-excursion 
@@ -414,9 +436,9 @@ delimiters.")
   )
 
 
-(defsubst ee-mode-syntx-in-xref-table (parent-block-type
-                                       parent-block-posn
-                                       parent-statement-name)
+(defsubst ee-mode-syntax-in-xref-table (parent-block-type
+                                        parent-block-posn
+                                        parent-statement-name)
   ;; Returns non-`nil' if point is inside of an XRef table.
   (and (eq parent-block-type ?{)
        (or (string-match ee-mode-blockelement-re parent-statement-name)
@@ -442,8 +464,7 @@ delimiters.")
     ;; FIXME:  We should really cache the syntactic information of the
     ;; previous line.
     (jpw-next-nonblank-line -1)
-    (back-to-indentation)
-    (eq (char-after) ?!)
+    (ee-mode-at-or-inside-comment)
     );; end excursion
   )
 
@@ -466,8 +487,6 @@ delimiters.")
 (defun ee-mode-syntactic-analysis ()
 ;; FIXME:  This should have a wrapper ... or something ... to prevent it from
 ;; being called when we're in the whitespace in-between two comments.
-;; FIXME: Ensure that the `down-list' call doesn't puke but returns nil
-;; instead.
   "Return a list containing syntactic information about the code at `point'.
 the list elements and structure are as follows:
     (CURRENT-STATEMENT-TYPE 
@@ -476,11 +495,11 @@ the list elements and structure are as follows:
            PARENT-BLOCK-PAREN-COLUMN
            (PARENT-BLOCK-LINE-BEGIN PARENT-BLOCK-LINE-END)
            PARENT-BLOCK-POSN)
-          (PARENT-STATEMENT-NAME
-           PARENT-STATEMENT-INDENT
-           PARENT-STATEMENT-IS-QUOTED
-           (PARENT-STATEMENT-LINE-BEGIN PARENT-STATEMENT-LINE-END)
-           PARENT-STATEMENT-POSN)
+          (PARENT-BLOCK-STATEMENT-NAME
+           PARENT-BLOCK-STATEMENT-INDENT
+           PARENT-BLOCK-STATEMENT-IS-QUOTED
+           (PARENT-BLOCK-STATEMENT-LINE-BEGIN PARENT-BLOCK-STATEMENT-LINE-END)
+           PARENT-BLOCK-STATEMENT-POSN)
           )
 Most of these should be self-explanatory.
 
@@ -492,13 +511,13 @@ root-level.  Note that PARENT-BLOCK-INDENT is the indentation column of the
 the column where the opening \( or \{ is located.  There may be other text
 preceding the \(/\{.
 
-The /PARENT-STATEMENT-.*/ describes the statement attached to that opening
-\(/\{.  PARENT-STATEMENT-NAME is the word preceding the \(/\{, whether on the
-same line or a previous line.  {If there are blank lines between the
-paren/brace, they'll be skipped.  Bear that in mind.}  It may also have the
-specfial value, \"unknown-conditional\", which means that `point' is inside of
-a conditional subexpression.  PARENT-STATEMENT-IS-QUOTED will be non-nil if
-the character before PARENT-STATEMENT-NAME is a '\"'.
+The /PARENT-BLOCK-STATEMENT-.*/ describes the statement attached to that
+opening \(/\{.  PARENT-BLOCK-STATEMENT-NAME is the word preceding the \(/\{,
+whether on the same line or a previous line.  {If there are blank lines
+between the paren/brace, they'll be skipped.  Bear that in mind.}  It may also
+have the specfial value, \"unknown-conditional\", which means that `point' is
+inside of a conditional subexpression.  PARENT-BLOCK-STATEMENT-IS-QUOTED will
+be non-nil if the character before PARENT-BLOCK-STATEMENT-NAME is a '\"'.
 
 Lastly \(and firstly\) is CURRENT-STATEMENT-TYPE,.  This is a symbol
 indicating the syntax of the line containing `point'.  It can have one
@@ -531,6 +550,7 @@ This function wraps its innards in a `save-excursion', for your convenience.
         parent-statement-is-quoted
         current-statement-type
         at-root
+        is-typecast
         );; end var defs
 
     (save-excursion
@@ -580,7 +600,13 @@ This function wraps its innards in a `save-excursion', for your convenience.
                  )
             (progn
               (goto-char (1+ parent-block-posn))
-              (down-list)
+              (condition-case nil
+                  (down-list)
+                  ;; If down-list fails, just go to the next nonblank line.
+                  ;; (This only works because we customize paragraph-start &
+                  ;; paragraph-separate for this mode.)
+                  (error (forward-paragraph))
+                )
               (if (re-search-backward "\\(&&\\|||\\|==\\|!=\\)" 
                                       parent-block-posn t)
                   (setq parent-statement-name "unknown-conditional")
@@ -617,10 +643,10 @@ This function wraps its innards in a `save-excursion', for your convenience.
               ;; Only a comma and whitespace on this line
               'comma-line
               )
-             ;; If the line starts with any form of quote, we're looking at a
-             ;; plain statement. 
+             ;; If the line starts with any form of quote, we're looking at
+             ;; the first statement of a new expression. 
              ((looking-at "[\"']")
-              'statement)
+              'new-statement)
 
              ;; More complex cases:
 
@@ -642,16 +668,28 @@ This function wraps its innards in a `save-excursion', for your convenience.
                 (and (equal parent-statement-name "If")
                      (not (re-search-backward "," parent-block-posn t))))
               'conditional)
+
+             ;; The default case.
              (t
               (save-excursion
                 (re-search-backward "\\S " parent-block-posn t)
-                (if (looking-at "[][(){},;!]")
+                ;; We need to handle ?{ separately, since it's used as part of
+                ;; the typecast operator.
+                (if (or (looking-at "[][()},;!]")
+                        (and (eq (char-after) ?{)
+                             (not (setq is-typecast 
+                                        (looking-at ee-mode-typecast-re)))
+                             )
+                        )
                     ;; If the preceeding nonblank char was some form of paren,
                     ;; a statement separator, or the comment start char, it's
                     ;; a statement.
                     'statement
                   ;; else
-                  'statement-continuation)))
+                  'statement-continuation)
+                )              
+              );; end default case
+
              );;end cond
             );;end setq
       );; end excursion
@@ -675,9 +713,10 @@ This function wraps its innards in a `save-excursion', for your convenience.
      ;; - Lines following a comment-only line will sometimes be misidentified
      ;;   as continuation statements.
      ((and (eq current-statement-type 'statement-continuation)
-           (or (ee-mode-syntx-in-xref-table parent-block-type
-                                            parent-block-posn
-                                            parent-statement-name)
+           (not is-typecast)
+           (or (ee-mode-syntax-in-xref-table parent-block-type
+                                             parent-block-posn
+                                             parent-statement-name)
                (ee-mode-syntax-follows-comment-line))
            ) ;; end and
       (setq current-statement-type 'statement)
@@ -697,10 +736,6 @@ This function wraps its innards in a `save-excursion', for your convenience.
                 parent-statement-posn)
           )
     );; end let
-;; TODO:
-;; - Make sure that all of the words in ee-mode-blockelement-re do indeed start
-;;   a block.
-;; - Separate indentation level for the 2 kinds of blocks?
   )
 
 
@@ -734,17 +769,6 @@ to an indentation amount.
       0
       )
 
-     ;; close paren/brace
-     ((or (eq type 'block-close-paren)
-          (eq type 'close-brace))
-      block-indentation
-      )
-
-     ;; a lone comma
-     ((eq type 'comma-line)
-      (+ block-indentation ee-mode-comma-extra-indent)
-      )
-
      ;; Open paren/brace
      ((or (eq type 'open-paren)
           (eq type 'open-brace))
@@ -754,31 +778,27 @@ to an indentation amount.
         parent-indentation)
       )
 
+     ;; a lone comma
+     ((eq type 'comma-line)
+      (+ block-indentation ee-mode-comma-extra-indent)
+      )
+
+     ;; close paren/brace
+     ((or (eq type 'block-close-paren)
+          (eq type 'close-brace))
+      block-indentation
+      )
+
+     ;; A dangling close paren
+     ((eq type 'dangling-close-paren)
+      paren-line-indentation
+      )
+
      ;; Inside of a set of function args
      ((eq type 'function-arg)
       ;; In this case, the "block-indentation" marks the location of the
       ;; function's opening-paren.
       (1+ block-indentation)
-      )
-
-     ;; A statement-continuation should be the indentation of the previous
-     ;; line plus the offset.  However, we don't really know if the previous
-     ;; line is starts the statement, or is yet another statement-continuation
-     ;; line.  So, we need to check it.
-     ((eq type 'statement-continuation)
-      ;; FIXME:  We really should cache the syntactic analysis of the
-      ;; previous line instead of doing this every time through.
-      (+ (jpw-last-line-indentation) 
-         (save-excursion
-           (forward-line -1)
-           (back-to-indentation)
-           (if (eq 'statement-continuation 
-                   (car (ee-mode-syntactic-analysis)))
-               0
-             ;; else
-             ee-mode-statement-continuation-indent)
-           );; end excursion
-         );; end +
       )
 
      ;; Conditional
@@ -796,25 +816,62 @@ to an indentation amount.
         )
       )
 
-     ;; A statement requires a bit more work, depending on context.
-     ((eq type 'statement)
+     ;; A new statement requires a bit more work, depending on context.
+     ((eq type 'new-statement)
       (if (and (eq which-paren ?\()
-               (save-excursion 
+               (save-excursion
                  (back-to-indentation)
-                 (looking-at "[\"']"))
+                 (not (looking-at "'[^'\n]*'")))
                )
-          ;; Inside of a paren-block AND we start with a quote char.  Indent
-          ;; the character after the quote relative to the block.
+          ;; Inside of a paren-block AND it's not a complete string.
+          ;; Indent the character after the quote relative to the block.
           (1- (+ block-indentation ee-mode-block-indent))
         ;; else:
         ;; The Default: indent relative to the block
         (+ block-indentation ee-mode-block-indent)
-        );; end if ?{ ...
+        );; end if
+      )
+
+     ;; A statement indents relative to its parent block.
+     ((eq type 'statement)
+      (save-excursion
+         (+ block-indentation ee-mode-block-indent)
+        );; end excursion
+      )
+
+     ;; A statement-continuation should be the indentation of the previous
+     ;; line plus the offset.  However, we don't really know if the previous
+     ;; line is starts the statement, or is yet another statement-continuation
+     ;; line.  So, we need to check it.
+     ;; 
+     ;; To complicate matters further, when a statement begins with a "\"",
+     ;; its continuation lines should be indented 1 +  the normal offset.
+     ((eq type 'statement-continuation)
+      ;; FIXME:  We really should cache the syntactic analysis of the
+      ;; previous line instead of doing this every time through.
+      (+ (jpw-last-line-indentation) 
+         (save-excursion
+           (forward-line -1)
+           (back-to-indentation)
+           (if (eq 'statement-continuation 
+                   (car (ee-mode-syntactic-analysis)))
+               0
+             ;; else
+             ;; Do we start with a \" ?
+             (if (looking-at "[\"']")
+                 (1+ ee-mode-statement-continuation-indent)
+               ;; else
+               ;; The Default Behavior:
+               ee-mode-statement-continuation-indent)
+             );; check-prev-line-syntax if
+           );; end excursion
+         );; end +
       )
 
      ;; Default:  indent relative to the previous line.
      (t 
       nil)
+
      );;end cond
     );;end let
   )
@@ -853,6 +910,49 @@ indentaiton column, then indent.
 ;; 
 
 
+(defun ee-electric-char (arg)
+  "Inserts the character it's bound to.  Then, if this is the first
+non-whitespace character on the line, indents the entire line correctly.
+{jpw: 10/06}"
+  (interactive "p")
+  (self-insert-command arg)
+  (save-excursion
+    (let* ((bolp (progn (beginning-of-line)
+                        (point)))
+                 (is-lone-char (looking-at "\\s *.\\s *$"))
+                 (indentp (progn (back-to-indentation)
+                                 (point)))
+                 ) ;;end vars
+      (if is-lone-char
+          (progn (delete-region bolp indentp)
+                 (ee-mode-indent-line))
+        );; end if
+      );; end let
+    );; end excursion
+  )
+
+
+(defun ee-electric-bang (arg)
+  "Inserts the \"!\" character.  If this is/will be the first
+non-whitespace character on the line, indents to the current level first, then
+inserts the \"!\".
+{jpw: 10/06}"
+  (interactive "p")
+  (let* ((bolp (progn (beginning-of-line)
+                      (point)))
+         (empty-line (looking-at "\\s *$"))
+         (indentp (progn (back-to-indentation)
+                         (point)))
+         ) ;;end vars
+    (if empty-line
+        (progn (delete-region bolp indentp)
+               (ee-mode-indent-line))
+      );; end if
+    (self-insert-command arg)
+    );; end let
+  )
+
+
 (defun ee-mode-show-syntactic-analysis ()
   "Display the results of a call to `ee-mode-syntactic-analysis' in the
 minibuffer.
@@ -865,7 +965,7 @@ minibuffer.
   "Indent a line according to ExpressionEvaluator syntax.
 {jpw: 10/06}"
   (interactive)
-  (if (ee-at-or-inside-comment)
+  (if (ee-mode-at-or-inside-comment)
       (let ((last (jpw-last-line-indentation))
              (current (current-indentation))
              );; end var defs
@@ -894,22 +994,6 @@ minibuffer.
     )
   )
 
-;; TEST THE INDENTATION FUNCTION!!!
-;; FIXME:  Screw-ups in ee-example.cfg:
-;; 
-;; 201-216
-;; 
-
-
-(defun ee-mode-auto-fill ()
-  ;; FIXME:  Do whatever's needed to get comment auto-fill working properly.
-  ;; (setq auto-fill-function ...)
-  ;; do-auto-fill :== the default auto-fill-function
-  ;; (setq adaptive-fill-mode t) did nothing.
-  ;; Don't touch comment-line-break-function.
-  ;; Must set indent-line-function
-  )
-
 
 ;;------------------------------------------------------------
 ;;
@@ -921,8 +1005,14 @@ minibuffer.
 (if (null ee-mode-map)
     (progn
       (setq ee-mode-map (make-sparse-keymap))
-      (define-key ee-mode-map [Tab] 'indent-according-to-mode)
+      (define-key ee-mode-map "\C-i" 'indent-according-to-mode)
       (define-key ee-mode-map "\C-c\C-s" 'ee-mode-show-syntactic-analysis)
+      (define-key ee-mode-map "{" 'ee-electric-char)
+      (define-key ee-mode-map "}" 'ee-electric-char)
+      (define-key ee-mode-map "(" 'ee-electric-char)
+      (define-key ee-mode-map ")" 'ee-electric-char)
+      (define-key ee-mode-map "," 'ee-electric-char)
+      (define-key ee-mode-map "!" 'ee-electric-bang)
       ;; More bindings go here:
       );end progn
   );end if
@@ -1046,7 +1136,7 @@ minibuffer.
     ee-mode-language-fn-re
     '(1 'ee-mode-language-function-face prepend))
    (list
-    "\\({\\(double\\|int\\|string\\)}\\)" 
+    (concat "\\(" ee-mode-typecast-re "\\)")
     '(1 'font-lock-type-face prepend))
    (list
     "\\(\\.\\([bfi][0-9]+\\|[cs]\\)\\)" 
@@ -1119,8 +1209,6 @@ Key bindings:
 \\{ee-mode-map}
 
 {jpw: 10/05}"
-  (kill-all-local-variables)
-  (set-syntax-table ee-mode-syntax-table)
 
   ;; Define indentation function
   (make-local-variable 'indent-line-function)
@@ -1142,6 +1230,18 @@ Key bindings:
         comment-indent-function 'ee-comment-indent)
   ;; `comment-indent-function' should be set to something that returns the
   ;; indentation of the previous line.  Well, probably...
+
+  ;; Configure paragraph start/separate vars
+  (make-local-variable 'paragraph-start)
+  (make-local-variable 'paragraph-separate)
+  (setq paragraph-start ee-mode-paragraph-start-re
+        paragraph-separate ee-mode-paragraph-start-re)
+
+  ;; Configure auto-fill.
+  (make-local-variable 'adaptive-fill-regexp)
+  (make-local-variable 'adaptive-fill-mode)
+  (setq adaptive-fill-mode t
+        adaptive-fill-regexp ee-mode-fill-prefix-re)
 
   ;; Set up font-lock for ee-mode
   (make-local-variable 'font-lock-defaults)
@@ -1168,16 +1268,6 @@ Key bindings:
         jit-lock-defer-contextually  nil
         lazy-lock-defer-contextually  nil)
 
-  ;; Set the mode line
-  ;; FIXME:  We shouldn't need to do this.  Not required for phpBB-mode.  So,
-  ;; why here?
-  (make-local-variable 'major-mode)
-  (make-local-variable 'mode-name)
-  (setq major-mode 'ee-mode
-        mode-name "ee")
-  ;; For some reason, defining this in the mode-map isn't working.  So, we'll
-  ;; force it.
-  (local-set-key "\C-c\C-s" 'ee-mode-show-syntactic-analysis)
   (run-hooks 'ee-mode-hook)
   )
 
