@@ -62,7 +62,8 @@
 
 (defsubst jpw-last-line-column-of (re)
   ;; Searches backwards for the last non-blank line, then returns the column
-  ;; of the first instance of RE on that line.
+  ;; of the first instance of RE on that line **after** any leading
+  ;; whitespace.
   ;; Returns nil if RE didn't match anything.
   (save-excursion
     (jpw-next-nonblank-line -1)
