@@ -2,7 +2,7 @@
 ;;
 ;; ExpressionEvaluator Mode
 ;;
-;;  Copyright © 2006 John P. Weiss
+;;  Copyright Å© 2006 John P. Weiss
 ;;
 ;;  Donated to royalblue Corporation under the Artistic License.
 ;;  
@@ -44,10 +44,6 @@
 {jpw: 10/05}"
   :group 'languages
   :group 'local)
-
-;;:type:
-  ;; One of: integer, number, string, regexp, character, hook,
-  ;;         symbol, function, variable, boolean
 
 
 (defcustom ee-mode-hook nil
@@ -355,7 +351,7 @@ or other form of messages.
 
 (defconst ee-mode-comment-re
   ;; Not to be confused with `ee-mode-font-lock-comment-re', which is defined
-  ;; below.
+  ;; later on in this file.
   ;; Any modificaitons to this const should be reflected in
   ;; `ee-mode-font-lock-comment-re' too.
   "!\\(==\\|[^=]\\|$\\)")
@@ -603,8 +599,6 @@ reverse-call order.
 
              ((equal "unknown-conditional" parent-statement-name)
               'conditional)
-             ((looking-at ee-mode-comment-re)
-              'comment)
              ((looking-at "(\\s *$")
               ;; Only a paren and whitespace on this line
               'open-paren
@@ -627,6 +621,18 @@ reverse-call order.
 
              ;; More complex cases:
 
+             ;; Are we in the conditional block of an If-statement?
+             ((save-excursion
+                (and (equal parent-statement-name "If")
+                     (not (re-search-backward "," parent-block-posn t))))
+              'conditional)
+
+             ;; Note that, though it is a trivial case, the comment case MUST
+             ;; follow the contitional case, since some conditionals can start
+             ;; with a '!' character.
+             ((looking-at ee-mode-comment-re)
+              'comment)
+
              ;; A close-paren, believe it or not, is a tad more complex...
              ((looking-at ")\\s *\"?\\s *")
               (goto-char (match-end 0))
@@ -642,11 +648,6 @@ reverse-call order.
                 'dangling-close-paren
                 ) ;; end if
               )
-             ;; Are we in the conditional block of an If-statement?
-             ((save-excursion
-                (and (equal parent-statement-name "If")
-                     (not (re-search-backward "," parent-block-posn t))))
-              'conditional)
 
              ;; The default case.
              (t
@@ -1028,12 +1029,17 @@ non-whitespace character on the line, indents to the current level first, then
 inserts the \"!\".
 {jpw: 10/06}"
   (interactive "p")
-  (let* ((bolp (progn (beginning-of-line)
-                      (point)))
-         (empty-line (looking-at "\\s *$"))
-         (indentp (progn (back-to-indentation)
-                         (point)))
-         ) ;;end vars
+  (let (bolp
+        empty-line
+        indentp
+        ) ;;end vars
+    (save-excursion 
+      (beginning-of-line)
+      (setq bolp (point))
+      (setq empty-line (looking-at "\\s *$"))
+      (back-to-indentation)
+      (setq indentp (point))
+      );; end excursion
     (if empty-line
         (progn (delete-region bolp indentp)
                (ee-mode-indent-line))
@@ -1055,7 +1061,14 @@ minibuffer.
   "Indent a line according to ExpressionEvaluator syntax.
 {jpw: 10/06}"
   (interactive)
-  (if (ee-mode-at-or-inside-comment)
+  (if (and (ee-mode-at-or-inside-comment)
+           ;; Make sure we're really a comment and not the negation of a
+           ;; conditional.
+           ;; 
+           ;; Good thing we cache the syntactic analysis, or this'd get really
+           ;; slow!
+           (eq 'comment (car (ee-mode-syntactic-analysis)))
+           );; end and
       (let ((last (jpw-last-line-indentation))
              (current (current-indentation))
              );; end var defs
@@ -1252,7 +1265,7 @@ minibuffer.
    ;; last.
    (list 'ee-mode-find-comment '(1 'font-lock-comment-face t))
    (list
-    "[^!']*\\('[^\\\\']*\\(\\\\.[^\\\\']*\\)*'\\)"
+    "^[^!']*\\('[^\\\\']*\\(\\\\.[^\\\\']*\\)*'\\)"
     '(1 'font-lock-string-face append))
    );; end outer list.
   "Mode-specific value of `font-lock-keywords'.

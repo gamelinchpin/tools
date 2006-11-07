@@ -98,10 +98,17 @@ the function returns `nil'.
 {jpw: 7/06}"
   (if pos (goto-char pos))
   (let* ((nested-delim-count 1)
-         (delim-re (concat "[" 
-                           (char-to-string delim)
-                           (char-to-string inv-delim)
-                           "]"))
+         (delim-str (if (eq inv-delim '?\])
+                        (concat
+                         (char-to-string inv-delim)
+                         (char-to-string delim))
+                      ;; else
+                      (concat
+                       (char-to-string delim)
+                       (char-to-string inv-delim))
+                      )
+                    )
+         (delim-re (concat "[" delim-str "]"))
          );; end bindings
 
     (while (and (> nested-delim-count 0)

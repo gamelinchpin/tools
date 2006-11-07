@@ -396,92 +396,6 @@ plus `tcl-misc-builtins'.
 ;; 
 
 
-;; FIXME: The following TCL code is valid style:
-;; 
-;;     for { set i 79 } \
-;;         { $i < [string length $outStr] } \
-;;         { set i [expr $i_0 + 80] } {
-;;
-;;         set nextspc [string wordstart $outStr [expr $i - 1]]
-;;
-;; The official TCL mode screws this code up, however:  It double-indents the
-;; body of the for-loop.
-;; 
-;; This should also be permissible:
-;; 
-;;     for { 
-;;        set i 79 
-;;     } { 
-;;        $i < [string length $outStr]
-;;     } { 
-;;         set i [expr $i_0 + 80] 
-;;     } {
-;;
-;;         set nextspc [string wordstart $outStr [expr $i - 1]]
-;; :
-;; :
-;; :
-;; ...with tunable indentation level inside of the loop-control-expressions.
-;;
-;; FIXME: Actually, now that I look at it, all line-continuation from inside
-;; of "syntactic" {...} strings is fubar.  It all gets overindented.  Even
-;; conditional expressions.
-;;
-;; Look at the TCL mode code & fix it.
-
-
-(defun jpw-tcl-indent-to-matching-brace (&optional offset)
-  "Do not call this function directly.
-Evals to nil if it didn't indent.
-{jpw: 7/06}"
-  (back-to-indentation)
-  (let (matching-brace-col
-        matching-brace-indent
-        new-indent
-        in-a-conditional
-        );; end bindings
-    (if (not offset)
-        (setq offset 0))
-
-    (save-excursion
-      (if (jpw-back-to-matching '?{ '?})
-          (progn 
-            (setq matching-brace-col (current-column))
-            (backward-word 1)
-            (setq in-a-conditional 
-                  (looking-at "\\(elseif\\|if\\|while\\)"))
-            )
-        );;end if
-      (jpw-backward-extended-line)
-      (back-to-indentation)
-      (setq matching-brace-indent (current-column))
-      );;end excursion
-
-    (if matching-brace-col
-        (if in-a-conditional
-            (tcl-indent-command)
-          ;; else
-          (setq new-indent (+ matching-brace-indent offset))
-          (if (< new-indent (current-indentation))
-              (save-excursion 
-                (let ((indentp (progn (back-to-indentation)
-                                      (point)))
-                      (bolp (progn (beginning-of-line)
-                                   (point)))
-                      );; end vars
-                  (delete-region bolp indentp)
-                  );; end let
-                );; end excursion
-            )
-          (indent-to new-indent)
-          )
-      ;; else
-      nil
-      )
-    );;end let
-  )
-
-
 (defsubst jpw-tcl-statement-data ()
   ;; Return a 2-element list describing the statement at `point'.
   (list (cond ((looking-at "catch") 'catch)
@@ -505,8 +419,7 @@ Evals to nil if it didn't indent.
   ;; 3. A symbol indicating parent-statement.
   ;; 4. The indentation of the parent-statement.
   ;; 5. The location of the ?{ on the line of the parent-statement
-  (let ((fwd-bound (point))
-        matching-open-brace-line-indent
+  (let (matching-open-brace-line-indent
         matching-open-brace-indent
         last-matching-open-brace-column
         parent-statement-info
@@ -517,7 +430,7 @@ Evals to nil if it didn't indent.
                 matching-open-brace-indent 
                 (+ (current-column) (- (match-end 0) (match-beginning 0))))
           (while (looking-at "} +{")
-            (if (jpw-back-to-matching '?{ '?} nil fwd-bound)
+            (if (jpw-back-to-matching '?{ '?})
                 (setq last-matching-open-brace-column (current-column))
               ;; else
               ;; Move off-char in case `jpw-back-to-matching' didn't move
@@ -527,10 +440,10 @@ Evals to nil if it didn't indent.
             (back-to-indentation)
             )
           (setq parent-statement-info (jpw-tcl-statement-data))
-          (append matching-open-brace-indent
-                  matching-open-brace-line-indent
+          (append (list matching-open-brace-indent
+                        matching-open-brace-line-indent)
                   parent-statement-info ;; 2 elts.
-                  last-matching-open-brace-column)
+                  (list last-matching-open-brace-column))
           );; end progn
       ;;else
       nil
@@ -600,24 +513,25 @@ Evals to nil if it didn't indent.
   (save-excursion
     (if (jpw-backward-extended-line)
         (let ((parent (progn (back-to-indentation)
-                             (jpw-tcl-statement-data))
+                             (jpw-tcl-statement-data)))
               );;end vars
           (if (re-search-forward "[[{\(]" (line-end-position) t)
-              (append parent
-                      (current-indentation) 
-                      (line-beginning-position)
-                      (list (char-after) (current-column)))
+              (progn (forward-char -1)
+                     (list parent
+                           (current-indentation) 
+                           (line-beginning-position)
+                           (char-after) (current-column)))
             ;; else
-            (append parent 
-                    (current-indentation) 
-                    (line-beginning-position)
-                    nil nil)
+            (list parent 
+                  (current-indentation) 
+                  (line-beginning-position)
+                  nil nil)
             )
           );; end let
       ;; else 
       nil
-      )
-    )
+      );; end if backward-extended-line
+    );; end excursion
   )
 
 
@@ -675,6 +589,11 @@ Evals to nil if it didn't indent.
   )
 
 
+(defsubst jpw-tcl-compute-funky-for-indent () 
+  nil
+  )
+
+
 (defsubst jpw-tcl-compute-extended-line-indent (extended-line-info)
   ;; Computes the indentation for an extended TCL statement.
   ;; 
@@ -689,13 +608,13 @@ Evals to nil if it didn't indent.
         open-grp-column
         statement-starts-group
         ) ;; end vars
-
-    (setq nearest-open-grp 
-          (re-search-backward "[[\({]" 
-                              (nth 2 extended-line-info)
-                              t))
-    (if nearest-open-grp
-        (setq open-grp-column (current-column)
+          
+    (if (or (jpw-back-to-matching '?\( '?\) nil statement-bolp)
+            (jpw-back-to-matching '?\[ '?\] nil statement-bolp)
+            (jpw-back-to-matching '?{ '?} nil statement-bolp)
+            )
+        (setq nearest-open-grp (char-after)
+              open-grp-column (current-column)
               nearest-open-grp-bolp (line-beginning-position)
               ;; - Does the nearest paren/bracket/brace equal the one in the
               ;;   parent? 
@@ -724,26 +643,21 @@ Evals to nil if it didn't indent.
                      (eq statement-type 'foreach)
                      ))
             ;; for/foreach loops require special handling.  Of course.
-            do-for-or-foreach-case
+            (jpw-tcl-compute-funky-for-indent)
 
           ;; else
           ;; Indent by type of paren:
           (if (eq nearest-open-grp '?\[)
               ;; - A ?[ always has the same indent, regardless of context.
-              (jpw-tcl-compute-bracket-indent)
-
+              (progn (goto-char old-pos)
+                     (jpw-tcl-compute-bracket-indent))
             ;; else
             ;; We must be inside of a (...) or {...} pair.
+            ;; Move off of the brace/paren, so we don't match it.
+            (forward-char)
             (if (re-search-forward "\\S " (line-end-position) t)
                 ;; Align to the 1st non-ws char after the paren.
-                (if (eq nearest-open-grp '?{)
-                    ;; For a curly, add an optional offset to the paren posn.
-                    (+ (current-column) jpw-tcl-some-offset)
-                  ;; else:
-                  ;; eq ?\(
-                  (current-column)
-                  );; end if search-for-1st-non-ws-char
-
+                (1- (current-column))
               ;; else
               ;; Fallback:  Use the previous line's indent.
               (goto-char old-pos)
@@ -752,20 +666,8 @@ Evals to nil if it didn't indent.
             );;end if '?[
 
           );;end if in-a-for-loop
-
       );; end if nearest-open-grp
     ) ;; end let
-  )
-
-
-(defsubst jpw-tcl-compute-group-internal-indent()
-      (let* ((nearest-open-grp (re-search-backward "[[\({]" 
-                                                   (nth 2 extended-line-info)
-                                                   t))
-             (statement-type (car extended-line-info))
-             (statement-open-paren (nth 3 tmp-extended-line-info))
-             );; end vars
-        );; end let
   )
 
 
@@ -785,7 +687,7 @@ function does.
        ((eq starting-char '?\))
         ;; Find its matching "(" and align to it, always.
         (if (jpw-back-to-matching '?\( '?\))
-            (current-indentation)
+            (current-column)
           ;; else:  Let TCL-mode handle it.
           nil
           )
@@ -821,8 +723,8 @@ function does.
        ;; multi-line for-loop?
        ;;
        ;; If so, align to the previous line's "{", plus a user-defined offset.
-       (nil
-        )
+;;       (nil
+;;        )
 
        ;; Case #7:  Are we the first statement in the body of a for-loop (or
        ;; foreach-loop) that starts itself with extended lines?
@@ -834,8 +736,8 @@ function does.
        ;; "correct-stoopid-tcl-for-loop-indenting") and, if it's set, check for
        ;; this case, and indent as described above but without any optional
        ;; offset.
-       (nil
-        )
+;;       (nil
+;;        )
 
       ) ;; end cond
     ) ;; end let
@@ -893,6 +795,8 @@ after breaking the line.
             (save-excursion (back-to-indentation)
                             (indent-to enhanced-indent)
                             );; end excursion
+            (if (<= (current-column) (current-indentation))
+                (back-to-indentation))
             )
         ;; else
         (tcl-indent-command arg)
