@@ -285,12 +285,11 @@ The indentation rules are as follows:
 - If the current comment line is indented to the same column as the
   previous line, then do one of the following:
   1. Do nothing if the previous line isn't a comment.
-  2. Indent the body to the same level as the body of the previous comment
+  2. Do nothing if `point' is at the beginning of line or in the left
+     \"margin\". 
+  3. Indent the body to the same level as the body of the previous comment
      line.  See below for the rules governing comment body indentation.
-  3. If unable to do #2, then:
-     a) Indent the body relatively, if `point' is inside of the comment.
-     b) Do nothing if at the beginning of line or in the left \"margin\".
-        
+  4. If unable to do #2, then indent the body relatively.
 
 - If the current comment line and the preceding comment line have different
   indentation, do each of the following:
@@ -303,7 +302,7 @@ The indentation rules are as follows:
      The body isn't indented if:
      a. The previous line isn't a comment.
      b. The previous line is an empty comment.
-     c. The this line's \"body\" is already indented more deeply than the
+     c. This line's \"body\" is already indented more deeply than the
         previous line's.
 
 In both cases, if the previous line wasn't a comment, or is a comment with *no*
@@ -352,16 +351,15 @@ will move to the start of the comment \"body\".
               ;; Indent the body only, using indent-relative.
              (progn
                (goto-char body-pos)
-               (if (> last-body-indent body-indent)
-                   (indent-to last-body-indent)
-
-                 ;;else
-                 (if (and (not orig-pos-at-bolp)
-                          (<= (current-indentation) orig-pos-column)
-                          )
+               (if (and (not orig-pos-at-bolp)
+                        (<= (current-indentation) orig-pos-column)
+                        )
+                   (if (> last-body-indent body-indent)
+                       (indent-to last-body-indent)
+                     ;;else
                      (indent-relative)
                      )
-                 )
+                 );; end if
                t);; end progn
 
            ;; else:  Last comment either (a) had no body; or (b) didn't indent

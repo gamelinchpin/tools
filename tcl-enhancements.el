@@ -632,7 +632,6 @@ plus `tcl-misc-builtins'.
         nearest-open-grp
         nearest-open-grp-bolp
         open-grp-column
-        statement-starts-group
         last-line-indent
         last-line-bolp
         tmp-1st-arg-column
@@ -642,22 +641,13 @@ plus `tcl-misc-builtins'.
         (setq nearest-open-grp (char-after)
               open-grp-column (current-column)
               nearest-open-grp-bolp (line-beginning-position)
-              ;; - Does the nearest paren/bracket/brace equal the one in the
-              ;;   parent? 
-              ;; - Is the start of the line the same as the start of the
-              ;;   parent line?
-              statement-starts-group (and (eq nearest-open-grp 
-                                              statement-open-paren)
-                                          (= nearest-open-grp-bolp 
-                                             statement-bolp))
               )
       ;; else
       ;; This is a plain-ol-extended statement (or at least, this line is).
       ;; We'll just hijack the control variables for this special case.
       (goto-char old-pos)
       (setq nearest-open-grp '?\\
-            nearest-open-grp-bolp (line-beginning-position)
-            statement-starts-group (= nearest-open-grp-bolp statement-bolp))
+            nearest-open-grp-bolp (line-beginning-position))
       (forward-line -1)
       (setq last-line-bolp (line-beginning-position)
             last-line-indent (current-indentation))
@@ -665,8 +655,7 @@ plus `tcl-misc-builtins'.
 
     ;; Some cases and their controlling conditionals.
 
-    (if (and nearest-open-grp
-             (not statement-starts-group))
+    (if nearest-open-grp
         ;; Indent by type of paren:
         (cond
          ;; A ?[ always has the same indent, regardless of context.
@@ -674,7 +663,16 @@ plus `tcl-misc-builtins'.
           (goto-char old-pos)
           (jpw-tcl-compute-bracket-indent)
           )
-         ;; A ?\\ indents almost like an in-?[ statement.
+
+         ;; A ?\\ means "not in any parens".  If this also happens to be a
+         ;; for-loop, do nothing.  Let `tcl-mode' handle it.
+         ((and (eq nearest-open-grp '?\\)
+               (eq statement-type 'for))
+          nil
+          )
+
+         ;; A ?\\ means "not in any parens".  This case indents almost like an
+          ;; in-?[ statement. 
          ((eq nearest-open-grp '?\\)
           (if (= statement-bolp last-line-bolp)
               (progn
