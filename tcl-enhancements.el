@@ -626,28 +626,21 @@ plus `tcl-misc-builtins'.
   ;; undefined otherwise.
   (let ((old-pos (point))
         (statement-type (car extended-line-info))
-        (statement-open-paren (nth 3 extended-line-info))
         (statement-bolp (- (nth 2 extended-line-info)
                            (cadr extended-line-info)))
         nearest-open-grp
-        nearest-open-grp-bolp
-        open-grp-column
         last-line-indent
         last-line-bolp
         tmp-1st-arg-column
         ) ;; end vars
           
     (if (jpw-back-to-matching "\([{" "\)]}" statement-bolp t)
-        (setq nearest-open-grp (char-after)
-              open-grp-column (current-column)
-              nearest-open-grp-bolp (line-beginning-position)
-              )
+        (setq nearest-open-grp (char-after))
       ;; else
       ;; This is a plain-ol-extended statement (or at least, this line is).
       ;; We'll just hijack the control variables for this special case.
       (goto-char old-pos)
-      (setq nearest-open-grp '?\\
-            nearest-open-grp-bolp (line-beginning-position))
+      (setq nearest-open-grp '?\\)
       (forward-line -1)
       (setq last-line-bolp (line-beginning-position)
             last-line-indent (current-indentation))
