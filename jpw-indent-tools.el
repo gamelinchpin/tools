@@ -75,11 +75,73 @@
   )
 
 
-(defun jpw-back-to-matching (delim inv-delim &optional pos boundpos)
-  "Move backward until `delim' is found, ignoring any intermediate
-\"`delim' ... `inv-delim'\" in the buffer.
+(defsubst jpw-convert-to-string-list (arg argname)
+  ;; Convert ARG, which can be a char or string, to a list of single-character
+  ;; strings, preserving the original order.  ARGNAME is the name of the
+  ;; variable that ARG was passed in.
+  (if (char-or-string-p arg)
+      ;; Convert single chars to strings.
+      (if (stringp arg)
+          (mapcar 'char-to-string (append arg nil))
+        ;; else
+        (list (char-to-string arg))
+        )
+    ;; else
+    (error "Arg '%S' is not a char or string" argname)
+    )
+  )
 
-At present, both `delim' and `inv-delim' must be characters.
+
+(defsubst jpw-make-delim-regexp (delims0)
+  ;; Rearrange DELIMS so that they are in a non-offensive order for the regexp
+  ;; engine.  Moves the characers ?] and ?- to the front of the list, and puts
+  ;; ?^ at the back.
+  ;; Does not uniqify the list (excepting the characters it moves).
+  (let* ((delims (copy-sequence delims0))
+         (delim-has-close-bracket (if (member "]" delims)
+                                      (delete "]" delims)
+                                    ))
+         (delim-has-caret (if (member "^" delims)
+                              (delete "^" delims)
+                            ))
+         (delim-has-dash (if (member "-" delims)
+                             (delete "-" delims)
+                           ))
+        );; end bindings
+
+    ;; Put any caret at the end.
+    (if delim-has-caret
+        (nconc delims '("^"))
+      )
+
+    ;; Add the dash to the front
+    (if delim-has-dash
+        (add-to-list 'delims "-")
+      )
+
+    ;; Lastly, put the ?] at the very front
+    (if delim-has-close-bracket
+        (add-to-list 'delims "]")
+      )
+
+    (concat "[" (mapconcat 'identity delims "") "]")
+    );;end let
+  )
+
+
+(defun jpw-back-to-matching (delim inv-delim &optional boundpos match-any) 
+  "Move backward until DELIM is found, ignoring any intermediate
+\"DELIM ... INV-DELIM\" in the buffer.
+
+Both DELIM and INV-DELIM must each be a character or a string.
+
+If DELIM is a string with more than one character, INV-DELIM must have the
+same number of characters.  Each character in the DELIM string corresponds
+with a character in INV-DELIM at the same string position.  These constitute
+pairs of delimiters to search for and ignore.
+
+Only the first character in DELIM will be the one that stops the search,
+unless MATCH-ANY is set non-nil.
 
 Normally, you'd use `backward-list' or `backward-up-list' instead of this
 function.  Those two functions operate on any character pairs with parenthesis
@@ -90,40 +152,42 @@ syntax.  From the Emacs-Lisp manual:
 Other modes may not be so generous.  TCL mode, for example, only defines `\(\)'
 as parenthesis characters.
 
-The search begins at either the optional arg `pos' or at `point', and
-continues until `boundpos' or a match is reached.  The optional `boundpos'
-defaults to the beginning of buffer.  If no match is found before `boundpos',
-the function returns `nil'.
+The search begins at `point', and continues until BOUNDPOS or a match is
+reached.  The optional BOUNDPOS defaults to the beginning of buffer.  If no
+match is found before BOUNDPOS, the function returns `nil'.
 
 {jpw: 7/06}"
-  (if pos (goto-char pos))
+  ;; The meat of the function
   (let* ((nested-delim-count 1)
-         (delim-str (if (eq inv-delim '?\])
-                        (concat
-                         (char-to-string inv-delim)
-                         (char-to-string delim))
-                      ;; else
-                      (concat
-                       (char-to-string delim)
-                       (char-to-string inv-delim))
-                      )
-                    )
-         (delim-re (concat "[" delim-str "]"))
+         (delim-list (jpw-convert-to-string-list delim 'delim))
+         (inv-delim-list (jpw-convert-to-string-list inv-delim 'inv-delim))
+         (targ-delim (elt (car delim-list) 0))
+         (targ-delim-inv (elt (car inv-delim-list) 0))
+         (delim-re (jpw-make-delim-regexp delim-list))
+         (inv-delim-re (jpw-make-delim-regexp inv-delim-list))
+         (all-delims-re (jpw-make-delim-regexp (append delim-list 
+                                                       inv-delim-list)))
          );; end bindings
 
+    (if (/= (length delim-list) (length inv-delim-list))
+        (error "Args 'delim' and 'inv-delim' must have the same length")
+      )
+
     (while (and (> nested-delim-count 0)
-                (re-search-backward delim-re boundpos t))
+                (re-search-backward all-delims-re boundpos t))
       (cond 
-       ((eq (following-char) delim)
+       ((looking-at delim-re)
         (setq nested-delim-count (1- nested-delim-count))
         )
-       ((eq (following-char) inv-delim)
+       ((looking-at inv-delim-re)
         (setq nested-delim-count (1+ nested-delim-count))
         )
        );;end cond
       );;end while
 
-    (= nested-delim-count 0)
+    (and (= nested-delim-count 0)
+         (or match-any
+             (eq (following-char) targ-delim)))
     );;end let
   )
 
@@ -219,18 +283,21 @@ no indentation whatesoever occurs.
 
 The indentation rules are as follows:
 - If the current comment line is indented to the same column as the
-  previous comment line, then do one of the following:
+  previous line, then do one of the following:
   1. Do nothing if the previous line isn't a comment.
   2. Indent the body to the same level as the body of the previous comment
      line.  See below for the rules governing comment body indentation.
-  3. If unable to do #2, then indent the body relatively.
+  3. If unable to do #2, then:
+     a) Indent the body relatively, if `point' is inside of the comment.
+     b) Do nothing if at the beginning of line or in the left \"margin\".
+        
 
 - If the current comment line and the preceding comment line have different
   indentation, do each of the following:
   1. Indent the entire comment line.  The current line is
      indented to the same column as the previous line \(whether it was a
      comment or not\), plus anything specified in the optional arg
-     `comment-offset'.
+     COMMENT-OFFSET.
   2. Indent the body to the same level as the body of the previous comment
      line.
      The body isn't indented if:
@@ -255,6 +322,8 @@ will move to the start of the comment \"body\".
   ;; Evals to `nil' if not in a comment.
   ;; Leaves `point' at arbitrary location on the current line.
   (let* ((orig-pos (point))
+         (orig-pos-at-bolp (bolp))
+         (orig-pos-column (current-column))
          ;; `jpw-comment-internal-indentation' leaves point at the start of
          ;; the body, so make sure these two are always grouped together, in
          ;; order.
@@ -285,14 +354,21 @@ will move to the start of the comment \"body\".
                (goto-char body-pos)
                (if (> last-body-indent body-indent)
                    (indent-to last-body-indent)
+
                  ;;else
-                 (indent-relative)
+                 (if (and (not orig-pos-at-bolp)
+                          (<= (current-indentation) orig-pos-column)
+                          )
+                     (indent-relative)
+                     )
                  )
                t);; end progn
+
            ;; else:  Last comment either (a) had no body; or (b) didn't indent
            ;;        its body relative to the comment starter.  This isn't an
            ;;        error, just a no-op.
            t)
+
        ;; else: Indent the comment itself
        (indent-line-to new-indent)
        ;; Indent the comment body (which may have moved as a result of the
