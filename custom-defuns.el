@@ -782,7 +782,7 @@ extended using an EOL-\"\\\"-char.  {jpw; 12/04}"
 
 (defun use-jpw-style-c ()
   (interactive)
-  (c-set-style 'jpw-c-style)
+  (c-set-style "jpw-c-style")
   ;; Make sure this is set correctly...
   (local-unset-key [f4])
   )
