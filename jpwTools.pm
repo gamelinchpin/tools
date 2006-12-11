@@ -190,11 +190,11 @@ sub const_array($$) {
 # the hash contains a key *and* that the key maps to something other than
 # undef], use this idiom:
 #
-#    @set{@elements} = (1 .. scalar(@element));
+#    @set{@elements} = (1 .. scalar(@elements));
 #
 # ...or:
 #
-#    @set{@elements} = grep { 1; } (1 .. scalar(@element));
+#    @set{@elements} = grep { 1; } (1 .. scalar(@elements));
 #
 
 
@@ -1179,7 +1179,7 @@ jpwTools - Package containing John's Perl Tools.
 
 =item fprint_array I<fh_ref>, I<name>, I<%hash> [, I<regexp, sub> ...]
 
-=item print_dump [I<fh_ref>, ]  [I<name>, ] I<%hash> [, I<regexp, sub> ...]
+=item print_dump [I<fh_ref>, ]  [I<name>, ] I<$ref> [, I<regexp, sub> ...]
 
 =item create_regexp_group I<@words>
 
