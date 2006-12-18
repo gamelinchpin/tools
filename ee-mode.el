@@ -65,6 +65,22 @@ as \"inside\".\)
   :group 'ee-mode)
 
 
+(defcustom ee-mode-comments-indent-relative nil
+  "If non-nil, then `ee-mode-indent-line' will try to indent __entire__
+comments relatively.  It does so only when the comment already is more deeply
+indented than the previous line.  
+
+Otherwise, `ee-mode-indent-line' will always call `jpw-indent-comment'.
+
+An unfortunate side effect of enabling this flag is that it disables
+\"comment-body\" indentation \(which is performed by `jpw-indent-comment'\).
+Since comment-body-indenting is very useful for file-header comments, you
+probably want this set to `nil'.
+{jpw: 11/06}"
+  :type '(boolean variable)
+  :group 'ee-mode)
+
+
 (defcustom ee-mode-block-indent 4
   "Indentation level for any form of block.
 {jpw: 10/05}"
@@ -1072,9 +1088,11 @@ minibuffer.
       (let ((last (jpw-last-line-indentation))
              (current (current-indentation))
              );; end var defs
-        (if (<= last current)
-            ;; Comment is already indented.  Only indent relative if the
-            ;; current comment is already indented more deeply.
+        (if (and ee-mode-comments-indent-relative
+                 (<= last current))
+            ;; Comment is already indented.  Only indent the entire comment
+            ;; relative if the current comment is already indented more
+            ;; deeply.
             (if (/= last current)
                 (indent-relative))
           ;; else:

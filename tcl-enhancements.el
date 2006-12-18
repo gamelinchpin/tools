@@ -424,8 +424,22 @@ plus `tcl-misc-builtins'.
 
 ;;------------------------------------------------------------
 ;;
-;; Enhancement Functions
+;; Enhancement Inlines
 ;; 
+
+
+(defsubst jpw-tcl-electric-indent ()
+  ;; Perform post-electric-char indentation.  Really, it jusd does a crude
+  ;; check to see if we're inside of a comment, and if we're not, only then
+  ;; does it indent.
+  (save-excursion
+    (unless (and (<= (current-indentation) (current-column))
+                 (progn (back-to-indentation)
+                        (eq (char-after) '?#)))
+      (jpw-tcl-indent-command nil)
+      )
+    )
+  )
 
 
 (defsubst jpw-tcl-statement-data ()
@@ -714,6 +728,12 @@ plus `tcl-misc-builtins'.
   )
 
 
+;;------------------------------------------------------------
+;;
+;; Enhancement Functions
+;; 
+
+
 (defun jpw-tcl-compute-enhanced-indent ()
   "Compute a more syntactically-correct indent than the old TCL mode indent
 function does.
@@ -884,6 +904,8 @@ position.
 {jpw: 11/06}"
   (interactive "p")
   (tcl-electric-hash count)
+  ;; Don't bother using `jpw-tcl-electric-indent' here, since we're creating a
+  ;; comment.
   (save-excursion
     (back-to-indentation)
     (jpw-tcl-indent-command nil))
@@ -896,9 +918,7 @@ position.
 {jpw: 11/06}"
   (interactive "p")
   (tcl-electric-brace arg)
-  (save-excursion
-    (back-to-indentation)
-    (jpw-tcl-indent-command nil))
+  (jpw-tcl-electric-indent)
   )
 
 
@@ -916,9 +936,7 @@ position.
              (tcl-indent-line))
     )
   ;;(tcl-electric-char arg)
-  (save-excursion
-    (back-to-indentation)
-    (jpw-tcl-indent-command nil))
+  (jpw-tcl-electric-indent)
   )
 
 

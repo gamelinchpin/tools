@@ -27,8 +27,9 @@
 
 (eval-when-compile
   (require 'cperl-mode)
-;;  (require 'sgml-mode)
-  (require 'xml-lite)
+  (if (not running-xemacs)
+      (require 'xml-lite)
+    )
   (require 'sql))
 
 ;;----------------------------------------------------------------------
@@ -91,6 +92,20 @@ Note that this function may require modification whenever `cus-edit.el' and
         ));; end (let ... (if ...
     (setq args (cdr args))
     );; end while
+  )
+
+
+(if running-xemacs
+    (defun set-face-bold-p (face boldp &rest args)
+      "A little placeholder for a GNU Emacs function missing from XEmacs.
+Note that this fn. only sets a face bold.  It cannot unset it.
+{jpw: 9/04}"
+      (if boldp
+          (set-face-font face [bold])
+        ;; else
+        ;;(set-face-font face [])
+        )
+      )
   )
 
 
@@ -770,10 +785,19 @@ extended using an EOL-\"\\\"-char.  {jpw; 12/04}"
 
   ;; Moves forward by capitalizations or words.  Very useful for C++ &
   ;; Java programming.
-  (local-set-key [?\C-c right] 'c-forward-into-nomenclature)
-  (local-set-key [?\C-\S-right] 'c-forward-into-nomenclature)
-  (local-set-key [?\C-c left] 'c-backward-into-nomenclature)
-  (local-set-key [?\C-\S-left] 'c-backward-into-nomenclature)
+  (if (running-xemacs)
+      (progn
+        (local-set-key '("\C-c" right) 'c-forward-into-nomenclature)
+        (local-set-key '(control shift right) 'c-forward-into-nomenclature)
+        (local-set-key '("\C-c" left) 'c-backward-into-nomenclature)
+        (local-set-key '(control shift left) 'c-backward-into-nomenclature)
+        )
+    ;; else
+    (local-set-key [?\C-c right] 'c-forward-into-nomenclature)
+    (local-set-key [?\C-\S-right] 'c-forward-into-nomenclature)
+    (local-set-key [?\C-c left] 'c-backward-into-nomenclature)
+    (local-set-key [?\C-\S-left] 'c-backward-into-nomenclature)
+    )
   ;; Force use of correct comment-break-fn.  
   (local-set-key "\M-j" 'do-comment-line-break)
   (bind-jpw-c-mode-doxy)

@@ -2,7 +2,7 @@
 ;;
 ;; Core Emacs Setup File
 ;;
-;;  Copyright Å© 1995-2006 John P. Weiss
+;;  Copyright © 1995-2006 John P. Weiss
 ;;  
 ;;  This package is free software; you can redistribute it and/or modify
 ;;  it under the terms of the Artistic License, included as the file
@@ -20,11 +20,11 @@
 ;; general font-lock colors and customizations for simple modes go
 ;; here.  Loads the other `custom-*' files that it needs.
 ;;
-;; Å∑ Keybindings have their own file.  Do not put keybindings here.
-;; Å∑ Autohooks have their own file.  Do not put autohooks here.
-;; Å∑ EmacsNT-specific and Win32-specific settings have their own file.  Do
+;; ∑ Keybindings have their own file.  Do not put keybindings here.
+;; ∑ Autohooks have their own file.  Do not put autohooks here.
+;; ∑ EmacsNT-specific and Win32-specific settings have their own file.  Do
 ;;   not put EmacsNT-specific or Win32-specific settings here.
-;; Å∑ Mutt-mode has its own file.
+;; ∑ Mutt-mode has its own file.
 ;;   So do several other modes not loaded every startup.
 ;;
 ;;
@@ -95,6 +95,16 @@ You shouldn't change the value of this variable.
 
 {jpw 9/98}")
 
+;; Special flag for XEmacs.  Doesn't exist in GNU Emacs, so we'll create it
+;; and set it to nil
+;;
+(if (not (or is-winblows
+             (boundp 'running-xemacs)))
+    (defconst running-xemacs (string-match "XEmacs\\|Lucid" emacs-version)
+      "Non-nil when the current emacs is XEmacs."
+      )
+  )
+
 
 ;;
 ;; Load Custom Functions
@@ -116,11 +126,19 @@ You shouldn't change the value of this variable.
         )
       )
 
-(setq window-setup-hook
-      (lambda()
-        (load "custom-keybindings" t)
+(if running-xemacs
+    (setq window-setup-hook
+          (lambda()
+            (load "custom-keybindings-xemacs" t)
+            )
+          )
+  ;;else
+  (setq window-setup-hook
+        (lambda()
+          (load "custom-keybindings" t)
+          )
         )
-      )
+  )
 
 ;; Load mode-hooks
 (load "custom-autohooks" t)
@@ -145,9 +163,11 @@ You shouldn't change the value of this variable.
           )
         )
   ;;else
-  (progn 
-    (require 'server)
-    (server-start)
+  (if (not running-xemacs)
+      (progn 
+        (require 'server)
+        (server-start)
+      )
     )
   )
 
@@ -173,30 +193,40 @@ You shouldn't change the value of this variable.
  '(generic-define-unix-modes t)
  '(ps-printer-name "~/emacs-out.ps")
  '(quickurl-url-file "~/.emacs-quickurls")
- '(type-break-mode-line-message-mode nil)
  '(revert-without-query (quote (".*")))
  '(html-helper-mode-uses-visual-basic t nil (html-helper-mode))
- '(type-break-mode t nil (type-break))
- '(type-break-interval 600)
- '(type-break-good-rest-interval 60)
- '(type-break-time-warning-intervals (quote (60 30)))
  '(woman-cache-filename "~/.emacs.d/.wmncache.el")
  )
 
+;; Some GNU-Emacs-specific settings.
+;;
+(if (not running-xemacs)
+    (progn
+      ;; Customization-Menu Variables.
+      (jpw-custom-set-variables-nonsaved
+       '(type-break-mode-line-message-mode nil)
+       '(type-break-mode t nil (type-break))
+       '(type-break-interval 600)
+       '(type-break-good-rest-interval 60)
+       '(type-break-time-warning-intervals (quote (60 30)))
 
-;; Shut off the stoopid toolbar in X.
-(tool-bar-mode -1)
+       ;; Shut off the stoopid toolbar in X.
+       (if (not running-xemacs)
+	   (tool-bar-mode -1)
+	 )
 
-;; Activate the recent-file menu
-(recentf-mode)
+       ;; Activate the recent-file menu
+       (recentf-mode)
 
-;;  Inhibit displaying the startup message -EWINK
-(setq inhibit-startup-message t)
+       ;; Inhibit displaying the startup message -EWINK
+       (setq inhibit-startup-message t)
+       )
+      )
 
 ;; Use Latin1 encoding
 ;;
 (set-language-environment "Latin-1")
-(set-terminal-coding-system 'iso-latin-1)
+(set-terminal-coding-system 'iso-8859-15)
 
 ;; Abbrev mode setups
 ;;
@@ -229,7 +259,7 @@ You shouldn't change the value of this variable.
 (setq kept-old-versions 0)
 (setq version-control 't)
 
-;; PostScriptÅÆ printout var.
+;; PostScriptÆ printout var.
 ;;
 (setq ps-font-size 10)
 (setq ps-print-color-p 'nil)
@@ -295,42 +325,72 @@ You shouldn't change the value of this variable.
         (string= term-lc "linux")
         )
     (progn
+
       ;; Force the colors to something reasonable
       (if window-system
-          (progn
-            (set-background-color "white")
-            (set-foreground-color "black")
-            (set-cursor-color "blue")
-            (set-mouse-color "blue")
-            (setq x-cursor-fore-pixel "white")
+          (if running-xemacs
+              (progn
+                (setq font-lock-use-default-fonts nil)
+                (setq font-lock-use-default-colors nil)
+                ) ;; end XEmacs customizations
             )
+        ;; else:  GNU Emacs
+        (progn
+          (set-background-color "white")
+          (set-foreground-color "black")
+          (set-cursor-color "blue")
+          (set-mouse-color "blue")
+          (setq x-cursor-fore-pixel "white")
+          (setq font-lock-global-modes t)
+          )
         )
+
       (require 'font-lock)
+
       ;;(setq font-lock-support-mode 'fast-lock-mode)
       (setq font-lock-maximum-decoration t)
-      (setq font-lock-global-modes t)
-      (global-font-lock-mode 1)
+      (if running-xemacs
+          (setq font-lock-auto-fontify t)
+        ;; else: GNU Emacs
+        (global-font-lock-mode 1)
+        )
+
       (if is-version-twenty
           (progn
-            (jpw-custom-set-faces-nonsaved
-             '(region ((t (:background "LightBlue"))))
-             '(highlight ((t (:background "Gray")))))
-            (modify-face font-lock-comment-face 
-                         "red3" nil nil nil nil nil)
-            (modify-face font-lock-keyword-face 
-                         "magenta3" nil nil nil nil nil)
-            (modify-face font-lock-builtin-face 
-                         "MediumOrchid" nil nil nil nil nil)
-            (modify-face font-lock-function-name-face 
-                         "Blue" nil nil nil nil nil)
-            (modify-face font-lock-variable-name-face 
-                         "orange3" nil nil t nil nil)
-            (modify-face font-lock-type-face 
-                         "purple4" nil nil nil nil nil)
-            (modify-face font-lock-reference-face 
-                         "ForestGreen" nil nil nil nil nil)
-            (modify-face font-lock-string-face 
-                         "DeepSkyBlue3" nil nil nil nil nil)
+            (if running-xemacs
+                (progn
+                  (set-face-foreground 
+                   font-lock-doc-string-face "DeepSkyBlue3")
+                  (set-face-foreground 
+                   font-lock-preprocessor-face "ForestGreen")
+                  (set-face-foreground 
+                   font-lock-constant-face "ForestGreen")
+                  (set-face-background 'region "LightBlue")
+                  (set-face-background 'highlight "Gray")
+                );; end XEmacs  
+              ;; else
+              (jpw-custom-set-faces-nonsaved
+               ;; General
+               '(region ((t (:background "LightBlue"))))
+               '(highlight ((t (:background "Gray"))))
+               ;; Faces that inherit from others.
+               '(font-lock-doc-face 
+                 ((t (:inherit font-lock-comment-face :background "azure"))))
+               )
+              )
+
+            ;; In GNU Emacs, `modify-face' just does interactive calls to
+            ;; `set-face-*'.  `modify-face' doesn't exist in XEmacs.
+            (set-face-foreground font-lock-comment-face "red3")
+            (set-face-foreground font-lock-keyword-face "magenta3")
+            (set-face-foreground font-lock-builtin-face "MediumOrchid")
+            (set-face-foreground font-lock-function-name-face "Blue")
+            (set-face-foreground font-lock-variable-name-face "orange3")
+            (set-face-bold-p     font-lock-variable-name-face t)
+            (set-face-foreground font-lock-type-face "purple4")
+            (set-face-foreground font-lock-reference-face "ForestGreen")
+            (set-face-foreground font-lock-string-face "DeepSkyBlue3")
+
             (if (not window-system)
                 (progn
                   (jpw-custom-set-faces-nonsaved
@@ -341,9 +401,11 @@ You shouldn't change the value of this variable.
                   )
               )
             )
-        );end if
-      );end progn
+        ) ;;end if
+      ) ;;end progn
   )
+;; end GNU-Emacs customizations
+)
 
 
 ;;--------------------------------------------------------------------------
@@ -364,10 +426,14 @@ You shouldn't change the value of this variable.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
-;; Generic Modes
+;; Generic Modes (GNU Emacs only)
 ;;
-(require 'generic)
-(require 'generic-x)
+(if (not running-xemacs)
+    (progn
+      (require 'generic)
+      (require 'generic-x)
+      )
+  )
 ;; N.B.:  The customization vars `generic-define-unix-modes' and
 ;; `generic-define-mswindows-modes' are automagically set to platform-specific
 ;; values by 'generic-x by default.  Override if you want to access all of the
@@ -541,6 +607,7 @@ variable rather than hardcoded.
 (autoload 'sgml-mode "sgml-mode" "Major mode to edit SGML files." t)
 (autoload 'xml-lite-mode "xml-lite" "Major mode to edit XML files." t)
 (add-to-list 'auto-mode-alist '("\\.sgml?$" . sgml-mode) t)
+(add-to-list 'auto-mode-alist '("\\.menu?$" . sgml-mode) t)
 (add-to-list 'auto-mode-alist '("\\.xml$" . jpw-xml-lite-mode) t)
 ;;(add-to-list 'auto-mode-alist '("\\.xml$" . xml-mode) t)
 
