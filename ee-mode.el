@@ -30,7 +30,9 @@
 (require 'jpw-indent-tools)
 (eval-when-compile
   (require 'lazy-lock)
-  (require 'jit-lock))
+  (if (not running-xemacs)
+      (require 'jit-lock))
+  )
 
 
 ;;------------------------------------------------------------

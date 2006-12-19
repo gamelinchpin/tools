@@ -59,6 +59,20 @@ You shouldn't change the value of this variable.
 
 {jpw 10/01}")
 
+
+;; Special flag for XEmacs.  Doesn't exist in GNU Emacs, so we'll create it
+;; and set it to nil
+;;
+(eval-and-compile
+  (if (not (or is-winblows
+               (boundp 'running-xemacs)))
+      (defconst running-xemacs (string-match "XEmacs\\|Lucid" emacs-version)
+        "Non-nil when the current emacs is XEmacs."
+        )
+    )
+  )
+
+
 ;; Special flag for WinEmacs
 ;;
 (defconst is-cygwin (or (string-match "cygwin" 
@@ -94,16 +108,6 @@ You shouldn't change the value of this variable.
 You shouldn't change the value of this variable.
 
 {jpw 9/98}")
-
-;; Special flag for XEmacs.  Doesn't exist in GNU Emacs, so we'll create it
-;; and set it to nil
-;;
-(if (not (or is-winblows
-             (boundp 'running-xemacs)))
-    (defconst running-xemacs (string-match "XEmacs\\|Lucid" emacs-version)
-      "Non-nil when the current emacs is XEmacs."
-      )
-  )
 
 
 ;;
@@ -194,34 +198,48 @@ You shouldn't change the value of this variable.
  '(ps-printer-name "~/emacs-out.ps")
  '(quickurl-url-file "~/.emacs-quickurls")
  '(revert-without-query (quote (".*")))
- '(html-helper-mode-uses-visual-basic t nil (html-helper-mode))
+ '(version-control t)
  '(woman-cache-filename "~/.emacs.d/.wmncache.el")
+ '(woman-cache-level 1)
+ '(woman-use-own-frame nil)
  )
 
-;; Some GNU-Emacs-specific settings.
-;;
-(if (not running-xemacs)
-    (progn
-      ;; Customization-Menu Variables.
-      (jpw-custom-set-variables-nonsaved
-       '(type-break-mode-line-message-mode nil)
-       '(type-break-mode t nil (type-break))
-       '(type-break-interval 600)
-       '(type-break-good-rest-interval 60)
-       '(type-break-time-warning-intervals (quote (60 30)))
+(if running-xemacs
+    (progn    
+      (require 'mwheel)
 
-       ;; Shut off the stoopid toolbar in X.
-       (if (not running-xemacs)
-	   (tool-bar-mode -1)
-	 )
-
-       ;; Activate the recent-file menu
-       (recentf-mode)
-
-       ;; Inhibit displaying the startup message -EWINK
-       (setq inhibit-startup-message t)
-       )
+      (setq kill-ring-max 100
+            minibuffer-max-depth nil
+            mwheel-follow-mouse t
+            mwheel-scroll-amount (quote (6 . 1))
+            zmacs-regions t
+            )
       )
+  ;; else:
+  ;; Some GNU-Emacs-specific settings.
+  ;;
+  ;; Customization-Menu Variables.
+  (jpw-custom-set-variables-nonsaved
+   ;; XEmacs barfs on this, for some reason, when loading the
+   ;; byte-compiled version of this file.  Just ignore it.
+   '(html-helper-mode-uses-visual-basic t nil (html-helper-mode))
+   '(type-break-mode-line-message-mode nil)
+   '(type-break-mode t nil (type-break))
+   '(type-break-interval 600)
+   '(type-break-good-rest-interval 60)
+   '(type-break-time-warning-intervals (quote (60 30)))
+   )
+
+  ;; Shut off the stoopid toolbar in X.
+  (tool-bar-mode -1)
+
+  ;; Activate the recent-file menu
+  (recentf-mode)
+
+  ;; Inhibit displaying the startup message -EWINK
+  (setq inhibit-startup-message t)
+  )
+      
 
 ;; Use Latin1 encoding
 ;;
@@ -268,7 +286,7 @@ You shouldn't change the value of this variable.
 ;(ps-extend-face '(font-lock-function-face nil nil underline))
 ;(ps-extend-face '(font-lock-variable-face nil nil nil))
 ;(ps-extend-face '(font-lock-type-face nil nil bold))
-;(ps-extend-face '(font-lock-reference-face nil nil nil))
+;(ps-extend-face '(font-lock-constant-face nil nil nil))
 ;(ps-extend-face '(font-lock-string-face nil nil underline))
 
 
@@ -330,19 +348,24 @@ You shouldn't change the value of this variable.
       (if window-system
           (if running-xemacs
               (progn
-                (setq font-lock-use-default-fonts nil)
-                (setq font-lock-use-default-colors nil)
+                (setq font-lock-auto-fontify t
+                      font-lock-maximum-size 256000
+                      font-lock-mode-enable-list t
+                      font-lock-mode-disable-list nil
+                      font-lock-use-fonts nil
+                      font-lock-use-colors t
+                      font-lock-use-default-fonts nil
+                      font-lock-use-default-colors nil
+                      )
                 ) ;; end XEmacs customizations
             )
         ;; else:  GNU Emacs
-        (progn
-          (set-background-color "white")
-          (set-foreground-color "black")
-          (set-cursor-color "blue")
-          (set-mouse-color "blue")
-          (setq x-cursor-fore-pixel "white")
-          (setq font-lock-global-modes t)
-          )
+        (set-background-color "white")
+        (set-foreground-color "black")
+        (set-cursor-color "blue")
+        (set-mouse-color "blue")
+        (setq x-cursor-fore-pixel "white")
+        (setq font-lock-global-modes t)
         )
 
       (require 'font-lock)
@@ -350,62 +373,70 @@ You shouldn't change the value of this variable.
       ;;(setq font-lock-support-mode 'fast-lock-mode)
       (setq font-lock-maximum-decoration t)
       (if running-xemacs
-          (setq font-lock-auto-fontify t)
+          (progn
+            (remove-hook 'font-lock-mode-hook 'turn-on-fast-lock)
+            (remove-hook 'font-lock-mode-hook 'turn-on-lazy-lock)
+            )
         ;; else: GNU Emacs
         (global-font-lock-mode 1)
         )
 
-      (if is-version-twenty
+      (if running-xemacs
           (progn
-            (if running-xemacs
-                (progn
-                  (set-face-foreground 
-                   font-lock-doc-string-face "DeepSkyBlue3")
-                  (set-face-foreground 
-                   font-lock-preprocessor-face "ForestGreen")
-                  (set-face-foreground 
-                   font-lock-constant-face "ForestGreen")
-                  (set-face-background 'region "LightBlue")
-                  (set-face-background 'highlight "Gray")
-                );; end XEmacs  
-              ;; else
-              (jpw-custom-set-faces-nonsaved
-               ;; General
-               '(region ((t (:background "LightBlue"))))
-               '(highlight ((t (:background "Gray"))))
-               ;; Faces that inherit from others.
-               '(font-lock-doc-face 
-                 ((t (:inherit font-lock-comment-face :background "azure"))))
-               )
-              )
+            (set-face-foreground 'default "black")
+            (set-face-background 'default "white")
+            (set-face-foreground 'text-cursor "white")
+            (set-face-background 'text-cursor "blue")
+            (set-face-foreground 'font-lock-reference-face
+                                 "ForestGreen") 
+            (set-face-foreground 'font-lock-doc-string-face
+                                 "DeepSkyBlue3")
+            (set-face-foreground 'font-lock-preprocessor-face
+                                 "ForestGreen")
+            (set-face-background 'zmacs-region "LightBlue")
+            (set-face-background 'highlight "Gray")
+            ) ;; end XEmacs  
+        ;; else
+        (jpw-custom-set-faces-nonsaved
+         ;; General
+         '(italic ((t (:foreground "#544080" :slant italic))))
+         '(region ((t (:background "LightBlue"))))
+         '(highlight ((t (:background "Gray"))))
+         '(underline ((t (:underline "purple4"))))
+         ;; Faces that inherit from others.
+         '(font-lock-doc-face 
+           ((t (:inherit font-lock-comment-face :background "azure"))))
+         '(bold-italic ((t (:inherit (bold italic)))))
+         '(woman-bold-face ((t (:inherit bold :foreground "blue"))))
+         '(woman-italic-face 
+           ((t (:inherit italic :foreground "Purple4" :underline t))))
+         )
+        ) ;; end if XEmacs
 
-            ;; In GNU Emacs, `modify-face' just does interactive calls to
-            ;; `set-face-*'.  `modify-face' doesn't exist in XEmacs.
-            (set-face-foreground font-lock-comment-face "red3")
-            (set-face-foreground font-lock-keyword-face "magenta3")
-            (set-face-foreground font-lock-builtin-face "MediumOrchid")
-            (set-face-foreground font-lock-function-name-face "Blue")
-            (set-face-foreground font-lock-variable-name-face "orange3")
-            (set-face-bold-p     font-lock-variable-name-face t)
-            (set-face-foreground font-lock-type-face "purple4")
-            (set-face-foreground font-lock-reference-face "ForestGreen")
-            (set-face-foreground font-lock-string-face "DeepSkyBlue3")
+      ;; In GNU Emacs, `modify-face' just does interactive calls to
+      ;; `set-face-*'.  `modify-face' doesn't exist in XEmacs.
+      (set-face-foreground 'font-lock-builtin-face "MediumOrchid")
+      (set-face-foreground 'font-lock-comment-face "red3")
+      (set-face-foreground 'font-lock-constant-face "ForestGreen")
+      (set-face-foreground 'font-lock-function-name-face "Blue")
+      (set-face-foreground 'font-lock-keyword-face "magenta3")
+      (set-face-foreground 'font-lock-string-face "DeepSkyBlue3")
+      (set-face-foreground 'font-lock-type-face "purple4")
+      (set-face-foreground 'font-lock-variable-name-face "orange3")
+      (set-face-bold-p     'font-lock-variable-name-face t)
 
-            (if (not window-system)
-                (progn
-                  (jpw-custom-set-faces-nonsaved
-                   '(region ((t (:background "cyan" :foreground "black"))))
-                   '(secondary-selection 
-                     ((t (:background "blue" :foreground "white"))))
-                   '(highlight ((t (:background "yellow")))))
-                  )
-              )
+      (if (not window-system)
+          (progn
+            (jpw-custom-set-faces-nonsaved
+             '(region ((t (:background "cyan" :foreground "black"))))
+             '(secondary-selection 
+               ((t (:background "blue" :foreground "white"))))
+             '(highlight ((t (:background "yellow")))))
             )
-        ) ;;end if
+        ) ;; end if !window-system
+
       ) ;;end progn
-  )
-;; end GNU-Emacs customizations
-)
+  );; end if-fontifiable-term-type
 
 
 ;;--------------------------------------------------------------------------
@@ -415,7 +446,6 @@ You shouldn't change the value of this variable.
 (setq paren-sexp-mode nil)
 (setq paren-dingaling-mode t)
 (setq blink-matching-paren t)
-
 
 
 
@@ -570,6 +600,13 @@ variable rather than hardcoded.
 
 (setq sh-shell-file "/bin/sh")
 (setq sh-shell 'bash)
+(if (not running-xemacs)
+    (jpw-custom-set-faces-nonsaved
+     '(sh-heredoc-face ((((class color) (background light)) 
+                         (:inherit font-lock-string-face 
+                                   :background "beige"))))
+     )
+  )
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -635,8 +672,8 @@ variable rather than hardcoded.
                                  (pi . font-lock-variable-name-face)
                                  (sgml . font-lock-keyword-face)
                                  (doctype . font-lock-type-face)
-                                 (entity . font-lock-reference-face)
-                                 (shortref . font-lock-reference-face)))
+                                 (entity . font-lock-constant-face)
+                                 (shortref . font-lock-constant-face)))
        )
     )
 ));;end (if nil (progn......
@@ -647,6 +684,14 @@ variable rather than hardcoded.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
+(jpw-custom-set-faces-nonsaved
+ '(html-helper-bold-face ((t (:inherit bold))))
+ '(html-helper-builtin-face ((t (:inherit font-lock-builtin-face))))
+ '(html-helper-italic-face ((t (:inherit italic))))
+ '(html-helper-underline-face ((t (:inherit underline))))
+ '(html-tag-face ((t (:inherit font-lock-function-name-face))))
+ )
+
 (autoload 'html-helper-mode "html-helper-mode" 
   "Major mode for editing HTML" t)
 (autoload 'asp-html-helper-mode "html-helper-mode" 
@@ -655,14 +700,14 @@ variable rather than hardcoded.
   "Major mode for editing JSP" t)
 (autoload 'php-html-helper-mode "html-helper-mode" 
   "Major mode for editing PHP" t)
-;; Put this one to the front so that html-helper-mode is used instead of any
-;; other modes.
+;; Put this one to the front so that html-helper-mode is used instead of
+;; any other modes.
 (dolist (mode-entry 
-          '(("\\.html$" . html-helper-mode)
-            ;;("\\.php$" . php-html-helper-mode)
-            ("\\.jsp$" . jsp-html-helper-mode)
-            ("\\.asp$" . asp-html-helper-mode))
-          )
+         '(("\\.html$" . html-helper-mode)
+           ;;("\\.php$" . php-html-helper-mode)
+           ("\\.jsp$" . jsp-html-helper-mode)
+           ("\\.asp$" . asp-html-helper-mode))
+         )
   (add-to-list 'auto-mode-alist mode-entry)
   )
 (setq html-helper-do-write-file-hooks t)
@@ -678,12 +723,16 @@ variable rather than hardcoded.
 (autoload 'cperl-mode "cperl-mode")
 ;;(add-to-list 'auto-mode-alist '("\\.pl$" . cperl-mode))
 ;;(add-to-list 'auto-mode-alist '("\\.pm$" . cperl-mode))
-(custom-set-faces
- '(cperl-array-face ((t (:inherit font-lock-variable-name-face :underline t))))
- '(cperl-hash-face ((t (:inherit (cperl-array-face italic)))))
- '(cperl-nonoverridable-face 
-   ((((class color) (background light)) (:inherit font-lock-constant-face))))
- )
+(if (not running-xemacs)
+    (jpw-custom-set-faces-nonsaved
+     '(cperl-array-face ((t (:inherit font-lock-variable-name-face
+                                      :underline t))))
+     '(cperl-hash-face ((t (:inherit (cperl-array-face italic)))))
+     '(cperl-nonoverridable-face 
+       ((((class color) (background light)) 
+         (:inherit font-lock-constant-face))))
+     )
+  )
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -26,6 +26,9 @@
 
 (require 'tcl)
 (require 'jpw-indent-tools)
+(eval-when-compile
+  (if running-xemacs
+      (require 'custom-defuns)))
 
 
 ;;------------------------------------------------------------
@@ -1048,6 +1051,10 @@ position.
 (tcl-set-proc-regexp)
 (tcl-set-font-lock-keywords)
 (add-hook 'tcl-mode-hook 'tcl-enhance-font-lock)
+
+
+
+(provide 'tcl-enhancements)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;

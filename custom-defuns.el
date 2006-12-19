@@ -27,9 +27,7 @@
 
 (eval-when-compile
   (require 'cperl-mode)
-  (if (not running-xemacs)
-      (require 'xml-lite)
-    )
+  (require 'xml-lite)
   (require 'sql))
 
 ;;----------------------------------------------------------------------
@@ -96,17 +94,36 @@ Note that this function may require modification whenever `cus-edit.el' and
 
 
 (if running-xemacs
-    (defun set-face-bold-p (face boldp &rest args)
-      "A little placeholder for a GNU Emacs function missing from XEmacs.
+    ;; Replace several "missing" GNU Emacs functions
+    (progn
+
+      (defun set-face-bold-p (face boldp &rest args)
+        "A little placeholder for a GNU Emacs function missing from XEmacs.
 Note that this fn. only sets a face bold.  It cannot unset it.
 {jpw: 9/04}"
-      (if boldp
-          (set-face-font face [bold])
-        ;; else
-        ;;(set-face-font face [])
+        (if boldp
+            (set-face-font face [bold])
+          ;; else
+          ;;(set-face-font face [])
+          )
         )
-      )
-  )
+
+      (defun line-beginning-position (&optional n)
+        (save-excursion
+          (beginning-of-line n)
+          (point)
+          )
+        )
+
+      (defun line-end-position (&optional n)
+        (save-excursion
+          (end-of-line n)
+          (point)
+          )
+        )
+
+      );;end progn
+  );; end if running-xemacs
 
 
 ;;----------------------------------------------------------------------
