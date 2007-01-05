@@ -307,14 +307,7 @@
 
 
 ;; Bindings that autoload functions or keymaps
-(global-set-key [\C-menu]
-                "\M-:(rebind-to [\\C-menu] '8859-1-map 'iso-insert)")
-;; This *should* work.  Indeed, it does load `iso-insert'.  However, the
-;; keymap fails to work quite right afterwards.
-;;;(define-key key-translation-map [\C-menu] '8859-1-map)
-;;;(autoload '8859-1-map "iso-insert.el"
-;;;  "Custom binding for 8859-1 map" t 'keymap)
-
+(define-key key-translation-map [\C-menu] 'iso-transl-ctl-x-8-map)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;

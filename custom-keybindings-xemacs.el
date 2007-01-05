@@ -160,14 +160,23 @@
 
 
 ;; Bindings that autoload functions or keymaps
-(global-set-key '(control menu)
-                "\M-:(rebind-to [\\C-menu] '8859-1-map 'iso-insert)")
-;; This *should* work.  Indeed, it does load `iso-insert'.  However, the
-;; keymap fails to work quite right afterwards.
-;;;(define-key key-translation-map [(control menu)] '8859-1-map)
-;;;(autoload '8859-1-map "iso-insert.el"
-;;;  "Custom binding for 8859-1 map" t 'keymap)
 
+;; Note that there's no such function in iso-insert.el, so the autoload
+;; fails.
+;;;(autoload '8859-1-map "iso-insert.el" "" t 'keymap)
+;; We'll kludge it, instead.
+(defun get-8859-1-map ()
+  (interactive)
+  (if (not (boundp '8859-1-map))
+      (progn
+        (require 'iso-insert)
+        (define-key global-map '(control menu) 8859-1-map)
+        (message "Rebound: C-menu.  Retype it now to use.")
+        )
+    )
+  )
+;; XEmacs: Put this into the global map, not the key-translation-map
+(define-key global-map '(control menu) 'get-8859-1-map)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;

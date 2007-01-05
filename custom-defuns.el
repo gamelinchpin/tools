@@ -632,36 +632,6 @@ is set to
 (defalias 'decode-xml 'decode-utf16)
 
 
-(defun rebind-to (key map-or-cmd required-lib-name)
-  "Custom function to do take over for `autoload' when it fails to do its 
-job (which happens from time to time)
-{jpw: 02/05}."
-  (or (vectorp key) (stringp key)
-      (signal 'wrong-type-argument (list 'arrayp key)))
-  ;; Signals an error, so no need to handle specially.
-  (require required-lib-name)
-  ;; Must check here, since `map-name' may not exist until `required-lib-name'
-  ;; is loaded.
-  (or (keymapp map-or-cmd)
-      (commandp map-or-cmd)
-      (signal 'wrong-type-argument (list 'keymapp 'commandp map-or-cmd)))
-  (local-unset-key key)
-  (global-set-key key map-or-cmd)
-  ;; Run that key, as if we've always been bound to it.
-  (if (commandp map-or-cmd)
-      (funcall map-or-cmd)
-    ;;else
-    (message "Rebound: %s.  Retype it now to use." key)
-    ;;; This doesn't work.  Need to figure out why.
-    ;;(progn 
-    ;;  (add-to-list 'unread-command-events
-    ;;               (car (listify-key-sequence key)))
-    ;;  (read-key-sequence nil)
-    ;;  )
-    );;end if
-  ) ;; end defun
-
-
 ;;----------------------------------------------------------------------
 ;;
 ;; Autohook-specific functions.
