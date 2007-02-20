@@ -38,7 +38,8 @@ MOUNTPT_BASE="/mnt"
 ############
 
 
-#. some.include.sh
+SMBMOUNT=/usr/sbin/smbmount
+SMBUMOUNT=/usr/sbin/smbumount
 
 
 ############
@@ -48,7 +49,7 @@ MOUNTPT_BASE="/mnt"
 ############
 
 
-start() {
+mount() {
     options="ro,ip=${SMB_IP},username=${SMB_UID},workgroup=${WIN_DOMAIN}"
     share="$1"
     shift
@@ -59,7 +60,7 @@ start() {
 
     echo "Trying to mount \"${share}\" on \"${mountPt}\""
     PASSWD="${mypasswd}" \
-        sudo smbmount "${share}" "${mountPt}" -o "${options}"
+        sudo $SMBMOUNT "${share}" "${mountPt}" -o "${options}"
 }
 
 
@@ -68,7 +69,7 @@ stop() {
     shift
 
     echo "Unmounting \"${mountPt}\""
-    sudo smbumount "${mountPt}"
+    sudo $SMBUMOUNT "${mountPt}"
 }
 
 
@@ -92,7 +93,7 @@ svc_is_mountPt() {
         fi
         case $action in
             start|mount)
-                start "${service}" "${mountPt}" \
+                mount "${service}" "${mountPt}" \
                     "${passwd}"
                 ;;
             stop|umount|unmount)
@@ -117,10 +118,25 @@ action="$1"
 shift
 
 myPasswd='..none..'
+as_svc=''
+share=''
+mountpt=''
 case $action in
     start|mount)
         IFS="" read -p "Enter Windows Login Password: " -s -r myPasswd
         echo ""
+        as_svc='y'
+        ;;
+    stop)
+        as_svc='y'
+        ;;
+    *)
+        share="${action}"
+        mountpoint="$1"
+        get_share_ip "${share}"
+        if [ -z "${mountpoint}" ]; then
+            usage
+        fi
         ;;
 esac
 echo "The next password request is from \"sudo\"."
@@ -130,8 +146,13 @@ echo "(If you saw nothing, it means your last \"sudo\" is still valid.)"
 echo ""
 echo "Any subsequent password prompts are from \"smbmount\" (or should be)."
 
-svc_is_mountPt NMB_NAME ${MOUNTPT_BASE}/lc_nmb_name ${action} "${myPasswd}" \
-    svc1 svc2
+if [ -n "$as_svc" ]; then
+    svc_is_mountPt NMB_NAME ${MOUNTPT_BASE}/lc_nmb_name \
+        ${action} "${myPasswd}" \
+        svc1 svc2
+else
+    mount "${share}" "${mountpoint}" "${myPasswd}"
+fi
 
 
 #################
