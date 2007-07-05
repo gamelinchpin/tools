@@ -2,7 +2,7 @@
 ;;
 ;; Core Emacs Setup File
 ;;
-;;  Copyright © 1995-2006 John P. Weiss
+;;  Copyright © 1995-2007 John P. Weiss
 ;;  
 ;;  This package is free software; you can redistribute it and/or modify
 ;;  it under the terms of the Artistic License, included as the file
@@ -198,6 +198,7 @@ You shouldn't change the value of this variable.
  '(ps-printer-name "~/emacs-out.ps")
  '(quickurl-url-file "~/.emacs-quickurls")
  '(revert-without-query (quote (".*")))
+ '(html-helper-mode-uses-visual-basic t nil (html-helper-mode))
  '(version-control t)
  '(woman-cache-filename "~/.emacs.d/.wmncache.el")
  '(woman-cache-level 1)
@@ -224,9 +225,11 @@ You shouldn't change the value of this variable.
    ;; byte-compiled version of this file.  Just ignore it.
    '(html-helper-mode-uses-visual-basic t nil (html-helper-mode))
    '(type-break-mode-line-message-mode nil)
+   '(type-break-keystroke-threshold (quote (10000)))
    '(type-break-mode t nil (type-break))
-   '(type-break-interval 600)
+   '(type-break-interval 6000)
    '(type-break-good-rest-interval 60)
+   '(type-break-query-interval 180)
    '(type-break-time-warning-intervals (quote (60 30)))
    )
 
@@ -243,8 +246,9 @@ You shouldn't change the value of this variable.
 
 ;; Use Latin1 encoding
 ;;
-(set-language-environment "Latin-1")
-(set-terminal-coding-system 'iso-8859-15)
+;;;(set-language-environment "Latin-1")
+;;;(set-keyboard-coding-system 'iso-latin-1-unix)
+;;;(set-terminal-coding-system 'iso-8859-15)
 
 ;; Abbrev mode setups
 ;;
@@ -689,8 +693,15 @@ variable rather than hardcoded.
  '(html-helper-builtin-face ((t (:inherit font-lock-builtin-face))))
  '(html-helper-italic-face ((t (:inherit italic))))
  '(html-helper-underline-face ((t (:inherit underline))))
- '(html-tag-face ((t (:inherit font-lock-function-name-face))))
  )
+;; FIXME:  Get this working correctly with XEmacs
+(if (not running-xemacs)
+    (eval-when-compile
+      (jpw-custom-set-faces-nonsaved
+       '(html-tag-face ((t (:inherit font-lock-function-name-face))))
+       )
+      )
+  )
 
 (autoload 'html-helper-mode "html-helper-mode" 
   "Major mode for editing HTML" t)

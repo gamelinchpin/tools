@@ -2,7 +2,7 @@
 ;;
 ;; M$ WinBlows-specific setup.
 ;;
-;;  Copyright © 1995-2006 John P. Weiss
+;;  Copyright © 1995-2007 John P. Weiss
 ;;  
 ;;  This package is free software; you can redistribute it and/or modify
 ;;  it under the terms of the Artistic License, included as the file
@@ -108,17 +108,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
-(defun jpw-win-or-unix (win-val unix-val)
-  "Return the appropriate value, depending on which OS we're running in.
-{jpw: 09/06}"
-  (if is-winblows
-      win-val
-    ;; else
-    unix-val
-    )
-  )
-
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; General Cygwin Environment
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -138,9 +127,16 @@
       diff-command (concat cygwin-binpath "/diff") )
 
 
+;; ispell setup
+;;
+(jpw-custom-set-variables-nonsaved
+ (list 'ispell-extra-args (list "-dC:/local/share/ispell/english.hash"))
+ )
+
+
 ;; Frame Geometry & Font
 ;;
-(defvar win-default-frame-height '53)
+(defvar win-default-frame-height '55)
 (defvar res (downcase (or (getenv "SCREENRES") "none")))
 (setq initial-frame-alist
       '((top . 0) (left . 0) 
@@ -170,7 +166,7 @@
    "-*-Lucida Console-normal-r-*-*-17-*-*-*-c-*-*")
   )
  ((equal res "1280x1024")
-  (setq win-default-frame-height '53)
+  (setq win-default-frame-height '55)
   (set-default-font 
    "-*-Lucida Console-normal-r-*-*-17-*-*-*-c-*-*")
   )
@@ -214,10 +210,11 @@
 ;;; I have a "cygwin32-mount" file on Linux, but a "cygwin-mount" file on my
 ;;; winboxen.  To resolve the inconsistency (it looks like the /.*32-.*/
 ;;; version is the older one), I'll do some compile-time fancy-footwork.
-(eval-when-compile
+;;(eval-when-compile
   (or (require 'cygwin-mount nil t)
       (and (require 'cygwin32-mount nil t)
-           (defalias 'cygwin-mount-activate 'cygwin32-mount-activate))))
+           (defalias 'cygwin-mount-activate 'cygwin32-mount-activate)))
+;;  )
 (cygwin-mount-activate)
 
 ;; I've forgotten what this does.

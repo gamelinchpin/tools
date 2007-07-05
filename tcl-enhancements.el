@@ -921,7 +921,9 @@ position.
 {jpw: 11/06}"
   (interactive "p")
   (tcl-electric-brace arg)
-  (jpw-tcl-electric-indent)
+  (save-excursion
+    (back-to-indentation)
+    (jpw-tcl-indent-command nil))
   )
 
 
@@ -939,7 +941,9 @@ position.
              (tcl-indent-line))
     )
   ;;(tcl-electric-char arg)
-  (jpw-tcl-electric-indent)
+  (save-excursion
+    (back-to-indentation)
+    (jpw-tcl-indent-command nil))
   )
 
 
@@ -1020,6 +1024,7 @@ position.
            ;; Note:  Index will shift depending on how many groups are in
            ;; `tcl-builtins-with-arg-re'.  This is a problem.
            '(3 'tcl-builtin-arg1-face t t))
+
      ) ;; end list
     ) ;; end eval-when-compile
   ) 
@@ -1028,6 +1033,11 @@ position.
 (defun tcl-enhance-font-lock ()
     (set (make-local-variable 'font-lock-defaults)
          (list
+          ;; FIXME:  Put "upvar #0" in the correct place.  Get it to fontify
+          ;;         correctly.
+          ;;(append 
+          ;; (list '("\\<\\(upvar #0\\)\\>" 1 font-lock-keyword-face))
+          ;; tcl-font-lock-keywords tcl-font-lock-keywords-enhanced)
           (append tcl-font-lock-keywords tcl-font-lock-keywords-enhanced)
           nil nil '((?_ . "w") (?: . "w"))))
   )

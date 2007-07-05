@@ -2,7 +2,7 @@
 ;;    
 ;; Custom Functions
 ;;
-;;  Copyright © 1995-2006 John P. Weiss
+;;  Copyright © 1995-2007 John P. Weiss
 ;;  
 ;;  This package is free software; you can redistribute it and/or modify
 ;;  it under the terms of the Artistic License, included as the file
@@ -27,6 +27,7 @@
 
 (eval-when-compile
   (require 'cperl-mode)
+;;  (require 'sgml-mode)
   (require 'xml-lite)
   (require 'sql))
 
@@ -34,6 +35,17 @@
 ;;
 ;; Customization/Setup Tools
 ;;
+
+
+(defun jpw-win-or-unix (win-val unix-val)
+  "Return the appropriate value, depending on which OS we're running in.
+{jpw: 09/06}"
+  (if is-winblows
+      win-val
+    ;; else
+    unix-val
+    )
+  )
 
 
 (defun jpw-custom-set-variables-nonsaved  (&rest args)
@@ -607,19 +619,26 @@ is set to
   (funcall comment-line-break-function))
 
 
+(defvar jpw-utf-in-use nil
+  "Used internally.  Do not modify.  {jpw; 03/07}")
 (defun use-utf()
   "Force use of Mule UTF encodings. {jpw; 11/05}"
   (interactive)
-  ;; Taken from `loadup.el'
-  (load "international/mule")
-  (load "international/mule-conf.el")  ; Don't get confused if someone
-                                       ; compiled this by mistake.
-  (load "international/mule-cmds")
-  (load "case-table")
-  (load "international/utf-8")
-  (load "international/utf-16")
-  (load "international/characters")
-  (load "international/ucs-tables")
+  (if (not jpw-utf-in-use)
+      (progn
+        ;; Taken from `loadup.el'
+        (load "international/mule")
+        (load "international/mule-conf.el") ; Don't get confused if someone
+                                            ; compiled this by mistake.
+        (load "international/mule-cmds")
+        (load "case-table")
+        (load "international/utf-8")
+        (load "international/utf-16")
+        (load "international/characters")
+        (load "international/ucs-tables")
+        (setq jpw-utf-in-use t)
+        )
+    )
   )
 
 
@@ -630,6 +649,34 @@ is set to
   (use-utf)
   (decode-coding-region (point-min) (point-max) 'utf-16-le-dos))
 (defalias 'decode-xml 'decode-utf16)
+
+
+(defun decode-entire-buffer-utf8 ()
+  "Decode a buffer in utf-8
+Unfortunately, it doesn't work too well.
+
+{jpw: 03/07}."
+  (interactive)
+  (use-utf)
+  (decode-coding-region (point-min) (point-max) 'utf-8))
+
+
+(defun reread-utf8 ()
+  "Reread the current buffer, using utf-8 encoding this time.
+Unfortunately, it doesn't work too well.
+
+{jpw: 03/07}."
+  (interactive)
+  (use-utf)
+  (let ((my-file-name (buffer-file-name (current-buffer)))
+        ;; Set this only for the duration of the scope of the (let ...).
+        (coding-system-for-read 'mule-utf-8)
+        (coding-system-for-write 'mule-utf-8)
+        );; end varbindings
+    (find-alternate-file my-file-name)
+    )
+  (setq buffer-file-coding-system 'mule-utf-8)
+  )
 
 
 ;;----------------------------------------------------------------------
@@ -766,13 +813,14 @@ extended using an EOL-\"\\\"-char.  {jpw; 12/04}"
 (defun use-jpw-style-c-common ()
   (interactive)
   (auto-fill-mode 1)
+  (setq fill-column 78)
   (setq c-indent-comments-syntactically-p 't
         c-tab-always-indent "partial"
         )
 
   ;; Moves forward by capitalizations or words.  Very useful for C++ &
   ;; Java programming.
-  (if (running-xemacs)
+  (if running-xemacs
       (progn
         (local-set-key '("\C-c" right) 'c-forward-into-nomenclature)
         (local-set-key '(control shift right) 'c-forward-into-nomenclature)
@@ -793,7 +841,9 @@ extended using an EOL-\"\\\"-char.  {jpw; 12/04}"
 
 (defun use-jpw-style-c ()
   (interactive)
-  (c-set-style "jpw")
+  ;; Use the value of the `jpw-c-style' variable, for that added level of
+  ;; indirection. ;)
+  (c-set-style jpw-c-style)
   ;; Make sure this is set correctly...
   (local-unset-key [f4])
   )
@@ -802,6 +852,7 @@ extended using an EOL-\"\\\"-char.  {jpw; 12/04}"
 (defun use-jpw-style-java ()
   (interactive)
   (c-set-style "jpw-java")
+  (setq fill-column 78)
   (bind-jpw-javadoc)
   (local-unset-key [f4])
   )
@@ -842,6 +893,7 @@ extended using an EOL-\"\\\"-char.  {jpw; 12/04}"
 (defun use-jpw-style-tcl ()
   (interactive)
   (turn-on-auto-fill)
+  (setq fill-column 78)
   (font-lock-mode t)
   (bind-jpw-doc-comment)
   (local-set-key "\M-po" (lambda() (interactive)
