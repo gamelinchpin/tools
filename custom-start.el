@@ -198,7 +198,6 @@ You shouldn't change the value of this variable.
  '(ps-printer-name "~/emacs-out.ps")
  '(quickurl-url-file "~/.emacs-quickurls")
  '(revert-without-query (quote (".*")))
- '(html-helper-mode-uses-visual-basic t nil (html-helper-mode))
  '(version-control t)
  '(woman-cache-filename "~/.emacs.d/.wmncache.el")
  '(woman-cache-level 1)
@@ -221,9 +220,6 @@ You shouldn't change the value of this variable.
   ;;
   ;; Customization-Menu Variables.
   (jpw-custom-set-variables-nonsaved
-   ;; XEmacs barfs on this, for some reason, when loading the
-   ;; byte-compiled version of this file.  Just ignore it.
-   '(html-helper-mode-uses-visual-basic t nil (html-helper-mode))
    '(type-break-mode-line-message-mode nil)
    '(type-break-keystroke-threshold (quote (10000)))
    '(type-break-mode t nil (type-break))
@@ -693,14 +689,14 @@ variable rather than hardcoded.
  '(html-helper-builtin-face ((t (:inherit font-lock-builtin-face))))
  '(html-helper-italic-face ((t (:inherit italic))))
  '(html-helper-underline-face ((t (:inherit underline))))
+ '(html-tag-face ((t (:inherit font-lock-function-name-face))))
  )
-;; FIXME:  Get this working correctly with XEmacs
+
 (if (not running-xemacs)
-    (eval-when-compile
-      (jpw-custom-set-faces-nonsaved
-       '(html-tag-face ((t (:inherit font-lock-function-name-face))))
-       )
-      )
+    (jpw-custom-set-variables-nonsaved
+     ;; XEmacs barfs on this, for some reason.
+     '(html-helper-mode-uses-visual-basic t nil (html-helper-mode))
+     )
   )
 
 (autoload 'html-helper-mode "html-helper-mode" 

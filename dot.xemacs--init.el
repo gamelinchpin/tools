@@ -49,9 +49,12 @@
   (display-time-mode)) ;; Maybe also use (display-batter)
 (setq require-final-newline 'nil)
 
-
 ;; Temp [TpX40 only]:  Map the [\C-menu] key to something.
 (define-key function-key-map [print] [\C-menu])
+
+;; XEmacs-Specific
+(if running-xemacs
+    (setq initial-frame-plist '(width 80)))
 
 
 ;; Local Customizations
