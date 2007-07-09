@@ -1074,13 +1074,10 @@ position.
                '(3 'tcl-builtin-arg1-face prepend t))
 
          ;;
-         ;; Comments.  We need to fontify these by hand in order to deal with
-         ;; upvar & uplevel.
-         ;; HOWEVER:  Recall that font-lock searches this list in-order,
-         ;; stopping at the first match.  So, we need to put this element
-         ;; before all others, so that it matches comments before anything
-         ;; else.
-         (list (concat "^\\s *\\(#.*\\)$")
+         ;; Comments.  Override any in-comment keyword fontification.
+         ;; It won't cover all cases (boldface and underlining will be
+         ;; preserved, but it's better than nothing.
+         (list "^\\s *\\(#.*\\)$"
                '(1 'font-lock-comment-face prepend))
 
          ) ;; end list
