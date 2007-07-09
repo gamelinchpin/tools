@@ -2,7 +2,7 @@
 ;;
 ;; Some enhancements for the default TCL-mode that comes with Emacs
 ;;
-;;  Copyright Å© 2005-2006 John P. Weiss
+;;  Copyright Å© 2005-2007 John P. Weiss
 ;;  
 ;;  This package is free software; you can redistribute it and/or modify
 ;;  it under the terms of the Artistic License, included as the file
@@ -906,12 +906,29 @@ position.
 `jpw-tcl-indent-command'.
 {jpw: 11/06}"
   (interactive "p")
-  (tcl-electric-hash count)
-  ;; Don't bother using `jpw-tcl-electric-indent' here, since we're creating a
-  ;; comment.
-  (save-excursion
-    (back-to-indentation)
-    (jpw-tcl-indent-command nil))
+  (let ((in-upvar-statement (save-excursion
+                              (backward-word 1)
+                              (looking-at "upvar")))
+        (in-string (save-excursion
+                     (and
+                      (re-search-backward "[\"']" (line-beginning-position) t)
+                      (re-search-forward "[\"'\n]" (line-end-position) t)
+                      )
+                     ))
+        );; end bindings
+    ;; Weird, inconsistent TCL syntax:  you can have statements of the form
+    ;; `upvar #0 varname newvar'.  Totally messes up several things, including
+    ;; electric hash handling.
+    (if (not (or in-upvar-statement in-string) )
+        (tcl-electric-hash count)
+      (insert-char ?# count)
+      )
+    ;; Don't bother using `jpw-tcl-electric-indent' here, since we're creating
+    ;; a comment.
+    (save-excursion
+      (back-to-indentation)
+      (jpw-tcl-indent-command nil))
+    );;end let
   )
 
 
@@ -932,9 +949,9 @@ position.
 `jpw-tcl-indent-command'.
 {jpw: 11/06}"
   (interactive "p")
-  ;; Rather than call this, mess up the indentation of the existing line, then
-  ;; correct it (which all looks rather noisy on screen), we'll just steal the
-  ;; implementation of `tcl-electric-char'
+  ;; Rather than call `tcl-electric-char', mess up the indentation of the
+  ;; existing line, then correct it (which all looks rather noisy on screen),
+  ;; we'll just steal the implementation of `tcl-electric-char'
   (self-insert-command arg)
   (if (and tcl-auto-newline (= last-command-char ?\;))
       (progn (newline)
@@ -986,60 +1003,95 @@ position.
   "Enhancements for the standard `tcl-font-lock-keywords' variable.
 {jpw: 06/05}")
 ;; Separate out the defvar from setting the value to make debugging easier.
+;;
+;; Notes:
+;; (1) You'd //think// that you could just use a single quote on the list and
+;; not bother quoting the face names.  You'd think that.  But you'd be wrong.
+;; The override flag won't work if you do that.  To whit:
+;;     '(n face-name t)
+;; ...only highlights keywords-n-such once, while:
+;;     '(n 'face-name t)
+;; ...overrides existing fontification.  Same happens for `prepend' or
+;; `append' instead of `t'.
+;;
+;; (2) I've sort of fixed the upvar/uplevel problem when '#0' is used as the
+;; first arg.  Unfortunately, it means that we'll now be fontifying the
+;; insides of strings.
 (setq tcl-font-lock-keywords-enhanced
-  (eval-when-compile
-    (list
-     ;;
-     ;; Variables
-     '("[$]\\(\\(::\\)?\\sw+\\)" (1 font-lock-variable-name-face))
+      (eval-when-compile
+        (list
 
-     ;;
-     ;; Internal Variables
-     (cons (concat "\\<\\(" tcl-const-list-re "\\)\\>")
-           'font-lock-constant-face)
+         ;;
+         ;; Upvar has some ... irregular syntax.  Handle it.  Make sure we
+         ;; forcibly override any existing fontification.
+         (list
+          (concat "\\<"
+                  "\\(upvar\\|uplevel\\)\\s +"
+                  "\\(#[0-9]+\\)?"
+                  "\\([^#\n]*\\)"
+                  "\\>")
+          '(1 'font-lock-type-face)
+          '(2 'tcl-keyword-arg1-face t t)
+          '(3 'default-face t t))
 
-     ;;
-     ;; Builtins
-     (list (concat "\\<\\("
-                   ;; TODO:
-                   ;; [jpw] Right now, this just reflects my own tastes.
-                   ;; Really, it should be customizable.
-                   tcl-builtins-re-3
-                   "\\)\\>")
-           '(1 'tcl-builtin-face))
+         ;;
+         ;; Variables
+         (list
+          "[$]\\(\\(::\\)?\\sw+\\)" 
+          '(1 'font-lock-variable-name-face prepend))
 
-     ;;
-     ;; Keywords with an extra arg.  May use `tcl-keywords-with-arg-re'
-     ;; someday, but right now, this is actually simpler
-     (list (concat "\\<\\(namespace\\|package\\)\\>[ \t]+\\(\\w+\\)?")
-           '(1 'font-lock-keyword-face)
-           '(2 'tcl-keyword-arg1-face t t))
+         ;;
+         ;; Internal Variables
+         (cons (concat "\\<\\(" tcl-const-list-re "\\)\\>")
+               'font-lock-constant-face)
 
-     ;;
-     ;; Builtins with an extra arg.
-     (list (concat "\\<\\(" 
-                   tcl-builtins-with-arg-re
-                   "\\)\\>[ \t]+\\(\\sw+\\)?")
-           '(1 'tcl-builtin-face)
-           ;; Note:  Index will shift depending on how many groups are in
-           ;; `tcl-builtins-with-arg-re'.  This is a problem.
-           '(3 'tcl-builtin-arg1-face t t))
+         ;;
+         ;; Builtins
+         (list (concat "\\<\\("
+                       ;; TODO:
+                       ;; [jpw] Right now, this just reflects my own tastes.
+                       ;; Really, it should be customizable.
+                       tcl-builtins-re-3
+                       "\\)\\>")
+               '(1 'tcl-builtin-face prepend))
 
-     ) ;; end list
-    ) ;; end eval-when-compile
-  ) 
-;; end setq
+         ;;
+         ;; Keywords with an extra arg.  May use `tcl-keywords-with-arg-re'
+         ;; someday, but right now, this is actually simpler
+         (list
+          "\\<\\(namespace\\|package\\)\\>[ \t]+\\(\\w+\\)?"
+          '(1 'font-lock-keyword-face)
+          '(2 'tcl-keyword-arg1-face append t))
+
+         ;;
+         ;; Builtins with an extra arg.
+         (list (concat "\\<\\(" 
+                       tcl-builtins-with-arg-re
+                       "\\)\\>[ \t]+\\(\\sw+\\)?")
+               '(1 'tcl-builtin-face prepend)
+               ;; Note:  Index will shift depending on how many groups are in
+               ;; `tcl-builtins-with-arg-re'.  This is a problem.
+               '(3 'tcl-builtin-arg1-face prepend t))
+
+         ;;
+         ;; Comments.  We need to fontify these by hand in order to deal with
+         ;; upvar & uplevel.
+         ;; HOWEVER:  Recall that font-lock searches this list in-order,
+         ;; stopping at the first match.  So, we need to put this element
+         ;; before all others, so that it matches comments before anything
+         ;; else.
+         (list (concat "^\\s *\\(#.*\\)$")
+               '(1 'font-lock-comment-face prepend))
+
+         ) ;; end list
+        ) ;; end eval-when-compile
+      ) ;; end setq
 
 (defun tcl-enhance-font-lock ()
-    (set (make-local-variable 'font-lock-defaults)
-         (list
-          ;; FIXME:  Put "upvar #0" in the correct place.  Get it to fontify
-          ;;         correctly.
-          ;;(append 
-          ;; (list '("\\<\\(upvar #0\\)\\>" 1 font-lock-keyword-face))
-          ;; tcl-font-lock-keywords tcl-font-lock-keywords-enhanced)
-          (append tcl-font-lock-keywords tcl-font-lock-keywords-enhanced)
-          nil nil '((?_ . "w") (?: . "w"))))
+  (set (make-local-variable 'font-lock-defaults)
+       (list
+        (append tcl-font-lock-keywords tcl-font-lock-keywords-enhanced)
+        nil nil '((?_ . "w") (?: . "w"))))
   )
 
 ;; Right now, I'm trying to preserve the std. tcl-mode behavior, rather than
