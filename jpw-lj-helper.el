@@ -924,25 +924,25 @@ Call this function after changing certain customization variables manually
       (define-key jpw-lj-mode-map "\M-\"" 'jpw-lj-unfill-paragraph)
       (define-key jpw-lj-mode-map "\C-c\"" 'jpw-lj-unfill-buffer)
 
-      (define-key jpw-lj-mode-map "\M-gi" 'jpw-html-italic)
-      (define-key jpw-lj-mode-map "\M-ge" 'jpw-html-emphasized)
+      (define-key jpw-lj-mode-map "\M-oi" 'jpw-html-italic)
+      (define-key jpw-lj-mode-map "\M-oe" 'jpw-html-emphasized)
       (define-key jpw-lj-mode-map "\C-ci" 'jpw-lj-insert-italic)
 
-      (define-key jpw-lj-mode-map "\M-gb" 'jpw-html-bold)
-      (define-key jpw-lj-mode-map "\M-gs" 'jpw-html-strong)
+      (define-key jpw-lj-mode-map "\M-ob" 'jpw-html-bold)
+      (define-key jpw-lj-mode-map "\M-os" 'jpw-html-strong)
       (define-key jpw-lj-mode-map "\C-cb" 'jpw-lj-insert-bold)
 
-      (define-key jpw-lj-mode-map "\M-gu" 'jpw-html-underline)
+      (define-key jpw-lj-mode-map "\M-ou" 'jpw-html-underline)
 
-      (define-key jpw-lj-mode-map "\M-go" 'jpw-html-code)
+      (define-key jpw-lj-mode-map "\M-oo" 'jpw-html-code)
 
-      (define-key jpw-lj-mode-map "\M-gd" 'jpw-html-del)
+      (define-key jpw-lj-mode-map "\M-od" 'jpw-html-del)
 
-      (define-key jpw-lj-mode-map "\M-g\C-s" 'jpw-html-size-small)
-      (define-key jpw-lj-mode-map "\M-g\C-b" 'jpw-html-size-big)
-      (define-key jpw-lj-mode-map "\M-g\C-r" 'jpw-html-size-relative)
-      (define-key jpw-lj-mode-map "\M-gz" 'jpw-lj-insert-size)
-      (define-key jpw-lj-mode-map "\M-g\M-s" 'jpw-lj-insert-size)
+      (define-key jpw-lj-mode-map "\M-o\C-s" 'jpw-html-size-small)
+      (define-key jpw-lj-mode-map "\M-o\C-b" 'jpw-html-size-big)
+      (define-key jpw-lj-mode-map "\M-o\C-r" 'jpw-html-size-relative)
+      (define-key jpw-lj-mode-map "\M-oz" 'jpw-lj-insert-size)
+      (define-key jpw-lj-mode-map "\M-o\M-s" 'jpw-lj-insert-size)
 
       (define-key jpw-lj-mode-map "\M-p\C-i" 'html-image)
 

@@ -216,10 +216,17 @@
 (global-set-key [deletekey] 'delete-char)
 (global-set-key [\C-deletekey] 'delete-char)
 
+;; Emacs 22 binds <f3> and <f4>.  However, I have preexisting bindings that
+;; conflict.  Keep mine and rebind the defaults.
+(global-set-key [\C-f3] 'kmacro-start-macro-or-insert-counter)
+(global-set-key [\C-f4] 'kmacro-end-or-call-macro)
+(global-unset-key [f3])
+(global-unset-key [f4])
+
 ;;Undo
 (global-set-key [undo] 'advertised-undo)
 
-;;S-Open
+;;Open
 (global-set-key [open] 'find-file)
 
 ;; Motion Keys
@@ -247,8 +254,9 @@
 ;;; The Default: (global-set-key "\M-R" 'isearch-repeat-backward)
 (global-set-key "\C-cr" 'isearch-repeat-backward)
 
+;; NOTE:  Now on "\M-g g" :)
 ;; binds the goto line command to something 
-(global-set-key "\C-xg" 'goto-line)
+;;;(global-set-key "\C-xg" 'goto-line)
 
 ;; binds the copy region command to something
 (global-set-key "\C-xw" 'copy-region-as-kill)

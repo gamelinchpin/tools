@@ -850,19 +850,19 @@ lines that begin with a phpBB tag are not unfilled.
 
       (define-key phpBB-mode-map "\C-c\C-s" 'jpw-phpBB-display-tag-analysis)
 
-      (define-key phpBB-mode-map "\M-gi" 'phpBB-insert-italic)
+      (define-key phpBB-mode-map "\M-oi" 'phpBB-insert-italic)
       (define-key phpBB-mode-map "\M-pi" 'phpBB-insert-italic)
 
-      (define-key phpBB-mode-map "\M-gb" 'phpBB-insert-bold)
+      (define-key phpBB-mode-map "\M-ob" 'phpBB-insert-bold)
       (define-key phpBB-mode-map "\M-pb" 'phpBB-insert-bold)
 
-      (define-key phpBB-mode-map "\M-gu" 'phpBB-insert-underline)
+      (define-key phpBB-mode-map "\M-ou" 'phpBB-insert-underline)
       (define-key phpBB-mode-map "\M-pu" 'phpBB-insert-underline)
 
-      (define-key phpBB-mode-map "\M-gs" 'phpBB-insert-size)
+      (define-key phpBB-mode-map "\M-os" 'phpBB-insert-size)
       (define-key phpBB-mode-map "\M-ps" 'phpBB-insert-size)
 
-      (define-key phpBB-mode-map "\M-gc" 'phpBB-insert-color)
+      (define-key phpBB-mode-map "\M-oc" 'phpBB-insert-color)
       (define-key phpBB-mode-map "\M-pc" 'phpBB-insert-color)
 
       (define-key phpBB-mode-map "\M-pa" 'phpBB-insert-url)
