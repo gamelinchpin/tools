@@ -92,7 +92,7 @@ You shouldn't change the value of this variable.
 
 {jpw 11/04}")
 
-;; Version 20 & 21 changes some old stuff.  To handle those changes, we
+;; Version 20 and above changes some old stuff.  To handle those changes, we
 ;; define and set these variables.
 ;;
 (defconst is-version-twenty (not (eq emacs-major-version '19))
@@ -102,12 +102,12 @@ You shouldn't change the value of this variable.
 
 {jpw 9/98}")
 
-(defconst is-version-twentyone (eq emacs-major-version '21)
-  "Set to true if this is emacs 21.*.*.  The default value is nil.
+(defconst is-version-twentytwo (eq emacs-major-version '22)
+  "Set to true if this is emacs 22.*.*.  The default value is nil.
 
 You shouldn't change the value of this variable.
 
-{jpw 9/98}")
+{jpw 9/07}")
 
 
 ;;
@@ -159,7 +159,8 @@ You shouldn't change the value of this variable.
 ;; Set up a server for emacsclient.  Note that Winblows uses "gnuserv"
 ;; instead of the standard server package.
 ;;
-(if (or is-winblows is-cygwin)
+(if (and (or is-winblows is-cygwin)
+         (not is-version-twentytwo))
     (if (load "gnuserv" t)   ;; May not have gnuserv on cygwin
         (progn
           (setq gnuserv-frame (selected-frame))
@@ -192,13 +193,15 @@ You shouldn't change the value of this variable.
 (jpw-custom-set-variables-nonsaved
  '(line-number-mode t)
  '(column-number-mode t)
- '(abbrev-file-name "~/.emacs-abbrevs" t)
+ '(abbrev-file-name "~/.emacs.d/.abbrevs" t)
  '(generic-define-mswindows-modes t)
  '(generic-define-unix-modes t)
  '(ps-printer-name "~/emacs-out.ps")
- '(quickurl-url-file "~/.emacs-quickurls")
+ '(quickurl-url-file "~/.emacs.d/.quickurls")
  '(revert-without-query (quote (".*")))
  '(version-control t)
+ '(transient-mark-mode 1)
+ '(save-abbrevs (quote silently))
  '(woman-cache-filename "~/.emacs.d/.wmncache.el")
  '(woman-cache-level 1)
  '(woman-use-own-frame nil)
@@ -208,10 +211,14 @@ You shouldn't change the value of this variable.
     (progn    
       (require 'mwheel)
 
-      (setq kill-ring-max 100
+      (setq abbrev-file-name "~/.xemacs/.abbrevs"
+            kill-ring-max 100
             minibuffer-max-depth nil
             mwheel-follow-mouse t
             mwheel-scroll-amount (quote (6 . 1))
+            quickurl-url-file "~/.xemacs/.quickurls"
+            type-break-file-name "~/.xemacs/.type-break"
+            woman-cache-filename "~/.xemacs/.wmncache.el"
             zmacs-regions t
             )
       )
@@ -220,12 +227,20 @@ You shouldn't change the value of this variable.
   ;;
   ;; Customization-Menu Variables.
   (jpw-custom-set-variables-nonsaved
+   '(colon-double-space t)
+   '(global-font-lock-mode t nil (font-lock))
+   '(kill-ring-max 100)
+   '(longlines-show-effect "¶
+")
+   '(mouse-wheel-mode t nil (mwheel))
+   '(mouse-wheel-follow-mouse nil)
    '(type-break-mode-line-message-mode nil)
    '(type-break-keystroke-threshold (quote (10000)))
    '(type-break-mode t nil (type-break))
    '(type-break-interval 6000)
    '(type-break-good-rest-interval 60)
    '(type-break-query-interval 180)
+   '(type-break-file-name "~/.emacs.d/.type-break")
    '(type-break-time-warning-intervals (quote (60 30)))
    )
 
@@ -281,18 +296,10 @@ You shouldn't change the value of this variable.
 ;;
 (setq ps-font-size 10)
 (setq ps-print-color-p 'nil)
-(ps-extend-face '(font-lock-comment-face nil nil italic))
-;(ps-extend-face '(font-lock-keyword-face nil nil bold))
-;(ps-extend-face '(font-lock-function-face nil nil underline))
-;(ps-extend-face '(font-lock-variable-face nil nil nil))
-;(ps-extend-face '(font-lock-type-face nil nil bold))
-;(ps-extend-face '(font-lock-constant-face nil nil nil))
-;(ps-extend-face '(font-lock-string-face nil nil underline))
 
 
 ;; Misc.
 ;;
-(setq transient-mark-mode 1)
 (setq bookmark-save-flag 1)
 
 
@@ -411,6 +418,22 @@ You shouldn't change the value of this variable.
          '(woman-italic-face 
            ((t (:inherit italic :foreground "Purple4" :underline t))))
          )
+        (if is-version-twentytwo
+            (progn
+              (jpw-custom-set-faces-nonsaved
+               '(mode-line ((t (:background "grey75" 
+                                :foreground "black" 
+                                :box (:line-width -1 
+                                      :style released-button)))) t)
+               '(mode-line-inactive ((t (:inherit mode-line 
+                                         :background "grey90" 
+                                         :foreground "grey35" 
+                                         :box (:line-width -1 
+                                               :style released-button) 
+                                         :weight light))))
+               )
+              )
+          );; end if GNU Emacs v22
         ) ;; end if XEmacs
 
       ;; In GNU Emacs, `modify-face' just does interactive calls to
@@ -512,19 +535,24 @@ variable rather than hardcoded.
 
 ;; Create a style for use with c-mode, c++-mode, and objc-mode
 (c-add-style "jpw" 
-             '("whitesmith" 
-               (indent-tabs-mode . nil)
+             '((indent-tabs-mode . nil)
                (fill-column . 78)
                (c-hanging-braces-alist 
                 (substatement-open before after)
                 )
                (c-basic-offset . 4)
                (c-offsets-alist
+                (arglist-cont . c-lineup-arglist)
+                (arglist-cont-nonempty . c-lineup-arglist)
+                (arglist-close . c-lineup-arglist)
                 (inline-open . 0)
                 (block-open . +)
                 (block-close . 0)
                 (brace-list-open . 0)
                 (brace-list-intro . +) ; Default aligns enum contents with '{'
+                ;;(brace-list-entry . +)
+                ;;(brace-entry-open . 0)
+                ;;(brace-list-close . 0)
                 (class-open . 0) ; Default indents lone '{' for classes
                 (class-close . 0) ; Default indents lone '}' for classes
                 (defun-open . 0) ; whitesmith does weird things to defun.
@@ -534,13 +562,14 @@ variable rather than hardcoded.
                 (namespace-close . 0) ; Default indents lone '}' for classes
                 (topmost-intro . 0)
                 (topmost-intro-cont . 0)
-                (statement-block-intro . +)
                 (case-label . *)
+                ;;(statement . c-indent-multi-line-block)
+                (statement-block-intro . +)
                 (statement-case-intro . *)
                 (statement-case-open . 0)
                 (substatement . +)
-                ;(substatement-open . +)
                 (substatement-open . 0)
+                (substatement-label . +)
                 (access-label . -)
                 (label . 0)
                 (inclass . +)

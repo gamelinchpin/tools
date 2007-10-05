@@ -1,5 +1,5 @@
 (custom-set-variables
- '(abbrev-file-name "~/.emacs-abbrevs")
+ '(abbrev-file-name "~/.xemacs/.abbrevs")
  '(align-c++-modes (quote (c++-mode c-mode java-mode javascript-generic-mode)))
  '(align-open-comment-modes (quote (vhdl-mode emacs-lisp-mode lisp-interaction-mode lisp-mode scheme-mode c++-mode c-mode java-mode perl-mode cperl-mode python-mode makefile-mode javascript-generic-mode)))
  '(archive-zip-use-pkzip nil)
@@ -38,7 +38,7 @@
  '(type-break-time-warning-intervals (quote (60 30)))
  '(version-control nil)
  '(visual-basic-mode-indent 2 t)
- '(woman-cache-filename "~/.emacs.d/.wmncache.el")
+ '(woman-cache-filename "~/.xemacs/.wmncache.el")
  '(woman-cache-level 1)
  '(woman-use-own-frame nil))
 

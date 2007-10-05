@@ -189,8 +189,15 @@ tags on either side of the region.
   "Like `ebuffers', does an `ediff' on the two buffers underlying files.
 {jpw: 9/06}"
   ;; [jpw] Stolen lock, stock, and barrel from "ediff.el"
-  (interactive 
+  (interactive
    (let (bf)
+     ;; [jpw] This "if"-block is my own custom tweak.
+     (if (not (and (functionp 'ediff-files)
+                   (functionp 'ediff-other-buffer)
+                   )
+              )
+         (load "ediff")
+       )
      (list (setq bf (read-buffer "Buffer A to compare: "
                                  (ediff-other-buffer "") t))
            (read-buffer "Buffer B to compare: "
@@ -716,6 +723,18 @@ extended using an EOL-\"\\\"-char.  {jpw; 12/04}"
   )
 
 
+(defun use-jpw-perl-dabbrev-skip ()
+  (make-local-variable 'dabbrev-abbrev-skip-leading-regexp)
+  (setq 'dabbrev-abbrev-skip-leading-regexp "[$@%&]")
+  )
+
+
+(defun use-jpw-sh-dabbrev-skip ()
+  (make-local-variable 'dabbrev-abbrev-skip-leading-regexp)
+  (setq 'dabbrev-abbrev-skip-leading-regexp "[$]")
+  )
+
+
 (defun bind-jpw-doc-comment ()
   (interactive)
   ;; Universal doc-comment keybindings
@@ -835,11 +854,13 @@ extended using an EOL-\"\\\"-char.  {jpw; 12/04}"
     )
   ;; Force use of correct comment-break-fn.  
   (local-set-key "\M-j" 'do-comment-line-break)
+  (local-set-key [?\C-c f7] 'compile)
+  (local-set-key [?\C-c f8] 'recompile)
   (bind-jpw-c-mode-doxy)
   )
 
 
-(defun use-jpw-style-c ()
+(defun use-jpw-style-cxx ()
   (interactive)
   ;; Use the value of the `jpw-c-style' variable, for that added level of
   ;; indirection. ;)
@@ -849,12 +870,48 @@ extended using an EOL-\"\\\"-char.  {jpw; 12/04}"
   )
 
 
+(defconst jpw-buf-is-cxx-class-regex
+  (concat "^\\s *\\(class\\|namespace\\|"
+          "p\\(r\\(ivate\\|otected\\\)\\|ublic\\)\\)")
+  )
+(defconst jpw-buf-is-cxx-lib-regex
+  "\\b\\(std::\\w\\|\\(c\\(err\\|out\\)\||string\\)\\b\\)"
+  )
+(defun use-jpw-style-c ()
+  (interactive)
+  (if (and (string-match "\\.h$" (buffer-file-name (current-buffer)))
+           (save-excursion
+             (goto-char (point-min))
+             (or
+              (save-excursion
+                (re-search-forward jpw-buf-is-cxx-class-regex (point-max) t)
+                );; end inner excursion
+              (save-excursion
+                (re-search-forward jpw-buf-is-cxx-lib-regex (point-max) t)
+                );; end inner excursion
+              )
+             );; end buffer-check excursion
+           );; end and
+      (c+-mode)
+    ;; else - this really is a C-source file.
+    ;; 
+    ;; Use the value of the `jpw-c-style' variable, for that added level of
+    ;; indirection. ;)
+    (c-set-style jpw-c-style)
+    ;; Make sure this is set correctly...
+    (local-unset-key [f4])
+    );; end if
+  )
+
+
 (defun use-jpw-style-java ()
   (interactive)
   (c-set-style "jpw-java")
   (setq fill-column 78)
   (bind-jpw-javadoc)
   (local-unset-key [f4])
+  (local-set-key [?\C-c f7] 'compile)
+  (local-set-key [?\C-c f8] 'recompile)
   )
 
 
@@ -879,6 +936,7 @@ extended using an EOL-\"\\\"-char.  {jpw; 12/04}"
   ;; Use a style equivalent to perl-mode indentation.
   (cperl-set-style "PerlStyle")
   (setq cperl-label-offset -2)
+  (use-jpw-perl-dabbrev-skip)
 )
 
 
@@ -894,6 +952,7 @@ extended using an EOL-\"\\\"-char.  {jpw; 12/04}"
   (interactive)
   (turn-on-auto-fill)
   (setq fill-column 78)
+  (use-jpw-sh-dabbrev-skip)
   (font-lock-mode t)
   (bind-jpw-doc-comment)
   (local-set-key "\M-po" (lambda() (interactive)

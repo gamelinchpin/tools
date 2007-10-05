@@ -2,7 +2,7 @@
 ;;    
 ;; Mode Hooks
 ;;
-;;  Copyright © 1995-2006 John P. Weiss
+;;  Copyright © 1995-2007 John P. Weiss
 ;;  
 ;;  This package is free software; you can redistribute it and/or modify
 ;;  it under the terms of the Artistic License, included as the file
@@ -45,7 +45,7 @@
 ;; C/C++/Obj-C/Java
 (add-hook 'c-mode-common-hook 'use-jpw-style-c-common)
 (add-hook 'c-mode-hook 'use-jpw-style-c)
-(add-hook 'c++-mode-hook 'use-jpw-style-c)
+(add-hook 'c++-mode-hook 'use-jpw-style-cxx)
 (add-hook 'jde-mode-hook 'use-jpw-style-java)
 (add-hook 'java-mode-hook 'use-jpw-style-java)
 
@@ -58,6 +58,7 @@
 (add-hook 'awk-mode-hook 'turn-on-auto-fill)
 (add-hook 'tcl-mode-hook 'use-jpw-style-tcl t)
 (add-hook 'perl-mode-hook 'turn-on-auto-fill)
+(add-hook 'perl-mode-hook 'use-jpw-perl-dabbrev-skip)
 (add-hook 'cperl-mode-hook 'use-jpw-style-cperl)
 (add-hook 'octave-mode-hook 'use-jpw-style-octave)
 
@@ -65,6 +66,7 @@
 ;; serves both the programming mode and the Shell-in-a-Box mode.
 (add-hook 'sh-mode-hook 'turn-on-auto-fill)
 (add-hook 'sh-mode-hook 'jpw-flip-to-tcl-mode)
+(add-hook 'sh-mode-hook 'use-jpw-sh-dabbrev-skip)
 
 
 ;; WWW Friends

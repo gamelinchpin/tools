@@ -3,7 +3,7 @@
 ;;  .xemacs setup file
 ;;
 ;;
-;;  last modified 12/2006            (jpw)
+;;  last modified 10/2007            (jpw)
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -20,6 +20,7 @@
 
 ;; Libraries to load.
 ;;
+;; ;(load "discord")
 ;; ;(load "elib-startup")
 ;; ;(load "cedet-setup")
 ;; ;(load "phpBB-helper")
@@ -29,20 +30,20 @@
 ;; ;(load "custom-mutt_start")
 
 ;; Read abbrevs.
-(read-abbrev-file "~/.emacs-abbrevs")
+(read-abbrev-file "~/.xemacs/.abbrevs")
 
 ;; cedet and html-helper-mode do not play well together.
 ;; ;(remove-hook 'html-mode-hook 'semantic-default-html-setup)
 
 ;; TCL mode stuff
-(load "tcl-enhancements")
+;; ;(load "tcl-enhancements")
 
 ;; Work Stuff
-(load "ee-mode")
+;; ;(load "ee-mode")
+;; ;(load "p4")
+;; ;(load "p4extra")
 ;;(fset 'jpw-p4job-cleanup
 ;;   [?\C-* ?\M-< ?\C-\M-% ?^ ?\C-8 ?  ?\C-m ?\C-q ?\C-i ?\C-m ?!])
-(load "p4")
-;; ;(load "p4extra")
 
 
 (if (not window-system)
@@ -66,5 +67,7 @@
 (message "Your .emacs has loaded")
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
-;; End .emacs
+;; Local Variables:
+;; mode: emacs-lisp
+;; End:
 ;; 
