@@ -2,7 +2,7 @@
 ;;
 ;; Major and Minor modes for editing LiveJournal entries.
 ;;
-;;  Copyright © 2006 John P. Weiss except as documented below
+;;  Copyright © 2006-2007 John P. Weiss except as documented below
 ;;  
 ;;  This package is free software; you can redistribute it and/or modify
 ;;  it under the terms of the Artistic License, included as the file
@@ -40,10 +40,9 @@
 
 (require 'sgml-mode)
 (require 'custom-defuns)
+(require 'lazy-lock)
 (eval-when-compile
-  (require 'lazy-lock)
   (require 'mule)
-  (require 'custom-defuns)
   )
 
 
@@ -259,7 +258,7 @@ which is called when emacs first loads the \"jpw-lj-helper\" library.
 {jpw: 03/2006}")
 
 
-(defvar jpw-lj-minor-mode-original-font-lock-keywords 'nil)
+(defvar jpw-lj-minor-mode-original-font-lock-defaults 'nil)
 
 
 (defconst jpw-lj-entity-table
@@ -1155,12 +1154,14 @@ Call this function after changing certain customization variables manually
 
 
 (defconst jpw-lj-font-lock-keywords-1
-   (list jpw-lj-font-lock-strong-face-key-1
-         jpw-lj-font-lock-em-face-key-1
-         jpw-lj-font-lock-bold-face-key-1
-         jpw-lj-font-lock-italics-face-key-1
-         jpw-lj-font-lock-underline-face-key-1
-         ) ;;end list
+  (append sgml-font-lock-keywords
+          (list jpw-lj-font-lock-strong-face-key-1
+                jpw-lj-font-lock-em-face-key-1
+                jpw-lj-font-lock-bold-face-key-1
+                jpw-lj-font-lock-italics-face-key-1
+                jpw-lj-font-lock-underline-face-key-1
+                ) ;;end list
+          )
   )
 
 
@@ -1188,17 +1189,23 @@ Call this function after changing certain customization variables manually
 {jpw: 03/2006")
 
 
-;; What *would* be the actual value of `font-lock-defaults' for jpw-lj-mode,
-;; if we weren't inheriting from `htl=mode'.
-;;
+(defconst jpw-lj-font-lock-defaults-keywords 
+  '(jpw-lj-font-lock-keywords-1 jpw-lj-font-lock-keywords-2
+                                jpw-lj-font-lock-keywords-3)
+  "The list of keyword variables used in jpw-lj-font-lock-defaults.
+Each element of this list is a variable of the same form as
+`font-lock-keywords'.  The separate elements of the list control the
+fontification at different levels.
+This is a variable, and not a constant, so that it can be made buffer-local
+and be reused.
+{jpw: 10/2007}")
+
 
 (defconst jpw-lj-font-lock-defaults
   (list
-   ;; Per-level variable names.  Each variable named in this list should be of
-   ;; the same form as `font-lock-keywords'
-   '(jpw-lj-font-lock-keywords-1 jpw-lj-font-lock-keywords-2
-                                 jpw-lj-font-lock-keywords-3)
-   nil t
+   jpw-lj-font-lock-defaults-keywords
+   nil t nil nil
+   '(font-lock-syntactic-keywords . sgml-font-lock-syntactic-keywords)
    ) ;;end list
   )
 
@@ -1209,17 +1216,56 @@ Call this function after changing certain customization variables manually
 ;; 
 
 
-(defun jpw-lj-add-to-font-lock-keywords (arg)
-  (add-to-list 'font-lock-keywords arg (not jpw-lj-minor-mode)))
+;; (setq dbg-l1 (list "a" "b" "c" "d")
+;;       dbg-l2 '(1 2 3)
+;;       dbg-l3 '(a e i o u)
+;;       dbg-tmp-1 (list "fu" "ji" "ba")
+;;       dbg-tmp-2 '(1.2 2.3)
+;;       dbg-lst '(dbg-l1 dbg-l2 dbg-l3)
+;;       dbg-tmp '(dbg-tmp-1 dbg-tmp-2)
+;;       )
+
+;;(jpw-lj-merge-font-lock-keyword-lists dbg-lst dbg-tmp)
+
+(defsubst jpw-lj-merge-font-lock-keyword-lists (main-keyword-list 
+                                                other-keyword-list)
+  (let ((other-last (last other-keyword-list))
+        (cur-main main-keyword-list)
+        (cur-other other-keyword-list)
+        val-main val-other);; end varbinds
+    ;; There must be at least one element in the list.
+    (if other-last
+        (while cur-main
+          (setq val-main (car cur-main)
+                val-other (car cur-other))
+          (if (symbolp val-main)
+              (setq val-main (eval val-main))
+              )
+          (if (symbolp val-other)
+              (setq val-other (eval val-other))
+              )
+          ;; Since cur-main always points at a cdr, let's replace the car with
+          ;; the merged value.
+          (setcar cur-main (append val-main val-other))
+          ;; Iterate forward.  If we hit the end of `other-keyword-list', reuse
+          ;; the last element.
+          (setq cur-main (cdr cur-main)
+                cur-other (or (cdr cur-other) other-last)
+                )
+          );;end while
+      );;end if
+    );; end let
+  ;; Let's return the value of the merged list, just for completeness.
+  main-keyword-list
+  )
 
 
-(defsubst jpw-lj-set-font-lock-level ()
-  "Set `jpw-lj-font-lock-keywords' to the appropriate level, as determined by
-`font-lock-maximum-decoration'.  Uses `jpw-lj-font-lock-defaults' to select
-the actual keywords to fontify.
+(defsubst jpw-lj-select-font-lock-keywords-by-level (the-font-lock-defaults)
+  "Select a font-lock leve as determined by `font-lock-maximum-decoration'.
+THE-FONT-LOCK-DEFAULTS should be the value of `font-lock-defaults' or a
+similarly structured variable.
 {jpw: 03/2006}"
-  (interactive)
-  (let* ((jpw-lj-font-lock-level-list (car jpw-lj-font-lock-defaults))
+  (let* ((jpw-lj-font-lock-level-list (car the-font-lock-defaults))
          (my-deco1 (if (listp font-lock-maximum-decoration)
                        (or (assq 'jpw-lj-mode font-lock-maximum-decoration)
                            (assq 'jpw-lj-minor-mode 
@@ -1237,16 +1283,18 @@ the actual keywords to fontify.
                         (t 1)
                         )))
          );; end varbinds
-    (setq jpw-lj-font-lock-keywords 
-          (eval
-           (nth (min my-level (1- (length jpw-lj-font-lock-level-list)))
-                jpw-lj-font-lock-level-list)))
+    (if (listp jpw-lj-font-lock-level-list)
+        (eval
+         (nth (min my-level (1- (length jpw-lj-font-lock-level-list)))
+              jpw-lj-font-lock-level-list))
+      ;; else
+      jpw-lj-font-lock-level-list
+      )
     );; end let
   )
 
-(defun jpw-lj-mode-common ()
-  (jpw-lj-set-font-lock-level)
 
+(defun jpw-lj-mode-common ()
   ;; Set up font-lock for jpw-lj-mode
   (make-local-variable 'font-lock-defaults)
   (make-local-variable 'font-lock-multiline)
@@ -1261,8 +1309,7 @@ the actual keywords to fontify.
   (make-local-variable 'lazy-lock-stealth-verbose)
   ;; Changing `font-lock-defaults' won't change the inherited
   ;; font-locking-behavior.
-  (setq font-lock-defaults jpw-lj-font-lock-defaults
-        font-lock-multiline t
+  (setq font-lock-multiline t
         ;; `jit-lock-mode' doesn't correctly fontify everything we want it to.
         ;; 
         ;; `fast-lock-mode' and `lazy-lock-mode' require you to
@@ -1273,7 +1320,7 @@ the actual keywords to fontify.
         ;; 
         ;; So, we'll use `lazy-lock-mode', suitably tuned to behave as
         ;; desired.
-        font-lock-support-mode lazy-lock-mode
+        font-lock-support-mode 'lazy-lock-mode
         lazy-lock-minimum-size nil
         lazy-lock-stealth-verbose t
         lazy-lock-defer-on-the-fly t
@@ -1283,14 +1330,12 @@ the actual keywords to fontify.
         lazy-lock-stealth-nice 0.1
         lazy-lock-stealth-load nil)
 
+  (if font-lock-mode
+      (font-lock-fontify-buffer))
+
   ;;
   ;; Things needed to circumvent behavior inherited by HTML mode.
   ;; 
-
-  ;; Override the default HTML-mode font-lock behavior
-  (mapcar 'jpw-lj-add-to-font-lock-keywords jpw-lj-font-lock-keywords)
-  (if font-lock-mode
-      (font-lock-fontify-buffer))
 
   ;; Override the skeleton-mode hooks
   (make-local-variable 'skeleton-end-newline)
@@ -1321,6 +1366,7 @@ Key bindings:
   ;; Must call this outside of `jpw-lj-mode-common', due to
   ;; different call-order in the major and minor modes.
   (make-local-variable 'font-lock-keywords)
+  (setq font-lock-defaults jpw-lj-font-lock-defaults)
   (jpw-lj-mode-common)
   )
 
@@ -1335,30 +1381,49 @@ Key bindings:
 
 {jpw: 03/2006}"
   nil " jpw-LJ" jpw-lj-mode-map
+
   (if jpw-lj-minor-mode
+      ;; We're turning this minor mode ON.
       (progn
         ;; Must call this outside of `jpw-lj-mode-common', due to
         ;; different call-order in the major and minor modes.
-        (make-local-variable 'font-lock-keywords)
         ;; Cache the original font-lock keywords
-        (and (not jpw-lj-minor-mode-original-font-lock-keywords)
-             font-lock-mode
-             (setq 
-              jpw-lj-minor-mode-original-font-lock-keywords
-              font-lock-keywords)
-             );;end and
-        ;; WARNING:  This next line depends on internal implementation of
-        ;; sgml.el.  We need it here, however, for the HTML tag font-locking.
-        (mapcar 'jpw-lj-add-to-font-lock-keywords sgml-font-lock-keywords-1)
+        (make-local-variable 'font-lock-defaults)
+        (make-local-variable 'jpw-lj-font-lock-keywords)
+
+        ;; Set `jpw-lj-font-lock-keywords' according to the desired level.
+        (setq jpw-lj-font-lock-keywords
+              (jpw-lj-select-font-lock-keywords-by-level 
+               jpw-lj-font-lock-defaults))
+
+        ;; Cache the original font-lock keywords
+        (setq jpw-lj-minor-mode-original-font-lock-defaults
+              font-lock-defaults)
+        (let* ((old-keywords 
+                (jpw-lj-select-font-lock-keywords-by-level font-lock-defaults))
+               ) ;; end bindings
+          (if (symbolp old-keywords)
+              ;; If it's a symbol, make it a list of 1 symbol
+              (setq old-keywords (list old-keywords))
+            )
+          (jpw-lj-merge-font-lock-keyword-lists jpw-lj-font-lock-keywords
+                                                old-keywords)
+          (setcar font-lock-defaults 'jpw-lj-font-lock-keywords)
+          t
+          );; end let*
+
+        ;; **Now** do the common tasks.
         (jpw-lj-mode-common)
         );; end progn
 
     ;;else
-    (and jpw-lj-minor-mode-original-font-lock-keywords
+    ;; We're disabling this minor mode.
+    (and jpw-lj-minor-mode-original-font-lock-defaults
          font-lock-mode
-         (setq font-lock-keywords
-               jpw-lj-minor-mode-original-font-lock-keywords)
+         (setq font-lock-defaults
+               jpw-lj-minor-mode-original-font-lock-defaults)
          );;end and
+    (setq jpw-lj-minor-mode-original-font-lock-defaults nil)
     (if jpw-lj-unfill-on-save
         (remove-hook 'local-write-file-hooks 'jpw-lj-unfill-buffer)
       )
@@ -1367,7 +1432,8 @@ Key bindings:
       )
     );;end if (outer)
 
-  ;; Whether turning the minor mode on or off, refontify the buffer if needed.
+  ;; Whether turning the minor mode on or off, refontify the buffer (if
+  ;; needed).
   (if font-lock-mode
       (font-lock-fontify-buffer))
   )
