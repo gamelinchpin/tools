@@ -2,7 +2,7 @@
 ;;
 ;; A major mode for editing phpBB messages.
 ;;
-;;  Copyright © 2005 John P. Weiss
+;;  Copyright © 2005-2007 John P. Weiss
 ;;  
 ;;  This package is free software; you can redistribute it and/or modify
 ;;  it under the terms of the Artistic License, included as the file
@@ -26,6 +26,7 @@
 
 
 (require 'custom-defuns)
+(require 'lazy-lock)
 
 
 ;;------------------------------------------------------------
@@ -1377,7 +1378,7 @@ Key bindings:
         ;; 
         ;; So, we'll use `lazy-lock-mode', suitably tuned to behave as
         ;; desired.
-        font-lock-support-mode lazy-lock-mode
+        font-lock-support-mode 'lazy-lock-mode
         lazy-lock-minimum-size nil
         lazy-lock-stealth-verbose t
         lazy-lock-defer-on-the-fly t

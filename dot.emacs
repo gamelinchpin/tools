@@ -67,6 +67,18 @@
 (setq require-final-newline 'nil)
 
 
+;; These are customization variables, but we set them here instead of below,
+;; since their values are programmatic, not constant.
+;(setq 
+; vc-path (list cygwin-binpath (concat cygwin-basepath "/lib/cvs/contrib"))
+; exec-path (append (list cygwin-binpath) exec-path)
+; )
+
+;; Temp [TpX40 only]:  Map the [\C-menu] key to something.
+;; ;(define-key function-key-map [print] [\C-menu])
+;; ;(global-set-key [?\C-c f7] 'compile)
+;; ;(global-set-key [?\C-c f8] 'recompile)
+
 (put 'scroll-left 'disabled nil)
 
 ;; Local Customizations
@@ -128,7 +140,10 @@
 ;; For Speedbar w/o icons, use this as the button face:
 ;; '(speedbar-button-face ((((class color) (background light)) (:background "yellow4" :foreground "purple4" :box (:line-width 1 :color "yellow3" :style released-button)))))
 
-
+;; [jpw] Force the recentf menu to update.  Dunno if it'll work.
+(setq recentf-update-menu-p t)
+;; [jpw] May Need to do this:
+;;(recentf-update-menu-hook)
 (message "Your .emacs has loaded")
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;

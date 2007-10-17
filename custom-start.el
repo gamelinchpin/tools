@@ -64,8 +64,8 @@ You shouldn't change the value of this variable.
 ;; and set it to nil
 ;;
 (eval-and-compile
-  (if (not (or is-winblows
-               (boundp 'running-xemacs)))
+;;  (if (not (or is-winblows
+  (if (not (boundp 'running-xemacs))
       (defconst running-xemacs (string-match "XEmacs\\|Lucid" emacs-version)
         "Non-nil when the current emacs is XEmacs."
         )
@@ -234,6 +234,7 @@ You shouldn't change the value of this variable.
 ")
    '(mouse-wheel-mode t nil (mwheel))
    '(mouse-wheel-follow-mouse nil)
+   '(recentf-save-file "~/.emacs.d/.recentf")
    '(type-break-mode-line-message-mode nil)
    '(type-break-keystroke-threshold (quote (10000)))
    '(type-break-mode t nil (type-break))
@@ -367,11 +368,11 @@ You shouldn't change the value of this variable.
                 ) ;; end XEmacs customizations
             )
         ;; else:  GNU Emacs
-        (set-background-color "white")
-        (set-foreground-color "black")
+        (set-background-color "black")
+        (set-foreground-color "white")
         (set-cursor-color "blue")
         (set-mouse-color "blue")
-        (setq x-cursor-fore-pixel "white")
+        (setq x-cursor-fore-pixel "black")
         (setq font-lock-global-modes t)
         )
 

@@ -1216,50 +1216,6 @@ and be reused.
 ;; 
 
 
-;; (setq dbg-l1 (list "a" "b" "c" "d")
-;;       dbg-l2 '(1 2 3)
-;;       dbg-l3 '(a e i o u)
-;;       dbg-tmp-1 (list "fu" "ji" "ba")
-;;       dbg-tmp-2 '(1.2 2.3)
-;;       dbg-lst '(dbg-l1 dbg-l2 dbg-l3)
-;;       dbg-tmp '(dbg-tmp-1 dbg-tmp-2)
-;;       )
-
-;;(jpw-lj-merge-font-lock-keyword-lists dbg-lst dbg-tmp)
-
-(defsubst jpw-lj-merge-font-lock-keyword-lists (main-keyword-list 
-                                                other-keyword-list)
-  (let ((other-last (last other-keyword-list))
-        (cur-main main-keyword-list)
-        (cur-other other-keyword-list)
-        val-main val-other);; end varbinds
-    ;; There must be at least one element in the list.
-    (if other-last
-        (while cur-main
-          (setq val-main (car cur-main)
-                val-other (car cur-other))
-          (if (symbolp val-main)
-              (setq val-main (eval val-main))
-              )
-          (if (symbolp val-other)
-              (setq val-other (eval val-other))
-              )
-          ;; Since cur-main always points at a cdr, let's replace the car with
-          ;; the merged value.
-          (setcar cur-main (append val-main val-other))
-          ;; Iterate forward.  If we hit the end of `other-keyword-list', reuse
-          ;; the last element.
-          (setq cur-main (cdr cur-main)
-                cur-other (or (cdr cur-other) other-last)
-                )
-          );;end while
-      );;end if
-    );; end let
-  ;; Let's return the value of the merged list, just for completeness.
-  main-keyword-list
-  )
-
-
 (defsubst jpw-lj-select-font-lock-keywords-by-level (the-font-lock-defaults)
   "Select a font-lock leve as determined by `font-lock-maximum-decoration'.
 THE-FONT-LOCK-DEFAULTS should be the value of `font-lock-defaults' or a
@@ -1391,25 +1347,27 @@ Key bindings:
         (make-local-variable 'font-lock-defaults)
         (make-local-variable 'jpw-lj-font-lock-keywords)
 
+        ;; Cache the original font-lock keywords
+        (setq jpw-lj-minor-mode-original-font-lock-defaults
+              font-lock-defaults)
+
         ;; Set `jpw-lj-font-lock-keywords' according to the desired level.
         (setq jpw-lj-font-lock-keywords
               (jpw-lj-select-font-lock-keywords-by-level 
                jpw-lj-font-lock-defaults))
-
-        ;; Cache the original font-lock keywords
-        (setq jpw-lj-minor-mode-original-font-lock-defaults
-              font-lock-defaults)
+        ;; Merge
         (let* ((old-keywords 
                 (jpw-lj-select-font-lock-keywords-by-level font-lock-defaults))
                ) ;; end bindings
           (if (symbolp old-keywords)
-              ;; If it's a symbol, make it a list of 1 symbol
-              (setq old-keywords (list old-keywords))
+              (setq old-keywords (eval old-keywords))
             )
-          (jpw-lj-merge-font-lock-keyword-lists jpw-lj-font-lock-keywords
-                                                old-keywords)
+          (setq jpw-lj-font-lock-keywords
+                (append (if (symbolp jpw-lj-font-lock-keywords)
+                            (eval jpw-lj-font-lock-keywords)
+                          jpw-lj-font-lock-keywords)
+                        old-keywords))
           (setcar font-lock-defaults 'jpw-lj-font-lock-keywords)
-          t
           );; end let*
 
         ;; **Now** do the common tasks.

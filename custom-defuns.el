@@ -892,7 +892,7 @@ extended using an EOL-\"\\\"-char.  {jpw; 12/04}"
               )
              );; end buffer-check excursion
            );; end and
-      (c+-mode)
+      (c++-mode)
     ;; else - this really is a C-source file.
     ;; 
     ;; Use the value of the `jpw-c-style' variable, for that added level of

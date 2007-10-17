@@ -44,7 +44,9 @@
 ;;
 (custom-set-variables
 ;;; '(printer-name "//SOME_WIN_DOMAIN/SOME_PRINTER" t)
- '(ps-printer-name "~/emacs-out.ps"))
+ '(ps-printer-name "~/emacs-out.ps")
+ '(recentf-exclude '("^/[.a-zA-Z0-9:]+@[.a-zA-Z0-9]+:"))
+ )
 
 ;; Use Unix-style line endings.
 ;(setq-default buffer-file-coding-system 'undecided-unix)
