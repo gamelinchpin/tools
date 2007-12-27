@@ -2,7 +2,7 @@
 ;;    
 ;; Mutt mode customizations.
 ;;
-;;  Copyright © 1995-2005 John P. Weiss
+;;  Copyright © 1995-2007 John P. Weiss
 ;;  
 ;;  This package is free software; you can redistribute it and/or modify
 ;;  it under the terms of the Artistic License, included as the file
@@ -28,23 +28,6 @@
 
 
 ;;;;;;;;;;;;;;;;;;;;
-;; Mutt-alias
-;;;;;;;;;;;;;;;;;;;;
-
-(require 'mutt-alias)
-(global-set-key "\C-c\C-a" 'mutt-alias-insert)
-(global-set-key [?\C-c ?\C-/] 'mutt-alias-lookup)
-
-
-(jpw-custom-set-variables-nonsaved
- '(mutt-alias-file-list (quote ("~/Mail/mutt/aliases"
-                                "~/Mail/mutt/aliases.prof"
-                                ;;"~/Mail/mutt/aliases.work"
-                                "~/Mail/mutt/aliases.sb")))
- )
-
-
-;;;;;;;;;;;;;;;;;;;;
 ;; Muttrc
 ;;;;;;;;;;;;;;;;;;;;
 
@@ -67,6 +50,8 @@
 ;;;;;;;;;;;;;;;;;;;;
 
 (require 'mutt)
+(add-to-list 'auto-mode-alist 
+             '("[Mm]utt-.*" . muttrc-mode) t)
 (jpw-custom-set-faces-nonsaved
  '(mutt-header-keyword-face 
    ((t (:inherit font-lock-keyword-face :weight bold))))
@@ -77,6 +62,25 @@
  '(mutt-quoted-text-face ((t (:inherit font-lock-string-face))))
  )
 
+
+;;;;;;;;;;;;;;;;;;;;
+;; Mutt-alias
+;;;;;;;;;;;;;;;;;;;;
+
+
+(defun use-jpw-mutt-mode ()
+  (interactive)
+  (local-set-key "\C-c\C-a" 'mutt-alias-insert)
+  (local-set-key [?\C-c ?\C-/] 'mutt-alias-lookup)
+  )
+
+(require 'mutt-alias)
+(jpw-custom-set-variables-nonsaved
+ '(mutt-alias-file-list (quote ("~/Mail/mutt/aliases"
+                                "~/Mail/mutt/aliases.prof"
+                                "~/Mail/mutt/aliases.work"
+                                "~/Mail/mutt/aliases.sb")))
+ )
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
