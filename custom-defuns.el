@@ -2,7 +2,7 @@
 ;;    
 ;; Custom Functions
 ;;
-;;  Copyright © 1995-2007 John P. Weiss
+;;  Copyright © 1995-2008 John P. Weiss
 ;;  
 ;;  This package is free software; you can redistribute it and/or modify
 ;;  it under the terms of the Artistic License, included as the file
@@ -30,6 +30,8 @@
 ;;  (require 'sgml-mode)
   (require 'xml-lite)
   (require 'sql))
+(require 'skeleton)
+
 
 ;;----------------------------------------------------------------------
 ;;
@@ -135,6 +137,53 @@ Note that this fn. only sets a face bold.  It cannot unset it.
         )
 
       );;end progn
+
+  ;; else
+  (progn
+    (defun jpw-cust-colorful-modeline ()
+      (let ( (modeline-active-modeflags 
+              (if is-version-twentytwo
+                  '((class color) (min-colors 88))
+                ;; else
+                t
+                );; endif
+              )
+             );; end varbindings
+
+        (jpw-custom-set-faces-nonsaved
+         (list 'mode-line 
+               (list (list modeline-active-modeflags
+                           '(:background "plum3"
+                             :foreground "black" 
+                             :box (:line-width -1 
+                                   :style released-button))))
+               nil 
+               "For when I'm in the mood for a more colorful modeline, use
+                this."
+               )
+         '(mode-line-highlight
+           ((t (:foreground "green4" 
+                :box (:line-width 2 :color "grey40" :style released-button))))
+           nil 
+           "Just using a box with a darker gray is unsatisfying.  Let's
+            change the text color to something that will stand out (but not
+            water our eyes).  Change the modeline color, and we may need to
+            change this." 
+           )
+         '(mode-line-inactive
+           ((t (:inherit mode-line
+                :background "LemonChiffon3"
+                :foreground "grey20"
+                :box (:line-width -1 :style released-button) :weight light)))
+           nil
+           "To accompany my more colorful modeline, I'll pick an off-white
+            color for the inactive modeline." 
+           )
+         )
+        );; end let
+      )
+    );; end progn:  else
+
   );; end if running-xemacs
 
 
@@ -588,10 +637,68 @@ its own comment line.
 
 ;;----------------------------------------------------------------------
 ;;
+;; Common HTML Editing Commands
+;;
+
+
+(defun tempo-template-html-line-break ()
+  "XHTML line break tag.
+This function has been redefined so that it produces a complete tag.
+{jpw: 05/2008"
+  (insert "<br/>")
+  )
+
+
+(define-skeleton jpw-html-href-anchor
+  "HTML anchor tag with href attribute.
+Like the sgml-mode version, but without the annoying \"http:\" defaulting into
+the URL prompt.
+{jpw: 03/2006}"
+  "URL: "
+  "<a href=\"" str "\">" _ "</a>")
+
+
+(defun jpw-html-insert-list (&optional type)
+  "Insert HTML list tags, or puts the active region inside HTML list
+tags.
+The optional `type' specifies the type of list.  It can be passed directly or
+specified using a prefix-arg.  If `type' is an integer [e.g. a prefix-arg],
+then the list will be an ordered list.  Otherwise, the list is unordered.
+Any other type is an error.
+{jpw: 03/2006}"
+  (interactive "P")
+  ;; Validation check.
+  (or (null type)
+      (char-or-string-p type)
+      (signal 'wrong-type-argument 
+              (list 'char-or-string-p type)))
+  ;; Clear the prefix arg so it doesn't screw up the behavior of the
+  ;; `skeleton-insert' call.
+  (if type (setq prefix-arg nil
+                 current-prefix-arg nil))
+  (if (or (null type)
+          (stringp type))
+      (tempo-template-html-unordered-list)
+    (tempo-template-html-ordered-list)
+    )
+  )
+
+
+;;----------------------------------------------------------------------
+;;
 ;; Custom Behavior
 ;;
 ;; Activate behaviors not used regularly, but used nonetheless.
 ;;
+
+
+(defun jpw-read-info-dir(file) 
+  "Invoke Info on the named file, which should be a .info file or info
+top-level directory file."
+  (interactive "fInfo file to open: ")
+  (find-file file)
+  (Info-on-current-buffer)
+  )
 
 
 (defun set8tab ()
@@ -628,9 +735,12 @@ is set to
 
 (defvar jpw-utf-in-use nil
   "Used internally.  Do not modify.  {jpw; 03/07}")
-(defun use-utf()
+(defun jpw-load-utf()
   "Force use of Mule UTF encodings. {jpw; 11/05}"
   (interactive)
+  (if (boundp 'mule-version)
+      (setq jpw-utf-in-use t)
+    )
   (if (not jpw-utf-in-use)
       (progn
         ;; Taken from `loadup.el'
@@ -653,8 +763,9 @@ is set to
   "Decode a buffer in utf-16
 {jpw: 11/05}."
   (interactive)
-  (use-utf)
-  (decode-coding-region (point-min) (point-max) 'utf-16-le-dos))
+  (jpw-load-utf)
+  (decode-coding-region (point-min) (point-max) 
+                        'mule-utf-16-le-with-signature))
 (defalias 'decode-xml 'decode-utf16)
 
 
@@ -664,24 +775,37 @@ Unfortunately, it doesn't work too well.
 
 {jpw: 03/07}."
   (interactive)
-  (use-utf)
-  (decode-coding-region (point-min) (point-max) 'utf-8))
+  (jpw-load-utf)
+  (decode-coding-region (point-min) (point-max) 'mule-utf-8))
 
 
-(defun reread-utf8 ()
+(defun revert-to-utf8 ()
   "Reread the current buffer, using utf-8 encoding this time.
 Unfortunately, it doesn't work too well.
 
 {jpw: 03/07}."
   (interactive)
-  (use-utf)
-  (let ((my-file-name (buffer-file-name (current-buffer)))
-        ;; Set this only for the duration of the scope of the (let ...).
-        (coding-system-for-read 'mule-utf-8)
-        (coding-system-for-write 'mule-utf-8)
-        );; end varbindings
-    (find-alternate-file my-file-name)
-    )
+  (jpw-load-utf)
+  (revert-buffer-with-coding-system 'mule-utf-8)
+  ;;(let ((my-file-name (buffer-file-name (current-buffer)))
+  ;;      ;; Set this only for the duration of the scope of the (let ...).
+  ;;      (coding-system-for-read 'mule-utf-8)
+  ;;      (coding-system-for-write 'mule-utf-8)
+  ;;      );; end varbindings
+  ;;  (find-alternate-file my-file-name)
+  ;;  )
+  ;;(setq buffer-file-coding-system 'mule-utf-8)
+  )
+
+
+(defun use-utf8 ()
+  "Use the utf-8 encoding system in this buffer.  Does so by performing a
+`revert-to-utf8'.
+
+{jpw: 05/08}."
+  (interactive)
+  (jpw-load-utf)
+  (revert-buffer-with-coding-system 'mule-utf-8)
   (setq buffer-file-coding-system 'mule-utf-8)
   )
 
@@ -725,13 +849,13 @@ extended using an EOL-\"\\\"-char.  {jpw; 12/04}"
 
 (defun use-jpw-perl-dabbrev-skip ()
   (make-local-variable 'dabbrev-abbrev-skip-leading-regexp)
-  (setq 'dabbrev-abbrev-skip-leading-regexp "[$@%&]")
+  (setq dabbrev-abbrev-skip-leading-regexp "[$@%&]")
   )
 
 
 (defun use-jpw-sh-dabbrev-skip ()
   (make-local-variable 'dabbrev-abbrev-skip-leading-regexp)
-  (setq 'dabbrev-abbrev-skip-leading-regexp "[$]")
+  (setq dabbrev-abbrev-skip-leading-regexp "[$]")
   )
 
 
@@ -806,7 +930,26 @@ extended using an EOL-\"\\\"-char.  {jpw; 12/04}"
    (string-match "^mozex\." (buffer-name))
    (turn-on-auto-fill)
    )
-)
+  )
+
+
+(defun use-jpw-style-org ()
+  (interactive)
+  ;;(setq fill-column 78)
+  (turn-on-auto-fill)
+  (local-set-key [\M-\S-return] 'org-meta-return)
+  (local-set-key [\C-return] 'org-meta-return)
+  (local-set-key [\M-return] 'join-next-line)
+  (local-set-key [\M-down] 'outline-next-visible-heading)
+  (local-set-key [\M-up] 'outline-previous-visible-heading)
+  (local-set-key [\M-right] 'outline-forward-same-level)
+  (local-set-key [\M-left] 'outline-backward-same-level)
+  (local-set-key [\C-\S-down] 'org-shiftmetadown)
+  (local-set-key [\C-\S-up] 'org-shiftmetaup)
+  (local-set-key [\C-\S-right] 'org-shiftmetaright)
+  (local-set-key [\C-\S-left] 'org-shiftmetaleft)
+  (font-lock-mode t)
+  )
 
 
 (defun use-jpw-style-html-helper ()
@@ -814,6 +957,32 @@ extended using an EOL-\"\\\"-char.  {jpw; 12/04}"
   (setq fill-column 78)
   (turn-on-auto-fill)
   (local-unset-key [f4])
+  (local-set-key [\M-\S-return] 'tempo-template-html-paragraph)
+  (local-set-key [\C-return] 'tempo-template-html-line-break)
+  (local-set-key [\M-return] 'join-next-line)
+  (local-set-key "\M-oi" 'tempo-template-html-italic)
+  (local-set-key "\M-ob" 'tempo-template-html-bold)
+  (local-set-key "\M-ou" 'tempo-template-html-underline)
+  (local-set-key "\M-oe" 'tempo-template-html-emphasized)
+  (local-set-key "\M-os" 'tempo-template-html-strong)
+  (local-set-key "\M-ot" 'tempo-template-html-fixed)
+  (local-set-key "\M-of" 'tempo-template-html-fixed)
+  (local-set-key "\M-oo" 'tempo-template-html-code)
+  (local-set-key "\M-oc" 'tempo-template-html-code)
+  (local-set-key "\M-od" 'tempo-template-html-strikethru)
+
+  (local-set-key "\M-p\C-i" 'tempo-template-html-image)
+  (local-set-key "\M-pc" 'tempo-template-html-preformatted)
+  (local-set-key "\M-pa" 'jpw-html-href-anchor)
+  (local-set-key "\M-p\C-u" 'jpw-html-href-anchor)
+  (local-set-key "\M-pl" 'jpw-html-insert-list)
+  (local-set-key "\M-p*" 'tempo-template-html-list-item)
+  (local-set-key "\M-p." 'tempo-template-html-list-item)
+  (local-set-key "\C-cp" 'tempo-template-html-paragraph)
+  (local-set-key "\M-p\C-m" 'tempo-template-html-paragraph)
+  (local-set-key "\M-p\C-j" 'tempo-template-html-line-break)
+  (local-set-key "\M-p-" 'tempo-template-html-horizontal-line)
+
   (font-lock-mode t)
   )
 

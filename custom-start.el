@@ -2,7 +2,7 @@
 ;;
 ;; Core Emacs Setup File
 ;;
-;;  Copyright © 1995-2007 John P. Weiss
+;;  Copyright © 1995-2008 John P. Weiss
 ;;  
 ;;  This package is free software; you can redistribute it and/or modify
 ;;  it under the terms of the Artistic License, included as the file
@@ -160,7 +160,8 @@ You shouldn't change the value of this variable.
 ;; instead of the standard server package.
 ;;
 (if (and (or is-winblows is-cygwin)
-         (not is-version-twentytwo))
+         t)
+         ;;(not is-version-twentytwo))
     (if (load "gnuserv" t)   ;; May not have gnuserv on cygwin
         (progn
           (setq gnuserv-frame (selected-frame))
@@ -632,7 +633,7 @@ variable rather than hardcoded.
 (setq sh-shell 'bash)
 (if (not running-xemacs)
     (jpw-custom-set-faces-nonsaved
-     '(sh-heredoc-face ((((class color) (background light)) 
+     '(sh-heredoc ((((class color) (background light)) 
                          (:inherit font-lock-string-face 
                                    :background "beige"))))
      )
@@ -741,6 +742,7 @@ variable rather than hardcoded.
 ;; any other modes.
 (dolist (mode-entry 
          '(("\\.html$" . html-helper-mode)
+           ("\\.eml$" . html-helper-mode)
            ;;("\\.php$" . php-html-helper-mode)
            ("\\.jsp$" . jsp-html-helper-mode)
            ("\\.asp$" . asp-html-helper-mode))

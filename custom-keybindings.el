@@ -2,7 +2,7 @@
 ;;    
 ;; Keyboard Bindings File
 ;;
-;;  Copyright © 1995-2007 John P. Weiss
+;;  Copyright © 1995-2008 John P. Weiss
 ;;  
 ;;  This package is free software; you can redistribute it and/or modify
 ;;  it under the terms of the Artistic License, included as the file
@@ -216,6 +216,11 @@
 (global-set-key [deletekey] 'delete-char)
 (global-set-key [\C-deletekey] 'delete-char)
 
+;; Emacs binds <f2> to the Two-column prefix.  But I keep hitting it, and it
+;; Drives Me Crazy.  Fix it.
+(global-set-key [\S-f2] '2C-command)
+(global-unset-key [f2])
+ 
 ;; Emacs 22 binds <f3> and <f4>.  However, I have preexisting bindings that
 ;; conflict.  Keep mine and rebind the defaults.
 (global-set-key [\C-f3] 'kmacro-start-macro-or-insert-counter)
@@ -304,6 +309,7 @@
 (global-set-key "\C-cc" 'server-quit-l)
 (global-set-key "\C-x\M-u" 'untabify-buffer)
 (global-set-key "\M-\C-m" 'join-next-line)
+(global-set-key [\M-\S-return] 'join-next-line)
 (global-set-key [?\C-x insert] 'kill-ring-save-entire-buffer)
 
 ;; I may alter these bindings in the future.
@@ -315,6 +321,7 @@
 
 
 ;; Bindings that autoload functions or keymaps
+(require 'iso-transl)
 (define-key key-translation-map [\C-menu] 'iso-transl-ctl-x-8-map)
 
 

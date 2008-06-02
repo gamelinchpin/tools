@@ -737,6 +737,16 @@ plus `tcl-misc-builtins'.
 ;; 
 
 
+(defsubst jpw-tcl-run-native-indent (&optional arg)
+  ;; Run `tcl-indent-command' without causing an infinite loop
+  (let ((old-indent-line-fn indent-line-function)
+        );; end vars
+    (setq indent-line-function 'tcl-indent-line)
+    (tcl-indent-command arg)
+    (setq indent-line-function old-indent-line-fn)
+    );; end let
+  )
+
 (defun jpw-tcl-compute-enhanced-indent ()
   "Compute a more syntactically-correct indent than the old TCL mode indent
 function does.
@@ -817,7 +827,7 @@ after breaking the line.
 (defsubst jpw-tcl-indent-comment (&optional arg)
   ;; Mode-specific version of `jpw-indent-comment'
   (jpw-indent-comment)
-  (tcl-indent-command arg)
+  (jpw-tcl-run-native-indent arg)
   )
 
 
@@ -859,7 +869,7 @@ after breaking the line.
                 (back-to-indentation))
             )
         ;; else
-        (tcl-indent-command arg)
+        (jpw-tcl-run-native-indent arg)
         ) ;; end if enhanced-indent
       ) ;;end outer-if
     ) ;; end let

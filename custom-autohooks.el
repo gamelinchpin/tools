@@ -2,7 +2,7 @@
 ;;    
 ;; Mode Hooks
 ;;
-;;  Copyright © 1995-2007 John P. Weiss
+;;  Copyright © 1995-2008 John P. Weiss
 ;;  
 ;;  This package is free software; you can redistribute it and/or modify
 ;;  it under the terms of the Artistic License, included as the file
@@ -37,6 +37,8 @@
 (add-hook 'mail-citation-hook 'sc-cite-original)
 (add-hook 'mail-yank-hooks 'sc-cite-original)
 (add-hook 'text-mode-hook 'use-jpw-style-text)
+(add-hook 'org-mode-hook 'use-jpw-style-org)
+
 
 ;; Makefiles
 (add-hook 'makefile-mode-hook 'turn-on-auto-fill)

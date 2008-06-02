@@ -2,7 +2,7 @@
 ;;
 ;; Major and Minor modes for editing LiveJournal entries.
 ;;
-;;  Copyright © 2006-2007 John P. Weiss except as documented below
+;;  Copyright © 2006-2008 John P. Weiss except as documented below
 ;;  
 ;;  This package is free software; you can redistribute it and/or modify
 ;;  it under the terms of the Artistic License, included as the file
@@ -654,15 +654,6 @@ tags.
   "<code>" _ "</code>")
 
 
-(define-skeleton jpw-html-href-anchor
-  "HTML anchor tag with href attribute.
-Like the sgml-mode version, but without the annoying \"http:\" defaulting into
-the URL prompt.
-{jpw: 03/2006}"
-  "URL: "
-  "<a href=\"" str "\">" _ "</a>")
-
-
 (define-skeleton jpw-html-size-small
   "Insert HTML font resizing tag \"<small>\".
 {jpw: 03/2006}"
@@ -821,7 +812,7 @@ Actually, it uses the logical tag \"<strong>\", unless called with an arg.
   )
 
 
-(defun jpw-lj-insert-list (&optional type)
+(defsubst jpw-lj-insert-list (&optional type)
   "Insert HTML list tags, or puts the active region inside HTML list
 tags.
 The optional `type' specifies the type of list.  It can be passed directly or
@@ -829,22 +820,7 @@ specified using a prefix-arg.  If `type' is an integer [e.g. a prefix-arg],
 then the list will be an ordered list.  Otherwise, the list is unordered.
 Any other type is an error.
 {jpw: 03/2006}"
-  (interactive "P")
-  ;; Validation check.
-  (or (null type)
-      (char-or-string-p type)
-      (signal 'wrong-type-argument 
-              (list 'char-or-string-p type)))
-  ;; Clear the prefix arg so it doesn't screw up the behavior of the
-  ;; `skeleton-insert' call.
-  (if type (setq prefix-arg nil
-                 current-prefix-arg nil))
-  (if (or (null type)
-          (stringp type))
-      (html-unordered-list)
-    (html-ordered-list)
-    )
-  )
+  jpw-html-insert-list)
 
 
 (defun jpw-lj-insert-size () 
