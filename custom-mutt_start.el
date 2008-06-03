@@ -40,10 +40,6 @@
 ;;(load "muttrc" t) ; No autoload for the `generic-x' version.
 (autoload 'muttrc-mode "muttrc-mode" "Major mode to edit muttrc files" t)
 
-(add-to-list 'auto-mode-alist '("[Mm]uttrc" . muttrc-mode) t)
-(dolist (maf mutt-alias-file-list)
-    (add-to-list 'auto-mode-alist (cons maf (car '(muttrc-mode))) t))
-
 
 ;;;;;;;;;;;;;;;;;;;;
 ;; Mutt Mail-Composing
@@ -81,6 +77,10 @@
                                 "~/Mail/mutt/aliases.work"
                                 "~/Mail/mutt/aliases.sb")))
  )
+;; Add all of these files to the auto-mode-alist so that they use muttrc-mode
+;; by default.
+(dolist (maf mutt-alias-file-list)
+    (add-to-list 'auto-mode-alist (cons maf (car '(muttrc-mode))) t))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;

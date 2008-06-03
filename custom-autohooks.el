@@ -38,6 +38,7 @@
 (add-hook 'mail-yank-hooks 'sc-cite-original)
 (add-hook 'text-mode-hook 'use-jpw-style-text)
 (add-hook 'org-mode-hook 'use-jpw-style-org)
+(add-hook 'wikipedia-mode-hook 'use-jpw-style-wikipedia-mode)
 
 
 ;; Makefiles

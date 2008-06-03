@@ -641,7 +641,7 @@ its own comment line.
 ;;
 
 
-(defun tempo-template-html-line-break ()
+(defun tempo-template-html-line-break (&optional dummy)
   "XHTML line break tag.
 This function has been redefined so that it produces a complete tag.
 {jpw: 05/2008"
@@ -986,6 +986,63 @@ extended using an EOL-\"\\\"-char.  {jpw; 12/04}"
   (font-lock-mode t)
   )
 
+
+(defun use-jpw-style-wikipedia-mode ()
+  (interactive)
+  ;; Motion Keys
+  (local-set-key [\C-right] 'forward-word)
+  (local-set-key [\C-left] 'backward-word)
+  (local-set-key [\C-up] 'backward-paragraph)
+  (local-set-key [\C-down] 'forward-paragraph)
+
+  ;; More disasters
+  (local-set-key "\M-u" 'upcase-word)
+  (local-set-key "\C-c\"" 'wikipedia-unfill-paragraph-or-region)
+  (local-set-key [\M-return] 'join-next-line)
+  (local-set-key "\M-pe" 'wikipedia-insert-enumerate)
+  (local-set-key [\C-return] 'wikipedia-terminate-paragraph)
+  (local-set-key "\M-pi" 'wikipedia-insert-itemize)
+
+  ;; Outline Navigation
+  (local-set-key [\M-down] 'wikipedia-next-header)
+  (local-set-key [\M-up] 'wikipedia-prev-header)
+  (local-set-key [\M-right] 'outline-forward-same-level)
+  (local-set-key [\M-left] 'outline-backward-same-level)
+  (local-set-key [?\C-c \C-up] 'outline-up-heading)
+  (local-set-key [\C-\S-down] 'outline-move-subtree-down)
+  (local-set-key [\C-\S-up] 'outline-move-subtree-up)
+  (local-set-key [\C-\S-right] 'wikipedia-simple-outline-demote)
+  (local-set-key [\C-\S-left] 'wikipedia-simple-outline-promote)
+  (local-set-key [\M-\S-down] 'outline-move-subtree-down)
+  (local-set-key [\M-\S-up] 'outline-move-subtree-up)
+  (local-set-key [\M-\S-right] 'wikipedia-simple-outline-demote)
+  (local-set-key [\M-\S-left] 'wikipedia-simple-outline-promote)
+
+  ;; Fonts
+  (local-set-key "\M-oi" 'wikipedia-insert-italics)
+  (local-set-key "\M-ob" 'wikipedia-insert-bold)
+  (local-set-key "\M-ou" 'tempo-template-html-underline)
+  (local-set-key "\M-oe" 'wikipedia-insert-italics)
+  (local-set-key "\M-os" 'wikipedia-insert-bold)
+  (local-set-key "\M-ot" 'tempo-template-html-fixed)
+  (local-set-key "\M-of" 'tempo-template-html-fixed)
+  (local-set-key "\M-oo" 'tempo-template-html-code)
+  (local-set-key "\M-oc" 'tempo-template-html-code)
+  (local-set-key "\M-od" 'tempo-template-html-strikethru)
+
+  ;; Paragraph styles
+  (local-set-key "\M-pc" 'tempo-template-html-preformatted)
+  (local-set-key "\M-pa" 'wikipedia-insert-link)
+  (local-set-key "\M-p\C-u" 'wikipedia-insert-link)
+  (local-set-key "\M-pl" 'wikipedia-insert-itemize)
+  (local-set-key "\M-p\C-m" 'wikipedia-terminate-paragraph)
+  (local-set-key "\M-p\C-j" 'wikipedia-terminate-paragraph)
+  (local-set-key "\M-p-" 'wikipedia-insert-html-hline)
+  (local-set-key "\M-ph" 'wikipedia-insert-header)
+  (local-set-key "\M-p1" 'wikipedia-insert-header)
+  (local-set-key "\M-p2" 'wikipedia-insert-header)
+  (local-set-key "\M-p3" 'wikipedia-insert-header)
+  )
 
 (defun use-jpw-style-elisp ()
   (interactive)
