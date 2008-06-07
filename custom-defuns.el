@@ -987,8 +987,19 @@ extended using an EOL-\"\\\"-char.  {jpw; 12/04}"
   )
 
 
+(define-skeleton jpw-wikipedia-insert-header1
+  "Level 1 Heading" nil "== " _ "==")
+(define-skeleton jpw-wikipedia-insert-header2
+  "Level 2 Heading" nil "=== " _ "===")
+(define-skeleton jpw-wikipedia-insert-header3
+  "Level 3 Heading" nil "==== " _ "====")
+
+
 (defun use-jpw-style-wikipedia-mode ()
   (interactive)
+  (local-set-key "\C-cl" 'longlines-mode)
+  (local-set-key "\C-c\C-l" 'longlines-mode)
+
   ;; Motion Keys
   (local-set-key [\C-right] 'forward-word)
   (local-set-key [\C-left] 'backward-word)
@@ -1039,10 +1050,11 @@ extended using an EOL-\"\\\"-char.  {jpw; 12/04}"
   (local-set-key "\M-p\C-j" 'wikipedia-terminate-paragraph)
   (local-set-key "\M-p-" 'wikipedia-insert-html-hline)
   (local-set-key "\M-ph" 'wikipedia-insert-header)
-  (local-set-key "\M-p1" 'wikipedia-insert-header)
-  (local-set-key "\M-p2" 'wikipedia-insert-header)
-  (local-set-key "\M-p3" 'wikipedia-insert-header)
+  (local-set-key "\M-p1" 'jpw-wikipedia-insert-header1)
+  (local-set-key "\M-p2" 'jpw-wikipedia-insert-header2)
+  (local-set-key "\M-p3" 'jpw-wikipedia-insert-header3)
   )
+
 
 (defun use-jpw-style-elisp ()
   (interactive)

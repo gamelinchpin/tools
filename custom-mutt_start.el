@@ -47,7 +47,7 @@
 
 (require 'mutt)
 (add-to-list 'auto-mode-alist 
-             '("[Mm]utt-.*" . muttrc-mode) t)
+             '("[Mm]utt-.*" . mutt-mode) t)
 (jpw-custom-set-faces-nonsaved
  '(mutt-header-keyword-face 
    ((t (:inherit font-lock-keyword-face :weight bold))))
@@ -69,6 +69,8 @@
   (local-set-key "\C-c\C-a" 'mutt-alias-insert)
   (local-set-key [?\C-c ?\C-/] 'mutt-alias-lookup)
   )
+(add-hook 'mutt-mode-hook 'use-jpw-mutt-mode)
+
 
 (require 'mutt-alias)
 (jpw-custom-set-variables-nonsaved

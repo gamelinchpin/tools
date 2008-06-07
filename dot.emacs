@@ -55,6 +55,8 @@
 
 ;; Work Stuff
 ;;...
+(load "wikipedia-mode")
+(global-set-key "\M-pw" 'wikipedia-mode)
 
 
 ;; If we have the official version of Tramp installed (and not the one bundled

@@ -39,7 +39,9 @@
 (add-hook 'text-mode-hook 'use-jpw-style-text)
 (add-hook 'org-mode-hook 'use-jpw-style-org)
 (add-hook 'wikipedia-mode-hook 'use-jpw-style-wikipedia-mode)
-
+(add-hook 'outline-minor-mode-hook '(lambda () 
+                                      (if (eq major-mode 'wikipedia-mode)
+                                          (use-jpw-style-wikipedia-mode))))
 
 ;; Makefiles
 (add-hook 'makefile-mode-hook 'turn-on-auto-fill)
