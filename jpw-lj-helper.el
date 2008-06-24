@@ -201,7 +201,7 @@ replaces the old, deprecated \"<strike>\" tag]."
 (defconst jpw-html-size-alist
   '(("xx-small") ("x-small") ("small") ("smaller") ("medium") ("large")
     ("larger") ("x-large") ("xx-large"))
-  "Alist of LiveJournal security keywords.
+  "Alist of LiveJournal size keywords.
 {jpw: 03/2006}")
 
 
