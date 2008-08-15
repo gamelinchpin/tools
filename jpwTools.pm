@@ -1,6 +1,6 @@
 #!/usr/bin/perl 
 #
-# Copyright (C) 2002-2007 by John P. Weiss
+# Copyright (C) 2002-2008 by John P. Weiss
 #
 # This package is free software; you can redistribute it and/or modify
 # it under the terms of the Artistic License, included as the file
@@ -45,6 +45,7 @@ BEGIN {
                  asymm_diff circular_shift circular_pop
                  stats stats_gaussian 
                  set_seed random_indices randomize_array random_keys
+                 get_files_from_dirs
                  print_hash print_array print_dump 
                  fprint_hash fprint_array
                  cmpVersionNumberLists
@@ -63,6 +64,8 @@ our @EXPORT_OK;
 
 # Other Imported Packages/requirements.
 use Data::Dumper;
+use List::Util qw(shuffle);
+use File::Spec;
 
 
 ############
@@ -560,39 +563,125 @@ sub set_seed(;$) {
 
 sub randomize_array(\@) {
     my $ref_targArray = shift;
-    my $n = scalar(@$ref_targArray);
-    for (my $i=0; $i < $n; ++$i) {
-        my $randIdx = int(rand($n));
-        my $tmp = $ref_targArray->[$i];
-        $ref_targArray->[$i] = $ref_targArray->[$randIdx];
-        $ref_targArray->[$randIdx] = $tmp;
-    }
+    @$ref_targArray = shuffle(@$ref_targArray);
+#     my $n = scalar(@$ref_targArray);
+#     for (my $i=0; $i < $n; ++$i) {
+#         my $randIdx = int(rand($n));
+#         my $tmp = $ref_targArray->[$i];
+#         $ref_targArray->[$i] = $ref_targArray->[$randIdx];
+#         $ref_targArray->[$randIdx] = $tmp;
+#     }
 }
 
 
 sub random_indices($;\@) {
     my $n = shift;
-    my $ref_idxs;
+    my $ref_idxs = [];;
     my $returnArray = 1;
     if (scalar(@_)) {
         $ref_idxs = shift;
         $returnArray = 0;
-    } else {
-        $ref_idxs = [];
     }
-    push @$ref_idxs, (0 .. ($n - 1));
-    randomize_array(@$ref_idxs);
+    @$ref_idxs = (0 .. ($n - 1));
     if ($returnArray) {
-        return @$ref_idxs;
-    }
+        return shuffle(@$ref_idxs);
+    } # else
+    randomize_array(@$ref_idxs);
 }
 
 
 sub random_keys(\%) {
     my $ref_hash = shift;
     my @keyList = sort(keys(%$ref_hash));
-    randomize_array(@keyList);
-    return @keyList;
+    return shuffle(@keyList);
+}
+
+
+sub get_files_from_dirs(\%$@) {
+    my $ref_fileMap = shift;
+    my $match_re = shift;
+
+    # Runtime-enforcement of function signature.  Mimicks the compile-time
+    # error message.
+    unless (scalar(@_)) {
+        my ($callerPkg, $callerFile, $callerLine) = caller();
+        die("Not enough arguments for jpwTools::get_files_from_dirs() ",
+            "at ", $callerFile, ", line ", $callerLine, ".\n");
+    }
+
+    my $nErrs = 0;
+    my $homeDir = $ENV{"HOME"};
+
+    foreach my $orig_dir (@_) {
+        # Skip "empty" elements.
+        next if ($orig_dir =~ m/^\s*$/);
+
+        # Cleanup the directories:
+        # - Make canonical & convert to an absolute path (including removal of
+        #   redundant path separators or '.' dirs).
+        # - Convert "~" to the home directory.
+        my $dir = File::Spec->rel2abs(File::Spec->canonpath($orig_dir));
+        $dir =~ s|^~|$homeDir|o;
+        if ($dir =~ m|\.\.|) {
+            # Do a runtime "use":
+            require Cwd;
+            import Cwd qw(abs_path);
+            $dir = abs_path($dir);
+        }
+
+        # Make sure it's a real directory.
+        unless ( (-d $dir) || (-d "$dir/.")) {
+            if ($_Verbose) {
+                print STDERR ("get_files_from_dirs():  Not a directory:\n",
+                              "\t\"", $dir, "\"\n\tIgnoring...\n");
+            }
+            next;
+        }
+
+        unless (opendir(DH, $dir)) {
+            my $errmsg="\"$!\"";
+            if ($_Verbose) {
+                print STDERR ("get_files_from_dirs():  Failed to open ",
+                              "directory:\n\t\"", $dir, "\"\n\tReason:  ",
+                              $errmsg, "\n\tSkipping...\n");
+            }
+            ++$nErrs;
+            next;
+        }
+        for ( my $f=readdir(DH); defined($f); $f=readdir(DH) ) {
+            next if (($f eq "./") || ($f eq ".") || ($f eq ".."));
+            if ($f =~ m/^\./o) {
+                $f =~ s|^\./||;
+            }
+            next unless ( ($match_re eq "") || ($f =~ m/$match_re/) );
+            if ($_Verbose > 2) {
+                print "### $f\n";
+            }
+            my $k = $f;
+            unless ($k =~ m|^[^\\/]|) {
+                $k = File::Spec->catfile($dir, $f);
+            }
+            # Format:
+            # [basename, dirname, extension, basename_stem, type, orig_dir]
+            # 'basename_stem' is 'basename' with 'extension' removed.  'type'
+            # is 0 for regular files, 1 for dirs.  'orig_dir' is the name of
+            # the original directory passed to this function.
+            $ref_fileMap->{$k} = [$f, $dir, '', $f, 0, $orig_dir];
+
+            # Crude filename decomposition:  recognizes only '.' as the
+            # extension separator.
+            if ($ref_fileMap->{$f}[0] =~ m|^(.+)\.([^.]+)$|) {
+                $ref_fileMap->{$f}[2] = $2;
+                $ref_fileMap->{$f}[3] = $1;
+            }
+            if (-d $f) {
+                $ref_fileMap->{$f}[4] = 1;                
+            }
+        }
+        closedir DH;
+    }
+
+    return !$nErrs;
 }
 
 
@@ -704,38 +793,6 @@ sub cmpVersionNumberLists(\@\@) {
     # We only reach here if $x and $y don't have the same number of pieces in
     # their version numbers.  In this case, we choose the one with more.
     return (scalar(@$ref_xl) <=> scalar(@$ref_yl));
-}
-
-
-# TODO: This is now redundant and should be deprecated in the future.
-sub old_print_hash(\%;$) {
-    my $map_ref=shift;
-    my $indent="";
-    if (scalar(@_)) { $indent = shift; }
-
-    print "(\n";
-    foreach my $thekey (sort(keys(%{$map_ref}))) {
-        my $reftype = ref $map_ref->{$thekey};
-        if ($reftype) {
-            if ($reftype eq "ARRAY") {
-                print "$indent  \"$thekey\"\n".
-                    "$indent    => [@{ $map_ref->{$thekey} }]\n";
-            } elsif ($reftype eq "HASH") {
-                print "$indent  \"$thekey\"\n$indent    => ";
-                # WARNING:  Recursive function calls in Perl can go horribly
-                # wrong.  Hence, we use an indirection function to prevent
-                # Perl from mangling the stack.
-                print_hash_recurse($map_ref->{$thekey}, "$indent\t");
-            } elsif ($reftype eq "SCALAR") {
-                print "$indent  \"$thekey\" =-> \"${$map_ref->{$thekey}}\"\n";
-            } else {
-                print "$indent  \"$thekey\" =-> $map_ref->{$thekey}\n";
-            }
-        } else {
-            print "$indent  \"$thekey\" => \"$map_ref->{$thekey}\"\n";
-        }
-    }
-    print "$indent)\n";
 }
 
 
@@ -1238,6 +1295,16 @@ jpwTools - Package containing John's Perl Tools.
 
 =item stats_gaussian I<@list>
 
+=item set_seed [I<seed>]
+
+=item randomize_array I<@list>
+
+=item random_indices I<nIndices>, [I<@list>]
+
+=item random_keys I<%hash>
+
+=item get_files_from_dirs I<%hash>, I<match_regexp>, I<dir> [, I<dir> ...]
+
 =item print_hash I<name>, I<%hash> [, I<regexp, sub> ...]
 
 =item print_array I<name>, I<@list> [, I<regexp, sub> ...]
@@ -1541,6 +1608,86 @@ deviation  give a good measure of dispersion about the central tendency.
 If your data's distribution is asymmetric, has large, significant tails, or
 outliers, consider using L<stats()|/"stats"> instead.  For these kinds of
 distributions, the mean and variance will not be meaningful values.
+
+=item *
+
+set_seed [I<seed>]
+
+Sets the seed of Perl's internal PRNG in a reproducable way, returning the
+seed that it used.
+
+When passed a I<seed>, C<set_seed()> behaves the same as L<srand()>. When
+called without args, C<set_seed()> "bootstraps" a seed for itself by first
+calling L<srand()> with no args, then invoking L<rand()> to create the seed it
+uses.  This isn't great, from the standpoint of PRNG generation, and it's
+terrible for cryptographic uses.  However, when you need/want to autogenerate
+a seed but save that seed for future reuse (e.g. for Monte Carlo simulation),
+it'll do.
+
+=item *
+
+randomize_array I<@list>
+
+Shuffles the contents of I<@list>, leaving it in a random order.
+
+DEPRECATED.  Use L<shuffle()> from L<List::Util> instead (which this function
+now uses internally).
+
+=item *
+
+random_indices I<nIndices>, [I<@list>]
+
+Generates indices from C<0> to I<nIndices>C< - 1> in a random (read: shuffled)
+order.  If the optional I<@list> argument is specified, the indices are stored
+in it, erasing any existing elements.  Otherwise, C<random_indices()> returns
+the list of randomly-ordered indices.
+
+This function invokes L<shuffle()> from L<List::Util>.
+
+=item *
+
+random_keys I<%hash>
+
+Returns the keys of I<%hash> in a random (read: shuffled) order.
+
+This function invokes L<shuffle()> from L<List::Util>.
+
+=item *
+
+get_files_from_dirs I<%fileMap>, I<match_regexp>, I<dir> [, I<dir> ...]
+
+Searches through the specified list of directories (the I<dir> passed to this
+function) for all files/subdirectories matching I<match_regexp>.  The results
+are stored in I<%fileMap> in the format described below.
+
+If I<match_regexp> is the empty string, C<get_files_from_dirs()> returns all
+files.  (The files "." and ".." are, however, always omitted.)
+
+The I<dir> arguments are normalized and cleaned up using the L<File::Spec>
+package.  Any paths containing "/../" path elements are resolved using the
+L<Cwd> package (which is only loaded, dynamically, at runtime, if necessary).
+Symlinks combined with "/../" subpaths will, therefore, be resolved to the
+actual directory.
+
+The results are returned in I<%fileMap>, which is keyed by the filename's full
+absolute path.  Each value is an array reference containing the following:
+
+=over 4
+
+[I<fileBasename>,
+ I<fileDirnameAbspath>,
+ I<fileExtension>,
+ I<fileBasenameStem>,
+ I<isDirectory>,
+ I<originalDirectory>]
+
+=back
+
+The names for each element are fairly self-explanatory.  I<isDirectory> is a
+boolean flag.  I<fileBasenameStem> is basically I<fileBasename> with
+I<fileExtension> removed.  I<originalDirectory> contains one of the I<dir>
+strings passed as an argument, specifically the one that resolves to the
+file's parent.
 
 =item *
 
