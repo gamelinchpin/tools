@@ -1,0 +1,185 @@
+# Emacs-like bash bindings. 
+# This file must be sourced by a profile or bashrc
+
+set meta-flag on
+set input-meta on
+set convert-meta off
+set output-meta on
+
+
+bind -m emacs '"\C-g":abort'
+bind -m emacs-ctlx '"\C-g":abort'
+bind -m emacs-meta '"\C-g":abort'
+bind -m emacs '"\C-j":accept-line'
+bind -m emacs '"\C-m":accept-line'
+bind -m emacs '"\C-b":backward-char'
+bind -m emacs-meta '"OD":backward-char'
+bind -m emacs-meta '"[D":backward-char'
+bind -m emacs '"\C-h":backward-delete-char'
+bind -m emacs-ctlx '"\C-?":backward-kill-line'
+bind -m emacs-meta '"\C-h":backward-kill-word'
+bind -m emacs-meta '"[23~":backward-word'
+bind -m emacs-meta '"b":backward-word'
+bind -m emacs-meta '"[1;5D":backward-word'
+#bind -m emacs '"\M-\eOD":backward-word'
+#bind -m emacs '"\M-\e[D":backward-word'
+bind -m emacs-meta '"<":beginning-of-history'
+bind -m emacs-meta '"[5~":beginning-of-history'
+bind -m emacs '"\C-a":beginning-of-line'
+bind -m emacs-meta '"O\C-@":beginning-of-line'
+bind -m emacs-meta '"OH":beginning-of-line'
+bind -m emacs-meta '"[\C-@":beginning-of-line'
+bind -m emacs-meta '"[1~":beginning-of-line'
+bind -m emacs-meta '"[H":beginning-of-line'
+#This next one is Cygwin/rxvt-specific
+bind -m emacs-meta '"[7~":beginning-of-line'
+bind -m emacs-ctlx '"e":call-last-kbd-macro'
+bind -m emacs-meta '"c":capitalize-word'
+bind -m emacs '"\C-]":character-search'
+bind -m emacs-meta '"\C-]":character-search-backward'
+bind -m emacs '"\C-l":clear-screen'
+bind -m emacs '"\C-i":complete'
+bind -m emacs-meta '"\C-[":complete'
+bind -m emacs-meta '"!":complete-command'
+bind -m emacs-meta '"/":complete-filename'
+bind -m emacs-meta '"@":complete-hostname'
+bind -m emacs-meta '"{":complete-into-braces'
+bind -m emacs-meta '"~":complete-username'
+bind -m emacs-meta '"$":complete-variable'
+bind -m emacs-meta '"w":copy-region-as-kill'
+bind -m emacs '"\C-d":delete-char'
+bind -m emacs-meta '"[3~":delete-char'
+bind -m emacs-meta '"\\":delete-horizontal-space'
+bind -m emacs-meta '"-":digit-argument'
+bind -m emacs-meta '"0":digit-argument'
+bind -m emacs-meta '"1":digit-argument'
+bind -m emacs-meta '"2":digit-argument'
+bind -m emacs-meta '"3":digit-argument'
+bind -m emacs-meta '"4":digit-argument'
+bind -m emacs-meta '"5":digit-argument'
+bind -m emacs-meta '"6":digit-argument'
+bind -m emacs-meta '"7":digit-argument'
+bind -m emacs-meta '"8":digit-argument'
+bind -m emacs-meta '"9":digit-argument'
+bind -m emacs-ctlx '"\C-v":display-shell-version'
+bind -m emacs-meta '"l":downcase-word'
+bind -m emacs-meta '"\C-i":dynamic-complete-history'
+bind -m emacs-ctlx '")":end-kbd-macro'
+bind -m emacs-meta '">":end-of-history'
+bind -m emacs-meta '"[6~":end-of-history'
+bind -m emacs '"\C-e":end-of-line'
+bind -m emacs-meta '"OF":end-of-line'
+bind -m emacs-meta '"Oe":end-of-line'
+bind -m emacs-meta '"[4~":end-of-line'
+bind -m emacs-meta '"[8~":end-of-line'
+bind -m emacs-meta '"[F":end-of-line'
+bind -m emacs-meta '"[e":end-of-line'
+bind -m emacs-ctlx '"\C-x":exchange-point-and-mark'
+bind -m emacs '"\C-f":forward-char'
+bind -m emacs-meta '"OC":forward-char'
+bind -m emacs-meta '"[C":forward-char'
+bind -m emacs '"\C-s":forward-search-history'
+bind -m emacs-meta '"[1;5C":forward-word'
+bind -m emacs-meta '"[24~":forward-word'
+bind -m emacs-meta '"f":forward-word'
+#bind -m emacs '"\M-\eOC":forward-word'
+#bind -m emacs '"\M-\e[C":forward-word'
+bind -m emacs-ctlx '"*":glob-expand-word'
+bind -m emacs-ctlx '"g":glob-list-expansions'
+bind -m emacs-meta '"^":history-expand-line'
+bind -m emacs-meta '"*":insert-completions'
+bind -m emacs-meta '".":insert-last-argument'
+bind -m emacs-meta '"_":insert-last-argument'
+bind -m emacs '"\C-k":kill-line'
+bind -m emacs '"\C-w":kill-region'
+bind -m emacs-meta '"d":kill-word'
+bind -m emacs-meta '"\C-?":kill-word'
+bind -m emacs-meta '"[3;3~":kill-word'
+bind -m emacs '"\C-n":next-history'
+bind -m emacs-meta '"OB":next-history'
+bind -m emacs-meta '"[B":next-history'
+bind -m emacs-meta '"n":non-incremental-forward-search-history'
+bind -m emacs-meta '"p":non-incremental-reverse-search-history'
+bind -m emacs '"\C-o":operate-and-get-next'
+bind -m emacs-ctlx '"!":possible-command-completions'
+bind -m emacs-meta '"=":possible-completions'
+bind -m emacs-meta '"?":possible-completions'
+bind -m emacs-ctlx '"/":possible-filename-completions'
+bind -m emacs-ctlx '"@":possible-hostname-completions'
+bind -m emacs-ctlx '"~":possible-username-completions'
+bind -m emacs-ctlx '"$":possible-variable-completions'
+bind -m emacs '"\C-p":previous-history'
+bind -m emacs-meta '"OA":previous-history'
+bind -m emacs-meta '"[A":previous-history'
+bind -m emacs '"\C-q":quoted-insert'
+bind -m emacs '"\C-v":quoted-insert'
+bind -m emacs-meta '"[2~":quoted-insert'
+bind -m emacs-ctlx '"\C-r":re-read-init-file'
+bind -m emacs '"\C-r":reverse-search-history'
+bind -m emacs-meta '"\C-r":revert-line'
+bind -m emacs-meta '"r":revert-line'
+bind -m emacs '"\C-@":set-mark'
+bind -m emacs-meta '"":'
+bind -m emacs-meta '"\C-e":shell-expand-line'
+bind -m emacs-ctlx '"(":start-kbd-macro'
+bind -m emacs-meta '"&":tilde-expand'
+bind -m emacs '"\C-t":transpose-chars'
+bind -m emacs-meta '"t":transpose-words'
+bind -m emacs-ctlx '"\C-u":undo'
+bind -m emacs-meta '"[14~":undo'
+bind -m emacs '"\C-_":undo'
+bind -m emacs '"\C-u":unix-line-discard'
+bind -m emacs-ctlx '"\C-w":unix-word-rubout'
+bind -m emacs-meta '"u":upcase-word'
+bind -m emacs '"\C-y":yank'
+bind -m emacs-meta '".":yank-last-arg'
+bind -m emacs-meta '"_":yank-last-arg'
+bind -m emacs-meta '"\C-y":yank-nth-arg'
+bind -m emacs-meta '"y":yank-pop'
+
+
+# Terminal-specific
+
+if [ "$TERM" = "linux" ]; then
+   set convert-meta on
+   set output-meta off
+
+# [jpw] These bindings are wrong.  "DEL" turns 'D' into a prefix char.
+#   bind -m emacs '"DEL":backward-delete-char'
+#   bind -m emacs-meta '"DEL":backward-kill-word'
+fi
+
+# Prevents accidental logoff under Cygwin/rxvt.  Also adds Ctrl-Arrows!
+if [ "${_RXVT_CMDLINE}" != "" -o \
+     "${COLORTERM}" = "Eterm" -o "${COLORTERM}" = "rxvt" ]; then
+    bind -m emacs-meta '"Od":backward-word'
+    bind -m emacs-meta '"Oc":forward-word'
+    bind -m emacs-meta '"Ob":next-history'
+    bind -m emacs-meta '"Oa":previous-history'
+fi
+
+# The XFree86 implementation of "xterm" adds the following bindings:
+#if [ "${REAL_XTERM}" != "" ]; then
+#    # Ctrl-Arrows:
+#    bind -m emacs-meta '"[5D":backward-word'
+#    bind -m emacs-meta '"[5C":forward-word'
+#    bind -m emacs-meta '"[5B":next-history'
+#    bind -m emacs-meta '"[5A":previous-history'
+#    # Shift-Arrows:
+#    bind -m emacs-meta '"[2D":backward-word'
+#    bind -m emacs-meta '"[2C":forward-word'
+#    bind -m emacs-meta '"[2B":next-history'
+#    bind -m emacs-meta '"[2A":previous-history'
+#fi
+
+# Use the "emacs" keymap
+set keymap emacs
+set editing-mode emacs
+
+
+
+##################
+# Local Variables:
+# mode: Shell-script
+# sh-shell: bash
+# End:

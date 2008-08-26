@@ -1,0 +1,89 @@
+#!tcsh - do not execute - source only
+if (-f $HOME/.cshrc) then
+    source $HOME/.cshrc
+else
+    if (! $?myPATH) then
+        setenv myPATH ""
+        #setenv PATH /bin:/usr/bin
+        setenv MANPATH /usr/man
+
+        foreach d (/usr/ccs/bin /usr/xpg4/bin /usr/ucb /usr/openwin/bin)
+            if (-d $d) then
+                if ("${myPATH}" == "") then
+                    setenv myPATH "${d}"
+                else
+                    setenv myPATH "${myPATH}:${d}"
+                endif
+            endif
+        end
+
+        if ($OSTYPE == "solaris" && $MACHTYPE == "i386") then
+            if (! $?LD_LIBRARY_PATH) then
+                setenv LD_LIBRARY_PATH /usr/lib
+                foreach d (/usr/ccs/lib /usr/xpg4/lib \
+                           /usr/ucblib/usr/openwin/lib /usr/local/lib)
+                if (-d $d) then
+                    setenv LD_LIBRARY_PATH "${LD_LIBRARY_PATH}:${d}/lib"
+                endif
+                end
+            endif 
+            set d="${HOME}/local/${OSTYPE}-${MACHTYPE}"
+            if ($?myHOME) then
+                set d="${myHOME}/local/${OSTYPE}-${MACHTYPE}"
+            endif
+            if (-d $d) then
+                setenv myPATH "${myPATH}:${d}/bin"
+                setenv MANPATH "${MANPATH}:${d}/man"
+                setenv LD_LIBRARY_PATH "${LD_LIBRARY_PATH}:${d}/lib"
+            endif
+
+            foreach d (/opt/SUNWspro \
+                       /opt/SUNWspro/contrib/vim/bin \
+                       /opt/SUNWspro/contrib/xemacs* \
+                       /usr/local)
+                if (-d $d) then
+                    setenv myPATH "${myPATH}:${d}/bin"
+                    setenv MANPATH "${MANPATH}:${d}/man"
+                endif
+            end
+        else
+            foreach d (/opt/SUNWspro /opt/local/FSFxemacs /opt/gnu \
+                       /opt/local /usr/local /usr/X11R6)
+                if (-d $d) then
+                    setenv myPATH "${myPATH}:${d}/bin"
+                    setenv MANPATH "${MANPATH}:${d}/man"
+                endif
+            end
+        endif
+
+        unset d
+
+        if ($OSTYPE == "linux") then
+            unsetenv MANPATH
+        endif
+
+        setenv PATH `echo ${PATH} | sed -e 's/:$//'`:${myPATH}
+    endif
+endif
+
+
+if ( ! $?INTERACTIVE ) then
+    if ( ($shlvl == 1) && (! $?0) && $?prompt && $?prompt2 && $?prompt3 ) then
+        setenv INTERACTIVE "yes"
+    endif
+endif
+
+if ( $?INTERACTIVE ) then
+    if ( -r $HOME/.tcshrc.interactive ) then
+        source $HOME/.tcshrc.interactive
+    else if ( -r ~jweiss/.tcshrc.interactive ) then
+        source ~jweiss/.tcshrc.interactive
+    endif
+endif
+
+
+#####################
+# Local Variables:
+# sh-shell: tcsh
+# mode: shell-script
+# End:

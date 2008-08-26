@@ -1,0 +1,277 @@
+if [ "${INTERACTIVE}" = "ran" ]; then
+    return
+fi
+echo "Setting up for interactive shell..."
+
+# Comment out/set to "" if you're not using the GNU utils.
+#
+GNU_VERBOSE="-v"
+GNU_LS_COLOR="--color"
+export PSGREP_OPTS="flw"
+BASH_INPUTRC="${HOME}/.bashrc.emacs-inputrc"
+if [ \! -f $BASH_INPUTRC ]; then
+    BASH_INPUTRC="/etc/bashrc.emacs-inputrc"
+fi
+
+# bash-specific stuff
+umask 022
+stty erase '^h' kill '^u' intr '^c' susp '^z'
+
+# Environment variables
+#
+
+unset PROMPT_COMMAND
+case $TERM in
+  xterm|linux|ansi|[Cc]ygwin|rxvt*)
+     PS1='\033[01;35m\h:\w/\033[0m\n\$ '
+     PS2='\033[01;34m>\033[0m '
+     ;;
+  *)
+     PS1='\h:\w\$ '
+     PS2='> '
+esac
+export PS1 PS2
+
+MORE=-f
+LESS=-MiX
+MANOPT="--sections=3:1:8:6:2:4:5:7 --all"
+LESSBIN="/usr/bin/less"
+MOREBIN="/bin/more"
+PAGER="${LESSBIN:-${MOREBIN}} ${LESSBIN:+ -s}"
+export MORE LESS MANOPT PAGER
+
+# Color-LS support
+if [ -n "${GNU_LS_COLOR}" -a -z "${LS_COLORS}" ]; then
+    eval `dircolors --sh /etc/DIR_COLORS`
+    export LS_COLORS
+fi
+
+# Some other Mozilla envvars
+#source /etc/java-path.conf
+#export CLASSPATH="${CLASSPATH}:${MOZILLA_HOME}/java/classes"
+
+
+# Used by GJiten
+LANGUAGE=${LANG}
+export LANGUAGE
+
+
+# Set the shell to use emacs style input editing (yes, we need both the
+# "set keymap" and "set editing-mode" commands).  Do not use 
+# "bind -m emacs", as this will reset the key map.
+if [ -e "${BASH_INPUTRC}" ]; then
+    source ${BASH_INPUTRC}
+else
+    # "Safe" mode
+    set keymap emacs
+    set editing-mode emacs
+fi
+
+
+####################
+# Functions
+#
+
+# Create a function to page a command with additional options
+pagecommand() {
+	if [ "$1" = "-o" ]; then
+	   shift
+	   po="$1"
+	   shift
+	else
+	   po=""
+	fi
+	cmdname=${1}
+	shift
+	${cmdname} "$@" 2>&1 | ${PAGER:-more} ${po}
+}
+
+# The classic tar-based recursive copy
+tarcp() {
+    if [ "x$1" = "x" -o "x$2" = "x" ]; then
+        echo "Usage: tarcp <srcdir>  <destdir>"
+        echo "The CONTENTS of \"<srcdir>\" are copied into \"<destdir>\", "
+        echo "NOT \"<srcdir>\" itself.  Keep this in mind."
+        return 1
+    fi
+    srcdir="$1"
+    targdir="$2"
+    oldpwd=`pwd`
+    cd $srcdir
+    tar cf - .| (cd $targdir; tar xvpf -)
+    cd $oldpwd
+    unset oldpwd
+}
+
+# custom form of ps
+ps_grep() {
+    if [ "x${1}" = "x" ]; then
+           ps -e${PSGREP_OPTS} | ${LESSBIN:-more} ${LESSBIN:+-E}
+    else
+           ps -e${PSGREP_OPTS} | grep "PID\|$1" | grep -v "grep" | \
+          ${LESSBIN:-more} ${LESSBIN:+-E}
+    fi
+}
+
+# Fix mangled xterm titles
+fix_xterm_title() {
+    echo -ne "\033]2;${1}\007"
+}
+
+
+#################################################################
+#
+# set up default aliases for bash
+#
+
+
+
+#
+# *System*
+#
+#unalias rm
+#unalias mv
+#unalias cp
+alias rm="rm ${GNU_VERBOSE}"
+alias mv="mv ${GNU_VERBOSE}"
+alias cp="cp ${GNU_VERBOSE}"
+
+alias =clear
+alias run=source
+#alias lo=logout
+alias lo=exit
+alias pwd='echo $PWD'
+alias env='pagecommand set'
+alias where=which
+alias man='LESS=${LESS}r man'
+
+o_gnu_ls="${GNU_LS_COLOR}" # ${GNU_LS_COLOR:+-h}"
+o_gnu_dir="${o_gnu_ls} ${GNU_LS_COLOR:+-h}"
+o_ls="-F -C ${o_gnu_ls}"
+o_dir="-F -l ${o_gnu_dir}"
+alias ls="pagecommand ${LESSBIN:+-o '-rE'} ls ${o_ls}"
+alias lsa="pagecommand ${LESSBIN:+-o '-rE'} ls ${o_ls} -a"
+alias dira="pagecommand ${LESSBIN:+-o '-rE'} ls ${o_dir} -a"
+alias dir="pagecommand ${LESSBIN:+-o '-rE'} ls ${o_dir}"
+alias ll="pagecommand ${LESSBIN:+-o '-rE'} ls ${o_ls} -l"
+alias vdir="pagecommand ${LESSBIN:+-o '-rE'} vdir -F ${o_gnu_ls}"
+unset o_dir
+unset o_ls
+unset o_gnu_ls
+unset o_gnu_dir
+
+alias psa="ps_grep '-v root'"
+alias psu="ps_grep"
+alias psgrep=ps_grep
+alias ps_Grep=ps_grep
+alias myjobs="ps_grep ${USER}"
+
+
+#
+# *Tape Backups*
+#
+#alias t_set="TAPE=/dev/nftape"
+#alias t_unset="unset TAPE"
+#alias t_rew="mt -f /dev/nftape rewind"
+#alias t_ff="mt -f /dev/nftape fsf"
+#alias t_bk="mt -f /dev/nftape nbsf"
+#alias t_goto="mt -f /dev/nftape asf"
+#alias t_end="mt -f /dev/nftape eom"
+#alias t_write="tar cv"
+#alias t_eject="mt -f /dev/nftape rewoffl"
+#alias tardir="tar -tv | more"
+r_tls="tar -tvf"
+r_tzv="${r_tls/-t/-zt}"
+r_tbv="${r_tzv/-z/-j}"
+alias tls="PAGER=${LESSBIN:-more} pagecommand ${r_tls}"
+alias tzv="PAGER=${LESSBIN:-more} pagecommand ${r_tzv}"
+alias tbv="PAGER=${LESSBIN:-more} pagecommand ${r_tbv}"
+alias zipv="PAGER=${LESSBIN:-more} pagecommand unzip -l"
+
+
+# *Misc*
+#
+alias pd=pushd
+alias gz="gzip -9v"
+# Now part of the gzip package
+#alias zless="folded-less.sh"
+# There's now a "lesspipe.sh" file that does this sort of 'view a *.gz' for us.
+#alias zv="folded-less.sh"
+alias zv="zless"
+alias fv="LESSOPEN=\"| fold %s\" ${LESSBIN} ${LESSBIN:+-r}"
+alias v="${LESSBIN:-more} ${LESSBIN:+-r}"
+
+alias odx="PAGER=${LESSBIN:-more} pagecommand od -t x1z"
+
+alias edit="${EDITOR}"
+alias emacs="`which emacs`"
+
+alias clean="purge-files.sh"
+alias snooze="xlock -mode random"
+
+alias locn="PAGER=${LESSBIN:-more} pagecommand locate"
+alias manfile="PAGER=${LESSBIN:-more} pagecommand nroff -man"
+
+
+#
+# OS-Specific
+#
+
+case ${OSTYPE} in
+    [Cc]ygwin)
+        function abspath { wa="$(cygpath -ma $1)"; cygpath -ua "$wa"; }
+        alias abscwd='cd "$(abspath $PWD)"'
+        stty eol '^j' eol2 '^m'
+        export PSGREP_OPTS="flW"
+        export CYGWIN="winsymlinks ntea"
+        ;;
+
+    *linux*)
+        # *CUPS Printing*
+        #
+        alias cancel='/usr/bin/cancel.cups'
+        alias lp='/usr/bin/lp.cups'
+        alias lpq='/usr/bin/lpq.cups'
+        alias lpr='/usr/bin/lpr.cups'
+        alias lprm='/usr/bin/lprm.cups'
+        alias lpstat='/usr/bin/lpstat.cups'
+
+        # *NetStuff*
+        #
+        alias slip='/usr/local/bin/netlogin.sh -slip'
+        alias slipb='/usr/local/bin/netlogin.sh -ncw -slip'
+        alias pppon='/usr/local/bin/netlogin.sh -ppp'
+        alias ppponb='/usr/local/bin/netlogin.sh -ppp -ncw'
+        alias dsl='/usr/local/bin/netlogin.sh -dsl'
+        alias neton='/usr/local/bin/netlogin.sh -dsl'
+        alias netoff='/usr/local/bin/closenet.sh'
+        alias ftp='ncftp'
+        #alias www='netscape'
+
+        # Misc
+        #
+        alias xwin="/etc/LocalSys/utilities/x_at_login.sh"
+        #alias startx="/etc/X11/startX"
+        #alias x15="/etc/X11/startX 15"
+        #alias x16="/etc/X11/startX 16"
+        #alias x24="/etc/X11/startX 24"
+        alias xanim="xanim +f +Zr +Av70"
+
+        alias eject-cdrw="eject scd0"
+        ;;
+esac
+
+
+# Final Cleanup Stuff
+#
+unset GNU_LS_COLOR
+unset GNU_VERBOSE
+unset BASH_INPUTRC
+INTERACTIVE="ran"
+
+
+##################
+# Local Variables:
+# mode: Shell-script
+# sh-shell: bash
+# End:
