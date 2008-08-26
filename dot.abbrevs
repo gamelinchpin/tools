@@ -106,6 +106,9 @@
 (define-abbrev-table 'erc-mode-abbrev-table '(
     ))
 
+(define-abbrev-table 'eshell-mode-abbrev-table '(
+    ))
+
 (define-abbrev-table 'f90-mode-abbrev-table '(
     ("`ab" "allocatable" nil 0)
     ("`al" "allocate" nil 0)
@@ -242,6 +245,13 @@
     ))
 
 (define-abbrev-table 'html-helper-mode-abbrev-table '(
+    ("\\--" "&ndash;" nil 0)
+    ("\\---" "&mdash;" nil 0)
+    ("\\..." "&hellip;" nil 0)
+    ("\\<" "&lt;" nil 0)
+    ("\\<=" "&le;" nil 0)
+    ("\\>" "&gt;" nil 0)
+    ("\\>=" "&ge;" nil 0)
     ))
 
 (define-abbrev-table 'html-mode-abbrev-table '(
@@ -1030,5 +1040,12 @@
     ))
 
 (define-abbrev-table 'wikipedia-mode-abbrev-table '(
+    ("\\--" "&ndash;" nil 0)
+    ("\\---" "&mdash;" nil 0)
+    ("\\..." "&hellip;" nil 0)
+    ("\\<" "&lt;" nil 0)
+    ("\\<=" "&le;" nil 0)
+    ("\\>" "&gt;" nil 0)
+    ("\\>=" "&ge;" nil 0)
     ))
 
