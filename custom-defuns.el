@@ -641,12 +641,109 @@ its own comment line.
 ;;
 
 
-(defun tempo-template-html-line-break (&optional dummy)
-  "XHTML line break tag.
-This function has been redefined so that it produces a complete tag.
-{jpw: 05/2008"
-  (insert "<br/>")
+(defconst jpw-html-symbol-entity-table
+  '(
+    ("!=" . "&ne;")
+    ("&" . "&amp;")
+    ("'" . "&rsquo;")
+    ("''" . "&rdquo;")
+    ("--" . "&ndash;")
+    ("---" . "&mdash;")
+    ("->" .  "&rarr;")
+    ("-^" . "&uarr;")
+    ("-v" . "&darr;")
+    ("..." . "&hellip;")
+    ("<" . "&lt;")
+    ("<-" . "&larr;")
+    ("<->" . "&harr;")
+    ("<=" . "&le;")
+    ("<==" . "&lArr;")
+    ("<==>" . "&hArr;")
+    ("<=>" . "&hArr;")
+    ("===" . "&equiv;")
+    ("==>" . "&rArr;")
+    ("==^" . "&uArr;")
+    ("==v" . "&dArr;")
+    (">" . "&gt;")
+    (">=" . "&ge;")
+    ("\"" . "&quot;")
+    ("--+" . "&dagger;")
+    ("+-+" . "&Dagger;")
+    (",," . "&bdquo;")
+    (".," . "&sbquo;")
+    ("._" . "&thinsp;")
+    ("__" . "&ensp;")
+    ("___" . "&emsp;")
+    ("`" . "&lsquo;")
+    ("``" . "&ldquo;")
+    ("'`" . "&rdquo;")
+    ;; Canonical versions of the up & down arrows.
+    ("|^" . "&uarr;")
+    ("|v" . "&darr;")
+    ("||^" . "&uArr;")
+    ("||v" . "&dArr;")
+    ("~" . "&sim;")
+    ("~=" . "&cong;")
+    ("~~" . "&asymp;")
+    (" " . "&nbsp;") 
+    )
+  "A table of abreviations for creating HTML entities.  Note that there are a
+few alternatives for the same entity, so that mixing two similar mnemnonics
+(e.g. \"->\" and \"|v\" to get \"-v\") still works.
+{jpw; 08/2008}")
+
+
+(defconst jpw-html-symbol-entity-table-maxlen
+  (eval-when-compile
+    (let* ((mnemonics (mapcar 'car jpw-html-symbol-entity-table))
+           (mnemonics-len (mapcar 'length mnemonics))
+           );end bindings
+      (1+ (eval (append '(max) mnemonics-len)))
+      )
+    )
+  "Length of the largest of the HTML entity mnemonics in
+`jpw-html-symbol-entity-table'.
+{jpw; 08/2008}")
+
+
+(defconst jpw-html-symbol-entity-table-re
+  (eval-when-compile
+    (let* ((mnemonics (mapcar 'car jpw-html-symbol-entity-table))
+           (notSyms "[^-<=>&~.\"`'^v|]")
+           );end bindings
+      ;; N.B. - Must contain a single group, surrounding the portion
+      ;; of the regex matching the shortcut-table keys.
+      (concat notSyms
+              (regexp-opt mnemonics t)
+              notSyms
+       )
+      );end let*
   )
+  "A cached regexp that matches any of the HTML entity mnemonics in
+`jpw-html-symbol-entity-table'.
+{jpw; 03/2006}")
+
+
+;; Redefine some of the tempo-template-* commands used by `html-helper-mode'
+;; so that they produce valid XML
+(tempo-define-template 
+ "html-line-break"
+ '(& "<br/>" > n)
+ nil
+ "XHTML line break tag.
+This function has been redefined so that it produces a complete tag.
+{jpw: 08/2008}"
+ )
+
+
+(tempo-define-template 
+ "html-horizontal-line"
+ '(& "<hr/>" > n)
+ nil
+ "XHTML horizontal rule tag.
+This function has been redefined so that it produces a complete tag.
+{jpw: 08/2008}"
+ )
 
 
 (define-skeleton jpw-html-href-anchor
@@ -682,6 +779,33 @@ Any other type is an error.
     (tempo-template-html-ordered-list)
     )
   )
+
+
+(defun jpw-html-entity-abbrev-expand ()
+  "Converts the mnemonic at point to an HTML entity.  See the documentation
+for the variable, `jpw-html-symbol-entity-table', for the valid
+abbreviations/mnemnonics.
+{jpw: 08/2008}"
+  (interactive)
+  (save-excursion
+
+    (let* ((end (1+ (point)))
+           (start (- (point) jpw-html-symbol-entity-table-maxlen))
+           entity
+           );;end bindings
+      (goto-char start)
+      (if (posix-search-forward jpw-html-symbol-entity-table-re end t)
+          (setq entity (cdr (assoc (match-string 1) 
+                                   jpw-html-symbol-entity-table)))
+        )
+      (if entity
+          (replace-match entity t t nil 1)
+        )
+      ) ;;end let
+
+    );;end excursion
+  )
+
 
 
 ;;----------------------------------------------------------------------
@@ -956,10 +1080,26 @@ extended using an EOL-\"\\\"-char.  {jpw; 12/04}"
   (interactive)
   (setq fill-column 78)
   (turn-on-auto-fill)
+
+  ;; Fix keys that break my bindings.
   (local-unset-key [f4])
   (local-set-key [\M-\S-return] 'tempo-template-html-paragraph)
   (local-set-key [\C-return] 'tempo-template-html-line-break)
   (local-set-key [\M-return] 'join-next-line)
+
+  ;; Special setup for HTML-Helper Mode  on Thunderbird mail buffers.
+  (local-set-key "\M-p\M-t" 
+                 '(lambda ()
+                    (interactive)
+                    (revert-to-utf8)
+                    (save-excursion
+                      (goto-char (point-min))
+                      (while (search-forward "<br>" nil t)
+                        (replace-match "<br/>" nil t)))
+                    )
+                 )
+
+  ;; Fonts
   (local-set-key "\M-oi" 'tempo-template-html-italic)
   (local-set-key "\M-ob" 'tempo-template-html-bold)
   (local-set-key "\M-ou" 'tempo-template-html-underline)
@@ -971,6 +1111,7 @@ extended using an EOL-\"\\\"-char.  {jpw; 12/04}"
   (local-set-key "\M-oc" 'tempo-template-html-code)
   (local-set-key "\M-od" 'tempo-template-html-strikethru)
 
+  ;; Paragraph styles
   (local-set-key "\M-p\C-i" 'tempo-template-html-image)
   (local-set-key "\M-pc" 'tempo-template-html-preformatted)
   (local-set-key "\M-pa" 'jpw-html-href-anchor)
@@ -983,6 +1124,10 @@ extended using an EOL-\"\\\"-char.  {jpw; 12/04}"
   (local-set-key "\M-p\C-j" 'tempo-template-html-line-break)
   (local-set-key "\M-p-" 'tempo-template-html-horizontal-line)
 
+  ;; Entity expansion
+  (local-set-key "\C-c'" 'jpw-html-entity-abbrev-expand)
+  (local-set-key [?\C-c ?\C-'] 'jpw-html-entity-abbrev-expand)
+  
   (font-lock-mode t)
   )
 
@@ -1053,6 +1198,10 @@ extended using an EOL-\"\\\"-char.  {jpw; 12/04}"
   (local-set-key "\M-p1" 'jpw-wikipedia-insert-header1)
   (local-set-key "\M-p2" 'jpw-wikipedia-insert-header2)
   (local-set-key "\M-p3" 'jpw-wikipedia-insert-header3)
+
+  ;; Entity expansion
+  (local-set-key "\C-c'" 'jpw-html-entity-abbrev-expand)
+  (local-set-key [?\C-c ?\C-'] 'jpw-html-entity-abbrev-expand)
   )
 
 
@@ -1164,7 +1313,8 @@ extended using an EOL-\"\\\"-char.  {jpw; 12/04}"
   (interactive)
   (setq tab-width 2)
   (turn-on-auto-fill)
-  (sql-highlight-oracle-keywords)
+  ;;(sql-highlight-oracle-keywords)
+  (sql-highlight-sybase-keywords)
   )
 
 

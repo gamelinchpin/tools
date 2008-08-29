@@ -477,7 +477,10 @@ and a few typography symbols.")
     ("==>" . "&rArr;")
     ("---" . "&mdash;")
     ("--" . "&ndash;")
-    ("\\..." . "&hellip;")
+    ("..." . "&hellip;")
+    ("\\..." . ".<!---->..")
+    ("\\---" . "-<!---->-<!---->-")
+    ("\\--" . "-<!---->-")
     )
   "A set of visual shortcuts for certain HTML entities.
 
@@ -503,9 +506,16 @@ regexp in `jwz-lj-entify'.
 
 
 (defconst jpw-lj-entity-shortcut-table-re 
-  (regexp-opt-group 
-   (mapcar 'car jpw-lj-entity-shortcut-table)
-   t)
+  (eval-when-compile
+    (concat "\\(?:\\w\\|\\s \\)"
+            ;; N.B. - Must contain a single group, surrounding the portion of
+            ;; the regex matching the shortcut-table keys.
+            (regexp-opt
+             (mapcar 'car jpw-lj-entity-shortcut-table)
+             t)
+            "\\(?:\\w\\|\\s \\)"
+            )
+    )
   "A cached regexp that matches any of the entity shortcuts in
 `jpw-lj-entity-shortcut-table'.
 {jpw; 03/2006}")
@@ -531,11 +541,16 @@ regexp in `jwz-lj-entify'.
 (defsubst jpw-lj-enhanced-entify (start end)
   (save-excursion
     (goto-char start)
+    ;; jpw-lj-entity-shortcut-table-re contains a single matching group.
+    ;; Inside of that group is a regexp for all of the shortcut-table keys.
     (while (re-search-forward jpw-lj-entity-shortcut-table-re end t)
       (let* ((entity (cdr 
-                      (assoc (match-string 0) jpw-lj-entity-shortcut-table)))
+                      (assoc (match-string 1) jpw-lj-entity-shortcut-table)))
              );;end bindings
-        (replace-match entity t t)
+        ;; Only replace the part of the match that corresponds to the
+        ;; shortcut-table key.  Leave any preceeding or following characters
+        ;; in the match alone.
+        (replace-match entity t t nil 1)
         );;end let
       );;end while
     );;end excursion

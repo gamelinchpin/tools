@@ -20,7 +20,13 @@ lj-mood: geeky
 
 <code>some códe ---
 With Math:  a :=== b ==> a :<= b && a :>= b
+...
+\...
 </code>
+<pre>
+------------------------------
+..............................
+</pre>
 
 <del>deleted text</del>
 

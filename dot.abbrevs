@@ -245,13 +245,6 @@
     ))
 
 (define-abbrev-table 'html-helper-mode-abbrev-table '(
-    ("\\--" "&ndash;" nil 0)
-    ("\\---" "&mdash;" nil 0)
-    ("\\..." "&hellip;" nil 0)
-    ("\\<" "&lt;" nil 0)
-    ("\\<=" "&le;" nil 0)
-    ("\\>" "&gt;" nil 0)
-    ("\\>=" "&ge;" nil 0)
     ))
 
 (define-abbrev-table 'html-mode-abbrev-table '(
@@ -381,51 +374,51 @@
     ))
 
 (define-abbrev-table 'java-mode-abbrev-table '(
-    ("catch" "catch" c-electric-continued-statement 0)
-    ("else" "else" c-electric-continued-statement 3)
+    ("catch" "catch" c-electric-continued-statement 2)
+    ("else" "else" c-electric-continued-statement 1)
     ("finally" "finally" c-electric-continued-statement 0)
     ("jdb" "<b></b>" (lambda nil nil (backward-char 4)) 0)
     ("jdblk" "    /**
      *
      */" nil 0)
-    ("jdbr" "<br/>" (lambda nil nil (backward-char 3) (do-comment-line-break) (backward-char -3) (do-comment-line-break)) 0)
+    ("jdbr" "<p>" (lambda nil nil (backward-char 3) (do-comment-line-break) (backward-char -3) (do-comment-line-break)) 0)
     ("jdc" "<code></code>" (lambda nil nil (backward-char 7)) 0)
     ("jdem" "<em></em>" (lambda nil nil (backward-char 5)) 0)
     ("jdl" "{@link }" (lambda nil nil (backward-char)) 0)
     ("jdm" "/**
      * Short
-     * <br/>
+     * <p>
      * Long
-     */" nil 11)
-    ("jdp" "@param" nil 3)
-    ("jdpre" "<pre></pre>" (lambda nil nil (backward-char 6) (do-comment-line-break) (do-comment-line-break) (end-of-line) (previous-line 1)) 0)
-    ("jdr" "@returns" nil 4)
-    ("jdt" "@throws" nil 0)
-    ("while" "while" c-electric-continued-statement 0)
-    ))
-
-(define-abbrev-table 'jde-mode-abbrev-table '(
-    ("catch" "catch" c-electric-continued-statement 0)
-    ("else" "else" c-electric-continued-statement 0)
-    ("finally" "finally" c-electric-continued-statement 0)
-    ("jdb" "<b></b>" (lambda nil nil (backward-char 4)) 0)
-    ("jdblk" "    /**
-     *
-     */" nil 0)
-    ("jdbr" "<br/>" (lambda nil nil (backward-char 3) (do-comment-line-break) (backward-char -3) (do-comment-line-break)) 0)
-    ("jdc" "<code></code>" (lambda nil nil (backward-char 7)) 0)
-    ("jdem" "<em></em>" (lambda nil nil (backward-char 5)) 0)
-    ("jdl" "{@link }" (lambda nil nil (backward-char)) 0)
-    ("jdm" "/**
-     * Short
-     * <br/>
-     * Long
-     */" nil 0)
+     */" nil 2)
     ("jdp" "@param" nil 0)
     ("jdpre" "<pre></pre>" (lambda nil nil (backward-char 6) (do-comment-line-break) (do-comment-line-break) (end-of-line) (previous-line 1)) 0)
     ("jdr" "@returns" nil 0)
     ("jdt" "@throws" nil 0)
     ("while" "while" c-electric-continued-statement 0)
+    ))
+
+(define-abbrev-table 'jde-mode-abbrev-table '(
+    ("catch" "catch" c-electric-continued-statement 1)
+    ("else" "else" c-electric-continued-statement 1)
+    ("finally" "finally" c-electric-continued-statement 0)
+    ("jdb" "<b></b>" (lambda nil nil (backward-char 4)) 0)
+    ("jdblk" "    /**
+     *
+     */" nil 0)
+    ("jdbr" "<p>" (lambda nil nil (backward-char 3) (do-comment-line-break) (backward-char -3) (do-comment-line-break)) 0)
+    ("jdc" "<code></code>" (lambda nil nil (backward-char 7)) 0)
+    ("jdem" "<em></em>" (lambda nil nil (backward-char 5)) 0)
+    ("jdl" "{@link }" (lambda nil nil (backward-char)) 0)
+    ("jdm" "/**
+     * Short
+     * <p>
+     * Long
+     */" nil 3)
+    ("jdp" "@param" nil 0)
+    ("jdpre" "<pre></pre>" (lambda nil nil (backward-char 6) (do-comment-line-break) (do-comment-line-break) (end-of-line) (previous-line 1)) 0)
+    ("jdr" "@returns" nil 0)
+    ("jdt" "@throws" nil 0)
+    ("while" "while" c-electric-continued-statement 1)
     ))
 
 (define-abbrev-table 'jde-run-mode-abbrev-table '(
@@ -474,12 +467,6 @@
     ))
 
 (define-abbrev-table 'meta-mode-abbrev-table '(
-    ))
-
-(define-abbrev-table 'muse-mode-abbrev-table '(
-    ))
-
-(define-abbrev-table 'mutt-mode-abbrev-table '(
     ))
 
 (define-abbrev-table 'newsticker-mode-abbrev-table '(
@@ -599,22 +586,20 @@
     ("upd" "update" nil 0)
     ))
 
-(define-abbrev-table 'svn-log-edit-mode-abbrev-table '(
-    ))
-
 (define-abbrev-table 'svn-log-view-mode-abbrev-table '(
     ))
 
-(define-abbrev-table 'svn-status-diff-mode-abbrev-table '(
-    ))
-
 (define-abbrev-table 'tcl-mode-abbrev-table '(
-    ))
-
-(define-abbrev-table 'texinfo-mode-abbrev-table '(
+    ("''" "<tt></tt>" (lambda nil nil (backward-char 5)) 2)
+    ("**" "<b></b>" (lambda nil nil (backward-char 4)) 0)
+    ("//" "<em></em>" (lambda nil nil (backward-char 5)) 0)
+    ("__" "<u></u>" (lambda nil nil (backward-char 4)) 0)
     ))
 
 (define-abbrev-table 'text-mode-abbrev-table '(
+    ))
+
+(define-abbrev-table 'thumbs-mode-abbrev-table '(
     ))
 
 (define-abbrev-table 'thumbs-view-image-mode-abbrev-table '(
@@ -1040,12 +1025,5 @@
     ))
 
 (define-abbrev-table 'wikipedia-mode-abbrev-table '(
-    ("\\--" "&ndash;" nil 0)
-    ("\\---" "&mdash;" nil 0)
-    ("\\..." "&hellip;" nil 0)
-    ("\\<" "&lt;" nil 0)
-    ("\\<=" "&le;" nil 0)
-    ("\\>" "&gt;" nil 0)
-    ("\\>=" "&ge;" nil 0)
     ))
 
