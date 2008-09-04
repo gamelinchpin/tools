@@ -31,6 +31,7 @@
   (require 'xml-lite)
   (require 'sql))
 (require 'skeleton)
+(require 'tempo)
 
 
 ;;----------------------------------------------------------------------
