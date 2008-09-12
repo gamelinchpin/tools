@@ -1245,17 +1245,24 @@ extended using an EOL-\"\\\"-char.  {jpw; 12/2004}"
   ;; Java programming.
   (if running-xemacs
       (progn
-        (local-set-key '("\C-c" right) 'c-forward-into-nomenclature)
-        (local-set-key '(control shift right) 'c-forward-into-nomenclature)
-        (local-set-key '("\C-c" left) 'c-backward-into-nomenclature)
+        (local-set-key '("\C-c" left) 'c-beginning-of-defun)
+        (local-set-key '("\C-c" right) 'c-end-of-defun)
         (local-set-key '(control shift left) 'c-backward-into-nomenclature)
+        (local-set-key '(control shift right) 'c-forward-into-nomenclature)
+        (local-set-key '(control shift up) 'c-beginning-of-statement)
+        (local-set-key '(control shift down) 'c-end-of-statement)
         )
     ;; else
-    (local-set-key [?\C-c right] 'c-forward-into-nomenclature)
-    (local-set-key [(control shift right)] 'c-forward-into-nomenclature)
-    (local-set-key [?\C-c left] 'c-backward-into-nomenclature)
+    (local-set-key [?\C-c left] 'c-beginning-of-defun)
+    (local-set-key [?\C-c right] 'c-end-of-defun)
     (local-set-key [(control shift left)] 'c-backward-into-nomenclature)
+    (local-set-key [(control shift right)] 'c-forward-into-nomenclature)
+    (local-set-key [(control shift up)] 'c-beginning-of-statement)
+    (local-set-key [(control shift down)] 'c-end-of-statement)
     )
+  ;; This, for some reason, needs to be in the mode-specific autohook defuns.
+  ;; Leave it here, too, just for documentation clarity.
+  (local-unset-key [f4])
   ;; Force use of correct comment-break-fn.  
   (local-set-key "\M-j" 'do-comment-line-break)
   (local-set-key [?\C-c f7] 'compile)
