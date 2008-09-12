@@ -35,16 +35,6 @@
 ;; cedet and html-helper-mode do not play well together.
 ;; ;(remove-hook 'html-mode-hook 'semantic-default-html-setup)
 
-;; TCL mode stuff
-;; ;(load "tcl-enhancements")
-
-;; Work Stuff
-;; ;(load "ee-mode")
-;; ;(load "p4")
-;; ;(load "p4extra")
-;;(fset 'jpw-p4job-cleanup
-;;   [?\C-* ?\M-< ?\C-\M-% ?^ ?\C-8 ?  ?\C-m ?\C-q ?\C-i ?\C-m ?!])
-
 
 (if (not window-system)
   (display-time-mode)) ;; Maybe also use (display-batter)
