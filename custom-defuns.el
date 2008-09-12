@@ -468,15 +468,6 @@ Otherwise, it calls `untabify-buffer'.
   )
 
 
-(defun kill-buffer-tab-consistent ()
-  "Calls `save-buffer-tab-consistent', then `kill-this-buffer'. 
-{jpw: 9/1998}"
-  (interactive)
-  (save-buffer-untabified)
-  (kill-this-buffer)
-  )
-
-
 (defun server-quit-l ()
   "Saves the server-buffer, does a (server-edit), then kills the
 buffer. 

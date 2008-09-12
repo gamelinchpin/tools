@@ -537,7 +537,7 @@ variable rather than hardcoded.
 
 ;; Create a style for use with c-mode, c++-mode, and objc-mode
 (c-add-style "jpw" 
-             '((indent-tabs-mode . nil)
+             '(;;(indent-tabs-mode . nil)
                (fill-column . 78)
                (c-hanging-braces-alist 
                 (substatement-open before after)

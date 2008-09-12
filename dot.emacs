@@ -53,6 +53,16 @@
 (add-hook 'emacs-startup-hook 
           (lambda () (setq require-final-newline 'nil)))
 
+
+;; By default, custom-start.el sets the default value of indent-tabs-mode to
+;; nil.  Change that here.  You may need to put it in the emacs-startup-hook,
+;; above.
+;; There are a few other things you may want to bind or change.
+;;;(setq-default indent-tabs-mode t)
+;;;(setq jpw-correct-tabs-on-save nil)
+;;;(add-hook 'before-save-hook 'save-buffer-tab-consistent)
+
+
 ;; Work Stuff
 ;;...
 (load "wikipedia-mode")
