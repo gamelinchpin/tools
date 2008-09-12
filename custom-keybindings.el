@@ -308,6 +308,7 @@
 ;; Bind some custom functions from custom-defuns.
 (global-set-key "\C-cc" 'server-quit-l)
 (global-set-key "\C-x\M-u" 'untabify-buffer)
+(global-set-key "\C-x\M-t" 'tabify-buffer)
 (global-set-key "\M-\C-m" 'join-next-line)
 (global-set-key [\M-\S-return] 'join-next-line)
 (global-set-key [?\C-x insert] 'kill-ring-save-entire-buffer)

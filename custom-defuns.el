@@ -42,7 +42,7 @@
 
 (defun jpw-win-or-unix (win-val unix-val)
   "Return the appropriate value, depending on which OS we're running in.
-{jpw: 09/06}"
+{jpw: 09/2006}"
   (if is-winblows
       win-val
     ;; else
@@ -59,7 +59,7 @@ Calls `custom-set-variables' on the list of arguments, then converts the
 customizations from being written to your \".emacs\" file.
 
 Note that this function may require modification whenever `cus-edit.el'
-changes.  {jpw: 9/04}"
+changes.  {jpw: 9/2004}"
   (apply 'custom-set-variables args)
   (while args
     (let ((entry (car args)))
@@ -87,7 +87,7 @@ Calls `custom-set-faces' on the list of arguments, then converts the
 customizations from being written to your \".emacs\" file.
 
 Note that this function may require modification whenever `cus-edit.el' and
-`cus-faces.el' changes.  {jpw: 9/04}"
+`cus-faces.el' changes.  {jpw: 9/2004}"
   (apply 'custom-set-faces args)
   (while args
     (let ((entry (car args)))
@@ -115,7 +115,7 @@ Note that this function may require modification whenever `cus-edit.el' and
       (defun set-face-bold-p (face boldp &rest args)
         "A little placeholder for a GNU Emacs function missing from XEmacs.
 Note that this fn. only sets a face bold.  It cannot unset it.
-{jpw: 9/04}"
+{jpw: 9/2004}"
         (if boldp
             (set-face-font face [bold])
           ;; else
@@ -198,7 +198,7 @@ Note that this fn. only sets a face bold.  It cannot unset it.
   "Inserts the two markup tags, `start-tag' and `end-tag', on either side of
 `point'.  If a region is active, it inserts the two tags on either side of the
 region.
-{jpw: 2/05}"
+{jpw: 2/2005}"
   (let* ((start-tag-point (or (and mark-active (region-beginning))
                               (point)))
          (end-tag-point (or (and mark-active (region-end))
@@ -224,7 +224,7 @@ region.
   "Inserts the begin- and end-tags for the XML entity named `tag', inserting
 them on either side of `point'.  If a region is active, it inserts the two
 tags on either side of the region.
-{jpw: 2/05}"
+{jpw: 2/2005}"
   (jpw-insert-markup-tags (concat "<" tag ">") (concat "</" tag ">"))
   )
 
@@ -237,7 +237,7 @@ tags on either side of the region.
 
 (defun ebuffer-files (buffer-A buffer-B &optional startup-hooks job-name)
   "Like `ebuffers', does an `ediff' on the two buffers underlying files.
-{jpw: 9/06}"
+{jpw: 9/2006}"
   ;; [jpw] Stolen lock, stock, and barrel from "ediff.el"
   (interactive
    (let (bf)
@@ -273,7 +273,7 @@ tags on either side of the region.
 
 (defun join-next-line ()
   "Join the current line to the next line.
-{jpw: 2/99}"
+{jpw: 2/1999}"
   (interactive)
   (end-of-line)
   (let ((oldeolpos (point)))
@@ -400,7 +400,7 @@ details regarding this arg.
 
 (defun reverse-indent-line ()
   "Remove a level of indentation from the current line.
-{jpw: 10/01}"
+{jpw: 10/2001}"
   (interactive)
   (save-excursion
     (beginning-of-line)
@@ -414,7 +414,7 @@ details regarding this arg.
 
 (defun unindent-line ()
   "Remove all indentation from the current line.
-{jpw: 12/99}"
+{jpw: 12/1999}"
   (interactive)
   (save-excursion
     (beginning-of-line)
@@ -428,24 +428,49 @@ details regarding this arg.
 
 (defun untabify-buffer ()
   "Untabify the current buffer.
-{jpw: 12/98}"
+{jpw: 12/1998}"
   (interactive)
   (untabify (point-min) (point-max))
   )
 
 
-(defun save-buffer-untabified ()
-  "Saves the current buffer, untabifying it beforehand. 
-{jpw: 9/98}"
+(defun tabify-buffer ()
+  "Untabify the current buffer.
+{jpw: 09/2008}"
   (interactive)
-  (untabify-buffer)
+  (tabify (point-min) (point-max))
+  )
+
+
+(defvar jpw-correct-tabs-on-save t
+  "If set non-nil, causes `save-buffer-tab-consistent' and
+`kill-buffer-tab-consistent' to convert all leading whitespace to
+space-characters or tabs.  Which it converts to depends on the value of
+`indent-tabs-mode'.
+{jpw; 09/2008}")
+
+
+(defun save-buffer-tab-consistent ()
+  "Saves the current buffer, (un)tabifying it beforehand.
+
+If `indent-tabs-mode' is true, calls `tabify-buffer' before saving.
+Otherwise, it calls `untabify-buffer'.
+{jpw: 9/1998}"
+  (interactive)
+  (if jpw-correct-tabs-on-save
+      (if indent-tabs-mode
+          (tabify-buffer)
+        ;; else
+        (untabify-buffer)
+        )
+    )
   (save-buffer)
   )
 
 
-(defun kill-buffer-untabified ()
-  "Untabify the current buffer, save it, then kill it. 
-{jpw: 9/98}"
+(defun kill-buffer-tab-consistent ()
+  "Calls `save-buffer-tab-consistent', then `kill-this-buffer'. 
+{jpw: 9/1998}"
   (interactive)
   (save-buffer-untabified)
   (kill-this-buffer)
@@ -455,7 +480,7 @@ details regarding this arg.
 (defun server-quit-l ()
   "Saves the server-buffer, does a (server-edit), then kills the
 buffer. 
-{jpw: 11/04}"
+{jpw: 11/2004}"
   (interactive)
   (save-buffer)
   (if (not (or is-winblows is-cygwin))
@@ -470,7 +495,7 @@ buffer.
 
 (defun kill-buffer-other-window ()
   "Kill the buffer in the next open window. 
-{jpw: 12/04}"
+{jpw: 12/2004}"
   (interactive)
   (other-window 1)
   (kill-this-buffer)
@@ -481,7 +506,7 @@ buffer.
 (defun kill-next-buffer-and-close-other-windows ()
   "Kill the buffer in the next open window, then close all of the other
 windows. 
-{jpw: 2/05}"
+{jpw: 2/2005}"
   (interactive)
   (other-window 1)
   (kill-this-buffer)
@@ -492,7 +517,7 @@ windows.
 
 (defun bury-buffer-other-window ()
   "Bury the buffer in the next open window. 
-{jpw: 12/04}"
+{jpw: 12/2004}"
   (interactive)
   (other-window 1)
   (bury-buffer)
@@ -503,7 +528,7 @@ windows.
 (defun switch-to-buffer-using-other-window (buffer)
   "Custom version of `switch-to-buffer-other-window' that remains in the
 current window instead of switching.
-{jpw: 12/04}"
+{jpw: 12/2004}"
   (interactive "BOpen buffer in other window: ")
   (switch-to-buffer-other-window buffer)
   (other-window -1)
@@ -513,7 +538,7 @@ current window instead of switching.
 (defun find-file-using-other-window (buffer)
   "Custom version of `find-file-other-window' that remains in the
 current window instead of switching.
-{jpw: 12/04}"
+{jpw: 12/2004}"
   (interactive "FFind file in other window: ")
   (find-file-other-window buffer)
   (other-window -1)
@@ -523,7 +548,7 @@ current window instead of switching.
 (defun kill-buffer-then-find-file (nubuffer)
   "Open the specified file in the current active window, first killing
 whatever buffer is presently open.
-{jpw: 2/05}"
+{jpw: 2/2005}"
   (interactive "FKill this buffer, then find file: ")
   (kill-this-buffer)
   (find-file nubuffer)
@@ -532,7 +557,7 @@ whatever buffer is presently open.
 
 (defun switch-to-self-other-window ()
   "As the name implies.  Useful when working on a long piece of sourcecode.
-{jpw: 12/04}"
+{jpw: 12/2004}"
   (interactive)
   (let ( (mybufname (current-buffer))
          );;end let-varlist
@@ -542,7 +567,7 @@ whatever buffer is presently open.
 
 
 (defun save-all-buffers () 
-  "{jpw: 12/04}"
+  "{jpw: 12/2004}"
   (interactive)
   (save-some-buffers t)
   )
@@ -550,21 +575,21 @@ whatever buffer is presently open.
 
 (defun dos2unix-buffer ()
   "Convert a DOS buffer to raw unix text
-{jpw: 5/00}."
+{jpw: 5/2000}."
   (interactive)
   (set-buffer-file-coding-system 'raw-text-unix nil))
 
 
 (defun unix2dos-buffer ()
   "Convert a DOS buffer to raw unix text
-{jpw: 11/00}."
+{jpw: 11/2000}."
   (interactive)
   (set-buffer-file-coding-system 'raw-text-dos nil))
 
 
 (defun jpw-insert-doc-unitag (tagname)
   "Insert an HTML tag that is self-closing.
-{jpw: 07/04}"
+{jpw: 07/2004}"
   (interactive "*sEnter HTML tag: ")
   (insert "<" tagname "/>")
   )
@@ -572,7 +597,7 @@ whatever buffer is presently open.
 
 (defun jpw-insert-doc-tag (tagname)
   "Insert a doxygen/javadoc HTML style/font tag pair.
-{jpw: 07/04}"
+{jpw: 07/2004}"
   (interactive "*sEnter HTML tag: ")
   (jpw-insert-xml-tag tagname)
   )
@@ -581,7 +606,7 @@ whatever buffer is presently open.
 (defun jpw-insert-doc-tagblock (tagname)
   "Insert a doxygen/javadoc HTML style/font tag pair block, with each tag on
 its own comment line.
-{jpw: 07/04}"
+{jpw: 07/2004}"
   (interactive "*sEnter HTML tag: ")
   (do-comment-line-break) 
   (jpw-insert-xml-tag tagname)
@@ -600,7 +625,7 @@ its own comment line.
 
 (defun jpw-insert-doxygen-cmdblock (cmdname)
   "Insert a doxygen '\\command'...'\\endcommand' pair on separate lines. 
-{jpw: 07/04}"
+{jpw: 07/2004}"
   (interactive "*sEnter doxygen command: ")
   (do-comment-line-break) 
   (insert "\\" cmdname) 
@@ -614,7 +639,7 @@ its own comment line.
 
 (defun jpw-insert-javadoc-link ()
   "Insert a javadoc '@link' field
-{jpw: 07/04}"
+{jpw: 07/2004}"
   (interactive )
   (insert "{@link ")
   (save-excursion (insert "}"))
@@ -623,7 +648,7 @@ its own comment line.
 
 (defun jpw-insert-tcldoc-tag (tagname)
   "Insert a TCLDoc '@' tag.
-{jpw: 09/06}"
+{jpw: 09/2006}"
   (interactive "*sEnter TCLDoc tag: ")
   (do-comment-line-break) 
   (insert " @" tagname " ")
@@ -828,7 +853,7 @@ top-level directory file."
 
 (defun set8tab ()
   "Sets tab width to 8
-{jpw: 7/00}."
+{jpw: 7/2000}."
   (interactive)
   (setq tab-width 8)
   (recenter))
@@ -836,7 +861,7 @@ top-level directory file."
 
 (defun set4tab ()
   "Sets tab width to 4
-{jpw: 7/00}."
+{jpw: 7/2000}."
   (interactive)
   (setq tab-width 4)
   (recenter))
@@ -853,15 +878,15 @@ top-level directory file."
 (defun do-comment-line-break () 
   "Calls the function that the variable `comment-line-break-function'
 is set to
-{jpw: 3/02}."
+{jpw: 3/2002}."
   (interactive)
   (funcall comment-line-break-function))
 
 
 (defvar jpw-utf-in-use nil
-  "Used internally.  Do not modify.  {jpw; 03/07}")
+  "Used internally.  Do not modify.  {jpw; 03/2007}")
 (defun jpw-load-utf()
-  "Force use of Mule UTF encodings. {jpw; 11/05}"
+  "Force use of Mule UTF encodings. {jpw; 11/2005}"
   (interactive)
   (if (boundp 'mule-version)
       (setq jpw-utf-in-use t)
@@ -886,7 +911,7 @@ is set to
 
 (defun decode-utf16 ()
   "Decode a buffer in utf-16
-{jpw: 11/05}."
+{jpw: 11/2005}."
   (interactive)
   (jpw-load-utf)
   (decode-coding-region (point-min) (point-max) 
@@ -898,7 +923,7 @@ is set to
   "Decode a buffer in utf-8
 Unfortunately, it doesn't work too well.
 
-{jpw: 03/07}."
+{jpw: 03/2007}."
   (interactive)
   (jpw-load-utf)
   (decode-coding-region (point-min) (point-max) 'mule-utf-8))
@@ -908,7 +933,7 @@ Unfortunately, it doesn't work too well.
   "Reread the current buffer, using utf-8 encoding this time.
 Unfortunately, it doesn't work too well.
 
-{jpw: 03/07}."
+{jpw: 03/2007}."
   (interactive)
   (jpw-load-utf)
   (revert-buffer-with-coding-system 'mule-utf-8)
@@ -927,7 +952,7 @@ Unfortunately, it doesn't work too well.
   "Use the utf-8 encoding system in this buffer.  Does so by performing a
 `revert-to-utf8'.
 
-{jpw: 05/08}."
+{jpw: 05/2008}."
   (interactive)
   (jpw-load-utf)
   (revert-buffer-with-coding-system 'mule-utf-8)
@@ -948,7 +973,7 @@ There's a common technique used for scripts whose interpreter cannot be
 started via the \"#!\"-technique:  call 'exec' on the interpreter, passing the
 script itself.  This only works with scripting languages that also use the
 \"#\" character to start comments and which permit comment lines to be
-extended using an EOL-\"\\\"-char.  {jpw; 12/04}"
+extended using an EOL-\"\\\"-char.  {jpw; 12/2004}"
   (and
    (save-excursion
      (goto-char (point-min))
@@ -1360,7 +1385,7 @@ extended using an EOL-\"\\\"-char.  {jpw; 12/04}"
 
 (defun jpw-set-sgml-indent (arg)
  "Set indentation size(s) for SGML modes.
-{jpw: 11/05}"
+{jpw: 11/2005}"
  (interactive "nIndent Size: ")
  (make-local-variable 'tab-width)
  (make-local-variable 'custom-buffer-indent)
@@ -1381,7 +1406,7 @@ extended using an EOL-\"\\\"-char.  {jpw; 12/04}"
 
 (defun jpw-set-xml-lite-indent (arg)
   "Set indentation size for XML-Lite mode.
-{jpw: 3/03}"
+{jpw: 3/2003}"
   (interactive "nIndent Size: ")
   (jpw-set-sgml-indent arg)
   (setq xml-lite-indent-comment-offset arg
