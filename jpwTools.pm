@@ -41,7 +41,8 @@ BEGIN {
     @EXPORT = qw(check_syscmd_status do_error
                  datestamp datetime_now  
                  const_array uniq
-                 invert_hash rename_keys transform_keys lc_keys uc_keys
+                 invert_hash pivot_hash
+                 rename_keys transform_keys lc_keys uc_keys
                  asymm_diff circular_shift circular_pop
                  stats stats_gaussian 
                  set_seed random_indices randomize_array random_keys
@@ -57,8 +58,8 @@ BEGIN {
     # as well as any optionally exported functions
     @EXPORT_OK = qw($_Verbose $_UnitTest);
 
-    # Tagged groups of exports.
-    %EXPORT_TAGS = qw();
+    # Tagged groups of exports; 'perldoc Exporter' for details.
+    %EXPORT_TAGS = (all => [@EXPORT, @EXPORT_OK]);
 }
 our @EXPORT_OK;
 
@@ -262,16 +263,53 @@ sub invert_hash(\%;\%) {
 }
 
 
+sub pivot_hash(\%$;$) {
+    my $ref_h = shift();
+    my $idx = shift();
+    my $ignoreNonPivotable = (scalar(@_) ? shift() : 0);
+
+    my @oldKeys = keys(%$ref_h);
+
+    # Error checking:  Make sure that...
+    # - Every value is an arrayref;
+    # - Each arrayref has something defined at $idx;
+    # - All of those elements are scalar values.
+    my @pivotableKeys = grep({ ( (ref($ref_h->{$_}) eq 'ARRAY') 
+                                 && exists($ref_h->{$_}[$idx])
+                                 && defined($ref_h->{$_}[$idx])
+                                 && !ref($ref_h->{$_}[$idx]) )
+                             } @oldKeys);
+    return 0 unless ($ignoreNonPivotable ||
+                     (scalar(@oldKeys) == scalar(@pivotableKeys)));
+
+    # All of the potential new keys MUST be unique, or we will end up deleting
+    # elements from the hash.  Not Good.
+    my %new2old = map({ $ref_h->{$_}[$idx] => $_ } @pivotableKeys);
+    my @newKeys = keys(%new2old);
+    my $nNewKeys = scalar(@newKeys);
+    return 0 unless ($nNewKeys == scalar(@pivotableKeys));
+
+    # 
+    # This is a faster operation, but will use much more memory than
+    # pivotting one element at a time.
+    map({ $ref_h->{$_} = $ref_h->{$new2old{$_}};
+          $ref_h->{$_}[$idx] = $new2old{$_}; } @newKeys);
+
+    delete(@{$ref_h}{@pivotableKeys});
+    return 1;
+}
+
+
 sub transform_keys(\%\&) {
     my $ref_hash = shift;
     my $subref_transform = shift;
 
-    foreach my $oldKey (keys(%$ref_hash)) {
-        my $newKey = &$subref_transform($oldKey);
-        next if ($newKey eq $oldKey); # Skip if identical
-        $ref_hash->{$newKey} = $ref_hash->{$oldKey};
-        delete $ref_hash->{$oldKey};
-    }
+    map({ my $newKey = &$subref_transform($_);
+          unless ($newKey eq $_) {
+              $ref_hash->{$newKey} = $ref_hash->{$_};
+              delete $ref_hash->{$_};
+          }
+        } keys(%$ref_hash));
 }
 
 
@@ -1275,6 +1313,8 @@ jpwTools - Package containing John's Perl Tools.
 
 =item invert_hash I<%hash> [, I<%invHash_out>]
 
+=item pivot_hash I<%hash>, I<idx> [, I<ignoreInvalidElements>]
+
 =item rename_keys(I<%hash>, I<%oldKey2newKey>)
 
 =item transform_keys(I<%hash>, I<&operator>)
@@ -1462,6 +1502,24 @@ key in I<%invHash_out> whose value is the corresponding key from I<%hash>.
 Non-scalar values are ignored (i.e. they do not appear in I<%invHash_out>.
 
 When called with only one arg, C<invert_hash()> returns the inverse hash.
+
+=item *
+
+pivot_hash I<%hash>, I<idx> [, I<ignoreInvalidElements>]
+
+"Pivots" the I<%hash> by swapping each key with the value at
+C<$hash{I<anykey>}[I<idx>]>.  Unlike L<invert_hash()>, this function directly
+modifies I<%hash>.  Returns 1 on success.  If one or more of the values
+C<$hash{I<anykey>}[I<idx>]> is non-unique,  C<pivot_hash()> returns 0 without
+modifying I<%hash>.
+
+The optional argument I<ignoreInvalidElements> controls what C<pivot_hash()>
+does with values of I<%hash> that aren't arrayrefs or don't have a defined
+value at I<idx>.  By default, C<pivot_hash()> returns 0 without modifying
+I<%hash> if I<%hash> contains any elements like this.  (Such elements cannot
+be pivoted, just like new keys that would be non-unique.)  Passing
+I<ignoreInvalidElements>==1 tells C<pivot_hash()> to proceed by ignoring those
+cases where there isn't any new key.
 
 =item *
 
