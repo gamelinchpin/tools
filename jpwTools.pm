@@ -40,7 +40,7 @@ BEGIN {
     # Default exports.
     @EXPORT = qw(check_syscmd_status do_error
                  datestamp datetime_now  
-                 const_array uniq
+                 const_array uniq select_sample
                  invert_hash pivot_hash
                  rename_keys transform_keys lc_keys uc_keys
                  asymm_diff circular_shift circular_pop
@@ -225,7 +225,7 @@ sub const_array($$) {
 sub uniq {
     my %seen;
     @seen{@_} = ();
-    return keys %seen;
+    return keys(%seen);
 }
 
 
@@ -244,20 +244,68 @@ sub uniq {
 #}
 
 
-sub invert_hash(\%;\%) {
-    my $nArgs = scalar(@_);
-    my $ref_h = shift;
-    my $ref_inv;
-    if ($nArgs > 1) {
-        $ref_inv = shift;
-    } else {
-        $ref_inv = { };
+sub select_sample($\@;$) {
+    my $nSelected = shift();
+    my $ref_data = shift();
+    my $alwaysIncludeLast = (scalar(@_) ? shift() : 0);
+
+    my $lastDataIdx = $#{$ref_data};
+
+    # Determine the "slice" of the data array to keep.
+    my $selectionStep = $lastDataIdx/$nSelected;
+    # Note the use of sprintf for rounding; see `perldoc -f int`.
+    my @slice = map({ sprintf("%.0f", $_*$selectionStep)
+                    } (0 .. ($nSelected-1)));
+
+    if ($#slice > $lastDataIdx) {
+            # The caller wants to report more items than we have.
+            # => Show them all.
+        return @$ref_data;
+    } #else
+
+    if ($slice[$#slice] > $lastDataIdx) {
+        # Oops!  Rounding error ... the last index in @slice
+        # is outside of @$ref_data.  Prune it.
+        pop(@slice);
     }
+    if ( $alwaysIncludeLast && ($slice[$#slice] < $lastDataIdx) ) {
+        # Missing the last item in the list, but the caller wants to include
+        # it. 
+        push(@slice, $lastDataIdx);
+    }
+
+    return @{$ref_data}[@slice];
+}
+
+
+sub invert_hash(\%;\%\@) {
+    my $ref_h = shift();
+    my $ref_inv = shift();
+    my $ref_nonUnique = shift();
+
+    my $returnInverse = 0;
+    unless (defined($ref_inv)) {
+        $ref_inv = { };
+        $returnInverse = 1;
+    }
+
     while(my ($k, $v) = each(%$ref_h)) {
         next if(ref($v)); # Must be scalar
-        $ref_inv->{$v} = $k;
+        if (exists($ref_inv->{$v})) {
+            unless (ref($ref_inv->{$v}) eq 'ARRAY') {
+                $ref_inv->{$v} = [ $ref_inv->{$v} ];
+            }
+            push(@{$ref_inv->{$v}}, $k);
+        } else {
+            $ref_inv->{$v} = $k;
+        }
     }
-    unless ($nArgs > 1) {
+
+    if (defined($ref_nonUnique)) {
+        @$ref_nonUnique = grep({ ref($ref_inv->{$_}) } keys(%$ref_inv));
+    }
+
+    if ($returnInverse) {
         return %$ref_inv;
     }
 }
@@ -1311,6 +1359,8 @@ jpwTools - Package containing John's Perl Tools.
 
 =item uniq I<@list>
 
+=item select_sample I<nSelected>, I<@list> [, I<keepLast>]
+
 =item invert_hash I<%hash> [, I<%invHash_out>]
 
 =item pivot_hash I<%hash>, I<idx> [, I<ignoreInvalidElements>]
@@ -1495,11 +1545,29 @@ values.
 
 =item *
 
+select_sample I<nSelected>, I<@list> [, I<keepLast>]
+
+Select a uniform I<nSelected>-point sample of elements from I<@list>.  Returns
+an array containing the selected elements.
+
+The first element in I<@list> is always selected.  The rest of the sample are
+the elements which are roughly I<$#list>/I<nSelected> indices apart.
+
+Due to the discrete nature of an array, the last element of I<@list> often
+won't be in the selection.  Set I<keepLast> to any true value in order to
+force inclusion of the last element of I<@list>.  Consequently, the returned
+array may contain (I<nSelected>+1) elements ... or not.
+
+=item *
+
 invert_hash I<%hash> [, I<%invHash_out>]
 
 Takes I<%hash> and inverts it, converting each scalar value in I<%hash> to a
 key in I<%invHash_out> whose value is the corresponding key from I<%hash>.
-Non-scalar values are ignored (i.e. they do not appear in I<%invHash_out>.
+Non-scalar values are ignored (i.e. they do not appear in I<%invHash_out>,
+since you can't really convert them to a string key).  Preserves non-unique
+values by storing the corresonding keys in a single arrayref (in arbitrary
+order).
 
 When called with only one arg, C<invert_hash()> returns the inverse hash.
 
