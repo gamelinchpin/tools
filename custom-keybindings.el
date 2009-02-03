@@ -99,6 +99,8 @@
         (define-key key-translation-map [f1] [help])
         (define-key key-translation-map [8] [backspace])
         ;;(define-key key-translation-map [127] [deletekey])
+        (define-key key-translation-map [f2] [menu])
+        (define-key key-translation-map [insertchar] [insert])
         )
       );;end if
 
@@ -110,7 +112,7 @@
     ;; forgotten about.
     (if (or (string= term-lc "xterm")
             (string= (substring term-lc 0 2) "vt")
-            (string= term-lc "linux")
+            (string= (substring term-lc 0 5) "linux")
             )
         (progn
           (define-key function-key-map "\eOP" [help])
@@ -220,6 +222,7 @@
 ;; Drives Me Crazy.  Fix it.
 (global-set-key [\S-f2] '2C-command)
 (global-unset-key [f2])
+(global-set-key [menu] 'tmm-menubar)
  
 ;; Emacs 22 binds <f3> and <f4>.  However, I have preexisting bindings that
 ;; conflict.  Keep mine and rebind the defaults.
@@ -230,6 +233,7 @@
 
 ;;Undo
 (global-set-key [undo] 'advertised-undo)
+(global-set-key [f4] 'advertised-undo)
 
 ;;Open
 (global-set-key [open] 'find-file)

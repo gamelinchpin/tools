@@ -149,6 +149,13 @@ Note that this fn. only sets a face bold.  It cannot unset it.
                 t
                 );; endif
               )
+             (modeline-lowcolor-modeflags
+              (if is-version-twentytwo
+                  '((class color) (min-colors 8))
+                ;; else
+                nil
+                );; endif
+              )
              );; end varbindings
 
         (jpw-custom-set-faces-nonsaved
@@ -157,7 +164,11 @@ Note that this fn. only sets a face bold.  It cannot unset it.
                            '(:background "plum3"
                              :foreground "black" 
                              :box (:line-width -1 
-                                   :style released-button))))
+                                   :style released-button)))
+                     (list modeline-lowcolor-modeflags
+                           '(:background "magenta"
+                             :foreground "black"))
+                     )
                nil 
                "For when I'm in the mood for a more colorful modeline, use
                 this."
@@ -171,11 +182,17 @@ Note that this fn. only sets a face bold.  It cannot unset it.
             water our eyes).  Change the modeline color, and we may need to
             change this." 
            )
-         '(mode-line-inactive
-           ((t (:inherit mode-line
-                :background "LemonChiffon3"
-                :foreground "grey20"
-                :box (:line-width -1 :style released-button) :weight light)))
+         (list 'mode-line-inactive
+               (list (list modeline-active-modeflags
+                           '(:inherit mode-line
+                             :background "LemonChiffon3"
+                             :foreground "grey20"
+                             :box (:line-width -1 :style released-button)
+                             :weight light))
+                     (list modeline-lowcolor-modeflags
+                           '(:inherit mode-line
+                             :background "gray"))
+                     )
            nil
            "To accompany my more colorful modeline, I'll pick an off-white
             color for the inactive modeline." 
@@ -599,18 +616,35 @@ whatever buffer is presently open.
 its own comment line.
 {jpw: 07/2004}"
   (interactive "*sEnter HTML tag: ")
-  (do-comment-line-break) 
-  (jpw-insert-xml-tag tagname)
-  (do-comment-line-break) 
   (if mark-active
-      (save-excursion
-        ;; Do end first, to preserve position of start of the region.
-        (goto-char (region-end))
-        (do-comment-line-break)
-        (goto-char (region-beginning))
-        (do-comment-line-break)
-        )
+      ;; When the user marks a region, assume that they want to enclose it w/o
+      ;; inserting breaks anyplace.
+      ;; Note that `jpw-insert-xml-tag' unsets the mark. 
+      (jpw-insert-xml-tag tagname)
+    ;; else
+    (do-comment-line-break)
+    (jpw-insert-xml-tag tagname)
+    (save-excursion
+      (end-of-line)
+      (do-comment-line-break)
+      )
     )
+  )
+
+
+(defun jpw-insert-doc-nested-tagblock (outertagname innertagname)
+  "Insert two doxygen/javadoc HTML style/font tags, the second nested inside
+the first.  The first is inserted as a block.
+{jpw: 01/2009}"
+  (interactive)
+  (jpw-insert-doc-tagblock outertagname)
+  (do-comment-line-break)
+  (insert-char ?. 1)
+  (save-excursion
+    (do-comment-line-break)
+    )
+  (delete-backward-char 1)
+  (jpw-insert-doc-tag innertagname)
   )
 
 
@@ -631,9 +665,24 @@ its own comment line.
 (defun jpw-insert-javadoc-link ()
   "Insert a javadoc '@link' field
 {jpw: 07/2004}"
-  (interactive )
-  (insert "{@link ")
-  (save-excursion (insert "}"))
+  (interactive)
+  (if mark-active
+      (save-excursion
+        (goto-char (region-beginning))
+        (if (search-forward "." (region-end) t)
+            (replace-match "#" nil t)
+          )
+        )
+    )
+  (jpw-insert-markup-tags "{@link " "}")
+  )
+
+
+(defun jpw-insert-javadoc-member-link ()
+  "Insert a javadoc '@link' field for a member
+{jpw: 01/2009}"
+  (interactive)
+  (jpw-insert-markup-tags "{@link #" "}")
   )
 
 
@@ -1015,27 +1064,29 @@ extended using an EOL-\"\\\"-char.  {jpw; 12/2004}"
                                  (jpw-insert-doc-tag "u")))
   (local-set-key "\M-o_" (lambda() (interactive)
                                  (jpw-insert-doc-tag "u")))
-  (local-set-key "\M-p\C-m" (lambda() (interactive)
-                              (jpw-insert-doc-unitag "br")))
   (local-set-key "\M-p\C-j" (lambda() (interactive)
+                              (do-comment-line-break) 
+                              (jpw-insert-doc-unitag "br")))
+  (local-set-key "\M-p\C-m" (lambda() (interactive)
                               (jpw-insert-doc-tagblock "p")))
-  (local-set-key "\M-p-" (lambda() (interactive)
-                           (jpw-insert-doc-tagblock "li")))
   (local-set-key "\M-p*" (lambda() (interactive)
-                           (jpw-insert-doc-tagblock "li")))
-  (local-set-key "\M-p1" (lambda() (interactive)
-                           (jpw-insert-doc-tagblock "ol")
-                           (jpw-insert-doc-tagblock "li")))
-  (local-set-key "\M-p0" (lambda() (interactive)
-                           (jpw-insert-doc-tagblock "ol")
-                           (jpw-insert-doc-tagblock "li")))
+                           (jpw-insert-doc-tag "li")))
   (local-set-key "\M-p." (lambda() (interactive)
-                           (jpw-insert-doc-tagblock "ul")
-                           (jpw-insert-doc-tagblock "li")))
+                           (jpw-insert-doc-tag "li")))
+  (local-set-key "\M-pl" (lambda() (interactive)
+                           (if (null current-prefix-arg)
+                               (jpw-insert-doc-nested-tagblock "ul" "li")
+                             (setq current-prefix-arg nil)
+                             (jpw-insert-doc-nested-tagblock "ol" "li"))))
+  (local-set-key "\M-p1" (lambda() (interactive)
+                           (jpw-insert-doc-nested-tagblock "ol" "li")))
+  (local-set-key "\M-p0" (lambda() (interactive)
+                           (jpw-insert-doc-nested-tagblock "ol" "li")))
   (local-set-key "\M-p+" (lambda() (interactive)
-                           (jpw-insert-doc-tagblock "ul")
-                           (jpw-insert-doc-tagblock "li")))
+                           (jpw-insert-doc-nested-tagblock "ul" "li")))
   (local-set-key "\M-p=" (lambda() (interactive)
+                           (jpw-insert-doc-nested-tagblock "ul" "li")))
+  (local-set-key "\M-p-" (lambda() (interactive)
                            (jpw-insert-doc-unitag "hr")))
   )
 
@@ -1053,12 +1104,19 @@ extended using an EOL-\"\\\"-char.  {jpw; 12/2004}"
   (interactive)
   ;; Define doc-comment keybindings.
   (bind-jpw-doc-comment)
-  (local-set-key "\M-po" (lambda() (interactive)
+  (local-set-key "\M-oc" (lambda() (interactive)
                            (jpw-insert-doc-tag "code")))
-  (local-set-key "\M-pq" (lambda() (interactive)
+  (local-set-key "\M-pc" (lambda() (interactive)
                            (jpw-insert-doc-tagblock "pre")))
   (local-set-key "\M-pr" 'jpw-insert-javadoc-link)
   (local-set-key "\M-pl" 'jpw-insert-javadoc-link)
+  (local-set-key "\M-pm" 'jpw-insert-javadoc-member-link)
+  (local-set-key "\M-p\M-l" (lambda() (interactive)
+                              (if (null current-prefix-arg)
+                                  (jpw-insert-doc-nested-tagblock "ul" "li")
+                                (setq current-prefix-arg nil)
+                                (jpw-insert-doc-nested-tagblock "ol" "li"))
+                              ))
   )
 
 
