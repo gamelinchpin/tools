@@ -756,12 +756,12 @@ sub get_files_from_dirs(\%$@) {
 
             # Crude filename decomposition:  recognizes only '.' as the
             # extension separator.
-            if ($ref_fileMap->{$f}[0] =~ m|^(.+)\.([^.]+)$|) {
-                $ref_fileMap->{$f}[2] = $2;
-                $ref_fileMap->{$f}[3] = $1;
+            if ($ref_fileMap->{$k}[0] =~ m|^(.+)\.([^.]+)$|) {
+                $ref_fileMap->{$k}[2] = $2;
+                $ref_fileMap->{$k}[3] = $1;
             }
             if (-d $f) {
-                $ref_fileMap->{$f}[4] = 1;                
+                $ref_fileMap->{$k}[4] = 1;                
             }
         }
         closedir DH;
