@@ -744,7 +744,7 @@ sub get_files_from_dirs(\%$@) {
                 print "### $f\n";
             }
             my $k = $f;
-            unless ($k =~ m|^[^\\/]|) {
+            unless ($k =~ m|^[\\/]|) {
                 $k = File::Spec->catfile($dir, $f);
             }
             # Format:
