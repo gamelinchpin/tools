@@ -2,7 +2,7 @@
 ;;
 ;; Major and Minor modes for editing LiveJournal entries.
 ;;
-;;  Copyright © 2006-2008 John P. Weiss except as documented below
+;;  Copyright © 2006-2009 John P. Weiss except as documented below
 ;;
 ;;  This package is free software; you can redistribute it and/or modify
 ;;  it under the terms of the Artistic License, included as the file
