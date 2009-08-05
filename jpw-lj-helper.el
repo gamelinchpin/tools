@@ -3,7 +3,7 @@
 ;; Major and Minor modes for editing LiveJournal entries.
 ;;
 ;;  Copyright © 2006-2008 John P. Weiss except as documented below
-;;  
+;;
 ;;  This package is free software; you can redistribute it and/or modify
 ;;  it under the terms of the Artistic License, included as the file
 ;;  "LICENSE" in the source code archive.
@@ -17,7 +17,7 @@
 ;;
 ;; Certain code in this file was taken, lock, stock, and barrel fro Jamie
 ;; Zawinski's "jwz-lj.el" file.  That code has the following copyright:
-;; 
+;;
 ;;   Copyright © 2002, 2003, 2004, 2005 Jamie Zawinski <jwz@jwz.org>.
 ;;
 ;;   Permission to use, copy, modify, distribute, and sell this software and
@@ -27,12 +27,12 @@
 ;;   documentation.  No representations are made about the suitability of this
 ;;   software for any purpose.  It is provided "as is" without express or
 ;;   implied warranty.
-;;  
+;;
 ;;
 ;; You can enter the major-mode using `\M-p\M-j'.
 ;; You enter the minor-mode using `\M-x jpw-lj-minor-mode'.
 ;;
-;;  
+;;
 ;; RCS $Id$
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -49,7 +49,7 @@
 ;;------------------------------------------------------------
 ;;
 ;; Utility Functions ... Required by Customizations
-;; 
+;;
 
 
 (defun jpw-lj-custom-set-var (symbol val)
@@ -57,13 +57,13 @@
   (if (not (boundp symbol))
       (set symbol (list))
       )
-  (let ((sym-alist (car 
-                    (rassq symbol 
+  (let ((sym-alist (car
+                    (rassq symbol
                            '((jpw-lj-avatar-alist . jpw-lj-user-avatars)
                              (jpw-lj-security-alist . jpw-lj-friend-groups)
                              ))))
         l-add-to-sym)
-    (fset 'l-add-to-sym (lambda (arg) 
+    (fset 'l-add-to-sym (lambda (arg)
                           (add-to-list symbol arg t)
                           (if sym-alist (add-to-list sym-alist (list arg) t))
                           )
@@ -76,7 +76,7 @@
 ;;------------------------------------------------------------
 ;;
 ;; User Customizations
-;; 
+;;
 
 
 (defgroup jpw-lj 'nil
@@ -144,7 +144,7 @@ respectively."
   :group 'jpw-lj)
 
 
-(defface jpw-lj-bold-face 
+(defface jpw-lj-bold-face
   '((t (:inherit bold)))
   "How to color <strong>...</strong> and <b>...</b> tags."
   :group 'jpw-lj)
@@ -159,33 +159,33 @@ respectively."
   "How to color <u>...</u> tags."
   :group 'jpw-lj)
 
-(defface jpw-lj-tag-face 
+(defface jpw-lj-tag-face
   '((t (:inherit font-lock-function-name-face)))
   "The face to use for non-markup jpw-lj tags."
   :group 'jpw-lj)
 
-(defface jpw-lj-size-face 
+(defface jpw-lj-size-face
   '((t (foreground "DarkMagenta")))
   "The face to use for the HTML `FONT' tag."
   :group 'jpw-lj)
 
-(defface jpw-lj-header-face 
+(defface jpw-lj-header-face
   '((t (:inherit font-lock-variable-name-face)))
   "The face to use for LiveJournal Headers."
   :group 'jpw-lj)
 
-(defface jpw-lj-code-face 
+(defface jpw-lj-code-face
   '((t (:inherit font-lock-constant-face)))
   "The face to use for code markup."
   :group 'jpw-lj)
 
-(defface jpw-lj-del-face 
+(defface jpw-lj-del-face
   '((t (:strike-through t)))
   "The face to use for the <del> ... </del> HTML markup [a logical style that
 replaces the old, deprecated \"<strike>\" tag]."
   :group 'jpw-lj)
 
-(defface jpw-lj-url-face 
+(defface jpw-lj-url-face
   '((t (:inherit font-lock-keyword-face
                  :underline t :bold t)))
   "The face to use for URLs."
@@ -195,7 +195,7 @@ replaces the old, deprecated \"<strike>\" tag]."
 ;;------------------------------------------------------------
 ;;
 ;; Constants and Variables
-;; 
+;;
 
 
 (defconst jpw-html-size-alist
@@ -229,16 +229,16 @@ replaces the old, deprecated \"<strike>\" tag]."
     ("satisfied") ("scared") ("shocked") ("sick") ("silly") ("sleepy")
     ("sore") ("stressed") ("surprised") ("sympathetic") ("thankful")
     ("thirsty") ("thoughtful") ("tired") ("touched") ("uncomfortable")
-    ("weird") ("working") ("worried")) 
+    ("weird") ("working") ("worried"))
   "Alist of LiveJournal moods.
 {jpw: 03/2006}")
 
 
-(defconst jpw-lj-comments-alist 
-  '(("N" . "Don't screen comments.") 
-    ("R" . "Screen anonymous comments only") 
+(defconst jpw-lj-comments-alist
+  '(("N" . "Don't screen comments.")
+    ("R" . "Screen anonymous comments only")
     ("F" . "Screen comments made by non-friends")
-    ("A" . "Screen *All* comments")) 
+    ("A" . "Screen *All* comments"))
   "Alist of LiveJournal comment-screening flags, along with text descriptions
 of each flag.
 {jpw: 03/2006}")
@@ -465,7 +465,9 @@ and a few typography symbols.")
 (defconst jpw-lj-entity-shortcut-table
   '(
     (":<=" . "&le;")
+    (":<" . "&lt;")
     (":>=" . "&ge;")
+    (":>" . "&gt;")
     (":===" . "&equiv;")
     (":~=" . "&cong;")
     (":~" . "&sim;")
@@ -489,11 +491,11 @@ of search regexps.
 {jpw: 03/2006}")
 
 
-(defconst jpw-jwz-lj-entity-table-re 
+(defconst jpw-jwz-lj-entity-table-re
   (eval-when-compile
     (set-buffer-multibyte t)
     (concat "["
-            (mapconcat #'(lambda (x) 
+            (mapconcat #'(lambda (x)
                              (make-string 1 (cdr x))
                              )
                        jwz-lj-entity-table nil)
@@ -505,7 +507,7 @@ regexp in `jwz-lj-entify'.
 {jpw; 03/2006}")
 
 
-(defconst jpw-lj-entity-shortcut-table-re 
+(defconst jpw-lj-entity-shortcut-table-re
   (eval-when-compile
     (concat "\\(?:\\w\\|\\s \\)"
             ;; N.B. - Must contain a single group, surrounding the portion of
@@ -524,7 +526,7 @@ regexp in `jwz-lj-entify'.
 ;;------------------------------------------------------------
 ;;
 ;; Utility Functions
-;; 
+;;
 
 
 ;; FIXME:
@@ -544,7 +546,7 @@ regexp in `jwz-lj-entify'.
     ;; jpw-lj-entity-shortcut-table-re contains a single matching group.
     ;; Inside of that group is a regexp for all of the shortcut-table keys.
     (while (re-search-forward jpw-lj-entity-shortcut-table-re end t)
-      (let* ((entity (cdr 
+      (let* ((entity (cdr
                       (assoc (match-string 1) jpw-lj-entity-shortcut-table)))
              );;end bindings
         ;; Only replace the part of the match that corresponds to the
@@ -613,7 +615,7 @@ If there is no region, use the whole buffer."
 ;;------------------------------------------------------------
 ;;
 ;; Mode Interactive Functions
-;; 
+;;
 
 
 ;; Skeleton Templates
@@ -827,19 +829,8 @@ Actually, it uses the logical tag \"<strong>\", unless called with an arg.
   )
 
 
-(defsubst jpw-lj-insert-list (&optional type)
-  "Insert HTML list tags, or puts the active region inside HTML list
-tags.
-The optional `type' specifies the type of list.  It can be passed directly or
-specified using a prefix-arg.  If `type' is an integer [e.g. a prefix-arg],
-then the list will be an ordered list.  Otherwise, the list is unordered.
-Any other type is an error.
-{jpw: 03/2006}"
-  jpw-html-insert-list)
-
-
-(defun jpw-lj-insert-size () 
-  (interactive) 
+(defun jpw-lj-insert-size ()
+  (interactive)
   (funcall jpw-lj-default-html-size-function))
 
 
@@ -894,9 +885,9 @@ Call this function after changing certain customization variables manually
 \\=\\[i.e. outside of `custom-mode'\\=\\]
 {jpw: 03/2006}"
   (interactive)
-  (funcall 'jpw-lj-custom-set-var 
+  (funcall 'jpw-lj-custom-set-var
            'jpw-lj-security-alist jpw-lj-friend-groups)
-  (funcall 'jpw-lj-custom-set-var 
+  (funcall 'jpw-lj-custom-set-var
            'jpw-lj-avatar-alist jpw-lj-user-avatars)
   )
 
@@ -904,7 +895,7 @@ Call this function after changing certain customization variables manually
 ;;------------------------------------------------------------
 ;;
 ;; Bindings: Define Local Keymap
-;; 
+;;
 
 
 (defvar jpw-lj-mode-map nil)
@@ -925,6 +916,9 @@ Call this function after changing certain customization variables manually
       (define-key jpw-lj-mode-map "\M-ou" 'jpw-html-underline)
 
       (define-key jpw-lj-mode-map "\M-oo" 'jpw-html-code)
+      (define-key jpw-lj-mode-map "\M-oc" 'jpw-html-code)
+      (define-key jpw-lj-mode-map "\M-ot" 'tempo-template-html-fixed)
+      (define-key jpw-lj-mode-map "\M-of" 'tempo-template-html-fixed)
 
       (define-key jpw-lj-mode-map "\M-od" 'jpw-html-del)
 
@@ -939,7 +933,7 @@ Call this function after changing certain customization variables manually
       (define-key jpw-lj-mode-map "\M-pa" 'jpw-html-href-anchor)
       (define-key jpw-lj-mode-map "\M-p\C-u" 'jpw-html-href-anchor)
 
-      (define-key jpw-lj-mode-map "\M-pl" 'jpw-lj-insert-list)
+      (define-key jpw-lj-mode-map "\M-pl" 'jpw-html-insert-list)
 
       (define-key jpw-lj-mode-map "\M-p*" 'html-list-item)
       (define-key jpw-lj-mode-map "\M-p." 'html-list-item)
@@ -950,6 +944,14 @@ Call this function after changing certain customization variables manually
       (define-key jpw-lj-mode-map "\M-p\C-j" 'html-line)
 
       (define-key jpw-lj-mode-map "\M-p-" 'html-horizontal-rule)
+
+      (define-key jpw-lj-mode-map "\M-pc" 'tempo-template-html-preformatted)
+      (define-key jpw-lj-mode-map "\M-pq" 'tempo-template-html-blockquote)
+
+      ;; Entity expansion
+      (define-key jpw-lj-mode-map "\C-c'" 'jpw-html-entity-abbrev-expand)
+      (define-key
+        jpw-lj-mode-map [?\C-c ?\C-'] 'jpw-html-entity-abbrev-expand)
 
       ;; LJ-specific commands
       (define-key jpw-lj-mode-map "\M-pu" 'jpw-lj-user)
@@ -973,7 +975,7 @@ Call this function after changing certain customization variables manually
 ;;------------------------------------------------------------
 ;;
 ;; Font-Lock Support
-;; 
+;;
 
 
 ;;
@@ -1005,7 +1007,7 @@ Call this function after changing certain customization variables manually
     "<em>"
     "\\("
     "[^<]*\\(<[^/]+/[^e][^>]*>[^<]*\\)*"
-    "\\)"    
+    "\\)"
     "</em>"
     ) ;;end concat
    '(1 'jpw-lj-italic-face append)
@@ -1035,7 +1037,7 @@ Call this function after changing certain customization variables manually
     "<i>"
     "\\("
     "[^<]*\\(<[^/]+/[^i][^>]*>[^<]*\\)*"
-    "\\)"    
+    "\\)"
     "</i>"
     ) ;;end concat
    '(1 'jpw-lj-italic-face append)
@@ -1051,7 +1053,7 @@ Call this function after changing certain customization variables manually
     "<u>"
     "\\("
     "[^<]*\\(<[^/]+/[^u][^>]*>[^<]*\\)*"
-    "\\)"    
+    "\\)"
     "</u>"
     ) ;;end concat
    '(1 'jpw-lj-underline-face append)
@@ -1105,7 +1107,7 @@ Call this function after changing certain customization variables manually
 (defconst jpw-lj-font-lock-size-face-key-3
   (list
    (concat
-     "<span style=\"font-size: [^>]+>" 
+     "<span style=\"font-size: [^>]+>"
     "\\([^<]*\\(<[^/]+/[^s][^>]*>[^<]*\\)*\\)"
     "</span>"
     ) ;;end concat
@@ -1180,7 +1182,7 @@ Call this function after changing certain customization variables manually
 {jpw: 03/2006")
 
 
-(defconst jpw-lj-font-lock-defaults-keywords 
+(defconst jpw-lj-font-lock-defaults-keywords
   '(jpw-lj-font-lock-keywords-1 jpw-lj-font-lock-keywords-2
                                 jpw-lj-font-lock-keywords-3)
   "The list of keyword variables used in jpw-lj-font-lock-defaults.
@@ -1204,7 +1206,7 @@ and be reused.
 ;;------------------------------------------------------------
 ;;
 ;; Define the mode proper
-;; 
+;;
 
 
 (defsubst jpw-lj-select-font-lock-keywords-by-level (the-font-lock-defaults)
@@ -1215,12 +1217,12 @@ similarly structured variable.
   (let* ((jpw-lj-font-lock-level-list (car the-font-lock-defaults))
          (my-deco1 (if (listp font-lock-maximum-decoration)
                        (or (assq 'jpw-lj-mode font-lock-maximum-decoration)
-                           (assq 'jpw-lj-minor-mode 
+                           (assq 'jpw-lj-minor-mode
                                  font-lock-maximum-decoration)
                            (assq 't font-lock-maximum-decoration)
                            )
                      ;; else
-                     font-lock-maximum-decoration                    
+                     font-lock-maximum-decoration
                      );; end if
                    )
          (my-deco2 (if (listp my-deco1) (cdr my-deco1) my-deco1))
@@ -1258,13 +1260,13 @@ similarly structured variable.
   ;; font-locking-behavior.
   (setq font-lock-multiline t
         ;; `jit-lock-mode' doesn't correctly fontify everything we want it to.
-        ;; 
+        ;;
         ;; `fast-lock-mode' and `lazy-lock-mode' require you to
         ;; manually-refontify when editing text in some of the more complex
         ;; multiline expressions.  `fast-lock-mode' works by keeping a cache
         ;; of fontifications.  Great for programming modes.  Bad for modes
         ;; operating on temporary buffers.
-        ;; 
+        ;;
         ;; So, we'll use `lazy-lock-mode', suitably tuned to behave as
         ;; desired.
         font-lock-support-mode 'lazy-lock-mode
@@ -1282,7 +1284,7 @@ similarly structured variable.
 
   ;;
   ;; Things needed to circumvent behavior inherited by HTML mode.
-  ;; 
+  ;;
 
   ;; Override the skeleton-mode hooks
   (make-local-variable 'skeleton-end-newline)
@@ -1301,7 +1303,7 @@ similarly structured variable.
   )
 
 
-
+
 ;;;###autoload (jpw-lj-mode)
 (define-derived-mode jpw-lj-mode html-mode "jpw-lj"
   "A major mode for editing LiveJournal messages.  Derived from `html-mode'.
@@ -1318,7 +1320,7 @@ Key bindings:
   )
 
 
-
+
 ;;;###autoload (jpw-lj-mode)
 (define-minor-mode jpw-lj-minor-mode
   "A minor mode for editing LiveJournal messages.
@@ -1344,10 +1346,10 @@ Key bindings:
 
         ;; Set `jpw-lj-font-lock-keywords' according to the desired level.
         (setq jpw-lj-font-lock-keywords
-              (jpw-lj-select-font-lock-keywords-by-level 
+              (jpw-lj-select-font-lock-keywords-by-level
                jpw-lj-font-lock-defaults))
         ;; Merge
-        (let* ((old-keywords 
+        (let* ((old-keywords
                 (jpw-lj-select-font-lock-keywords-by-level font-lock-defaults))
                ) ;; end bindings
           (if (symbolp old-keywords)
@@ -1391,7 +1393,7 @@ Key bindings:
 ;;------------------------------------------------------------
 ;;
 ;; Unit Tests
-;; 
+;;
 
 
 ;;...
