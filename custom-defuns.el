@@ -1,9 +1,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;    
+;;
 ;; Custom Functions
 ;;
-;;  Copyright © 1995-2008 John P. Weiss
-;;  
+;;  Copyright © 1995-2009 John P. Weiss
+;;
 ;;  This package is free software; you can redistribute it and/or modify
 ;;  it under the terms of the Artistic License, included as the file
 ;;  "LICENSE" in the source code archive.
@@ -14,8 +14,8 @@
 ;;
 ;;  You should have received a copy of the file "LICENSE", containing
 ;;  the License John Weiss originally placed this program under.
-;; 
-;; 
+;;
+;;
 ;; My custom functions.  Used as tools and bound to keys, or used as
 ;; autohooks, or just basic building-block functions.
 ;;
@@ -142,7 +142,7 @@ Note that this fn. only sets a face bold.  It cannot unset it.
   ;; else
   (progn
     (defun jpw-cust-colorful-modeline ()
-      (let ( (modeline-active-modeflags 
+      (let ( (modeline-active-modeflags
               (if is-version-twentytwo
                   '((class color) (min-colors 88))
                 ;; else
@@ -159,28 +159,28 @@ Note that this fn. only sets a face bold.  It cannot unset it.
              );; end varbindings
 
         (jpw-custom-set-faces-nonsaved
-         (list 'mode-line 
+         (list 'mode-line
                (list (list modeline-active-modeflags
                            '(:background "plum3"
-                             :foreground "black" 
-                             :box (:line-width -1 
+                             :foreground "black"
+                             :box (:line-width -1
                                    :style released-button)))
                      (list modeline-lowcolor-modeflags
                            '(:background "magenta"
                              :foreground "black"))
                      )
-               nil 
+               nil
                "For when I'm in the mood for a more colorful modeline, use
                 this."
                )
          '(mode-line-highlight
-           ((t (:foreground "green4" 
+           ((t (:foreground "green4"
                 :box (:line-width 2 :color "grey40" :style released-button))))
-           nil 
+           nil
            "Just using a box with a darker gray is unsatisfying.  Let's
             change the text color to something that will stand out (but not
             water our eyes).  Change the modeline color, and we may need to
-            change this." 
+            change this."
            )
          (list 'mode-line-inactive
                (list (list modeline-active-modeflags
@@ -195,7 +195,7 @@ Note that this fn. only sets a face bold.  It cannot unset it.
                      )
            nil
            "To accompany my more colorful modeline, I'll pick an off-white
-            color for the inactive modeline." 
+            color for the inactive modeline."
            )
          )
         );; end let
@@ -359,7 +359,7 @@ to `nil'.
            (if (looking-at "\n\n")
                (replace-match "\n"))
            )
-          (remove-blank-lines 
+          (remove-blank-lines
            (if (looking-at "\n\n+")
                (replace-match "\n"))
            )
@@ -378,7 +378,7 @@ The optional `remove-blank-lines' will be passed to every underlying
 {jpw: 09/2005}"
   (save-excursion
     (goto-char (point-min))
-    (while (jpw-unfill-paragraph-engine remove-blank-lines 
+    (while (jpw-unfill-paragraph-engine remove-blank-lines
                                         jpw-unfill-skip-line)
       (forward-word 1)
       );; end while.
@@ -487,12 +487,12 @@ Otherwise, it calls `untabify-buffer'.
 
 (defun server-quit-l ()
   "Saves the server-buffer, does a (server-edit), then kills the
-buffer. 
+buffer.
 {jpw: 11/2004}"
   (interactive)
   (save-buffer)
   (if (not (or is-winblows is-cygwin))
-      (progn 
+      (progn
         (rename-buffer "oldserv")
         (server-edit)
         (switch-to-buffer "oldserv")
@@ -502,7 +502,7 @@ buffer.
 
 
 (defun kill-buffer-other-window ()
-  "Kill the buffer in the next open window. 
+  "Kill the buffer in the next open window.
 {jpw: 12/2004}"
   (interactive)
   (other-window 1)
@@ -513,7 +513,7 @@ buffer.
 
 (defun kill-next-buffer-and-close-other-windows ()
   "Kill the buffer in the next open window, then close all of the other
-windows. 
+windows.
 {jpw: 2/2005}"
   (interactive)
   (other-window 1)
@@ -524,7 +524,7 @@ windows.
 
 
 (defun bury-buffer-other-window ()
-  "Bury the buffer in the next open window. 
+  "Bury the buffer in the next open window.
 {jpw: 12/2004}"
   (interactive)
   (other-window 1)
@@ -574,7 +574,7 @@ whatever buffer is presently open.
   )
 
 
-(defun save-all-buffers () 
+(defun save-all-buffers ()
   "{jpw: 12/2004}"
   (interactive)
   (save-some-buffers t)
@@ -619,7 +619,7 @@ its own comment line.
   (if mark-active
       ;; When the user marks a region, assume that they want to enclose it w/o
       ;; inserting breaks anyplace.
-      ;; Note that `jpw-insert-xml-tag' unsets the mark. 
+      ;; Note that `jpw-insert-xml-tag' unsets the mark.
       (jpw-insert-xml-tag tagname)
     ;; else
     (do-comment-line-break)
@@ -649,15 +649,15 @@ the first.  The first is inserted as a block.
 
 
 (defun jpw-insert-doxygen-cmdblock (cmdname)
-  "Insert a doxygen '\\command'...'\\endcommand' pair on separate lines. 
+  "Insert a doxygen '\\command'...'\\endcommand' pair on separate lines.
 {jpw: 07/2004}"
   (interactive "*sEnter doxygen command: ")
-  (do-comment-line-break) 
-  (insert "\\" cmdname) 
   (do-comment-line-break)
-  (save-excursion 
-    (do-comment-line-break) 
-    (insert "\\end" cmdname) 
+  (insert "\\" cmdname)
+  (do-comment-line-break)
+  (save-excursion
+    (do-comment-line-break)
+    (insert "\\end" cmdname)
     (do-comment-line-break))
   )
 
@@ -690,7 +690,7 @@ the first.  The first is inserted as a block.
   "Insert a TCLDoc '@' tag.
 {jpw: 09/2006}"
   (interactive "*sEnter TCLDoc tag: ")
-  (do-comment-line-break) 
+  (do-comment-line-break)
   (insert " @" tagname " ")
   (if (equal tagname "param")
       (save-excursion
@@ -751,7 +751,7 @@ the first.  The first is inserted as a block.
     ("~" . "&sim;")
     ("~=" . "&cong;")
     ("~~" . "&asymp;")
-    (" " . "&nbsp;") 
+    (" " . "&nbsp;")
     )
   "A table of abreviations for creating HTML entities.  Note that there are a
 few alternatives for the same entity, so that mixing two similar mnemnonics
@@ -780,7 +780,9 @@ few alternatives for the same entity, so that mixing two similar mnemnonics
       ;; N.B. - Must contain a single group, surrounding the portion
       ;; of the regex matching the shortcut-table keys.
       (concat notSyms
+              "([\\;:]?"
               (regexp-opt mnemonics t)
+              ")"
               notSyms
        )
       );end let*
@@ -792,7 +794,7 @@ few alternatives for the same entity, so that mixing two similar mnemnonics
 
 ;; Redefine some of the tempo-template-* commands used by `html-helper-mode'
 ;; so that they produce valid XML
-(tempo-define-template 
+(tempo-define-template
  "html-line-break"
  '(& "<br/>" > n)
  nil
@@ -802,7 +804,7 @@ This function has been redefined so that it produces a complete tag.
  )
 
 
-(tempo-define-template 
+(tempo-define-template
  "html-horizontal-line"
  '(& "<hr/>" > n)
  nil
@@ -833,7 +835,7 @@ Any other type is an error.
   ;; Validation check.
   (or (null type)
       (char-or-string-p type)
-      (signal 'wrong-type-argument 
+      (signal 'wrong-type-argument
               (list 'char-or-string-p type)))
   ;; Clear the prefix arg so it doesn't screw up the behavior of the
   ;; `skeleton-insert' call.
@@ -861,7 +863,7 @@ abbreviations/mnemnonics.
            );;end bindings
       (goto-char start)
       (if (posix-search-forward jpw-html-symbol-entity-table-re end t)
-          (setq entity (cdr (assoc (match-string 1) 
+          (setq entity (cdr (assoc (match-string 1)
                                    jpw-html-symbol-entity-table)))
         )
       (if entity
@@ -882,7 +884,7 @@ abbreviations/mnemnonics.
 ;;
 
 
-(defun jpw-read-info-dir(file) 
+(defun jpw-read-info-dir(file)
   "Invoke Info on the named file, which should be a .info file or info
 top-level directory file."
   (interactive "fInfo file to open: ")
@@ -915,7 +917,7 @@ top-level directory file."
 )
 
 
-(defun do-comment-line-break () 
+(defun do-comment-line-break ()
   "Calls the function that the variable `comment-line-break-function'
 is set to
 {jpw: 3/2002}."
@@ -954,7 +956,7 @@ is set to
 {jpw: 11/2005}."
   (interactive)
   (jpw-load-utf)
-  (decode-coding-region (point-min) (point-max) 
+  (decode-coding-region (point-min) (point-max)
                         'mule-utf-16-le-with-signature))
 (defalias 'decode-xml 'decode-utf16)
 
@@ -1007,7 +1009,7 @@ Unfortunately, it doesn't work too well.
 
 
 (defun jpw-flip-to-mode (regex mode)
-  "Flip from `sh-mode' for embedded \"foreign\" scripting languages. 
+  "Flip from `sh-mode' for embedded \"foreign\" scripting languages.
 
 There's a common technique used for scripts whose interpreter cannot be
 started via the \"#!\"-technique:  call 'exec' on the interpreter, passing the
@@ -1020,8 +1022,8 @@ extended using an EOL-\"\\\"-char.  {jpw; 12/2004}"
      (and (re-search-forward "^#.*\\\\[ \t]*$" (point-max) t)
           (or (beginning-of-line) t)
           (re-search-forward
-           (concat "\\\\[ \t]*\nexec .*" 
-                   regex  
+           (concat "\\\\[ \t]*\nexec .*"
+                   regex
                    ".* \\(`basename \\)?\"?\\${?0}?\"?`?"
                    " .*\"?\\${?[@*1]}?\"?")
            (point-max) t)
@@ -1065,7 +1067,7 @@ extended using an EOL-\"\\\"-char.  {jpw; 12/2004}"
   (local-set-key "\M-o_" (lambda() (interactive)
                                  (jpw-insert-doc-tag "u")))
   (local-set-key "\M-p\C-j" (lambda() (interactive)
-                              (do-comment-line-break) 
+                              (do-comment-line-break)
                               (jpw-insert-doc-unitag "br")))
   (local-set-key "\M-p\C-m" (lambda() (interactive)
                               (jpw-insert-doc-tagblock "p")))
@@ -1125,10 +1127,21 @@ extended using an EOL-\"\\\"-char.  {jpw; 12/2004}"
   (setq fill-column 70)
   (font-lock-mode -1)
   ;; Mozex should not use auto-fill mode
-  (or 
+  (or
    (string-match "^mozex\." (buffer-name))
    (turn-on-auto-fill)
    )
+  )
+
+
+(defun use-jpw-style-mutt ()
+  (interactive)
+  (turn-on-auto-fill)
+  (font-lock-mode 't)
+  (abbrev-mode 1)
+  (local-set-key "\C-ca" 'mutt-alias-insert)
+  (local-set-key "\C-ci" 'mutt-alias-insert)
+  (local-set-key "\C-cl" 'mutt-alias-lookup)
   )
 
 
@@ -1143,10 +1156,14 @@ extended using an EOL-\"\\\"-char.  {jpw; 12/2004}"
   (local-set-key [\M-up] 'outline-previous-visible-heading)
   (local-set-key [\M-right] 'outline-forward-same-level)
   (local-set-key [\M-left] 'outline-backward-same-level)
+  (local-set-key [\C-c\C-tab] 'show-all)
   (local-set-key [\C-\S-down] 'org-shiftmetadown)
   (local-set-key [\C-\S-up] 'org-shiftmetaup)
   (local-set-key [\C-\S-right] 'org-shiftmetaright)
   (local-set-key [\C-\S-left] 'org-shiftmetaleft)
+  (local-set-key [\C-tab] 'unindent-line)
+  (local-set-key [\S-tab] 'reverse-indent-line)
+  (local-set-key [\S-iso-lefttab] 'reverse-indent-line)
   (font-lock-mode t)
   )
 
@@ -1163,7 +1180,7 @@ extended using an EOL-\"\\\"-char.  {jpw; 12/2004}"
   (local-set-key [\M-return] 'join-next-line)
 
   ;; Special setup for HTML-Helper Mode  on Thunderbird mail buffers.
-  (local-set-key "\M-p\M-t" 
+  (local-set-key "\M-p\M-t"
                  '(lambda ()
                     (interactive)
                     (revert-to-utf8)
@@ -1202,7 +1219,7 @@ extended using an EOL-\"\\\"-char.  {jpw; 12/2004}"
   ;; Entity expansion
   (local-set-key "\C-c'" 'jpw-html-entity-abbrev-expand)
   (local-set-key [?\C-c ?\C-'] 'jpw-html-entity-abbrev-expand)
-  
+
   (font-lock-mode t)
   )
 
@@ -1213,6 +1230,12 @@ extended using an EOL-\"\\\"-char.  {jpw; 12/2004}"
   "Level 2 Heading" nil "=== " _ "===")
 (define-skeleton jpw-wikipedia-insert-header3
   "Level 3 Heading" nil "==== " _ "====")
+(define-skeleton jpw-wikipedia-insert-header4
+  "Level 4 Heading" nil "===== " _ "=====")
+(define-skeleton jpw-wikipedia-insert-html
+  "Protected HTML markup" nil "<html>" _ "</html>")
+(define-skeleton jpw-wikipedia-insert-pre
+  "Protected HTML markup" nil "<html><pre>" _ "</pre></html>")
 
 
 (defun use-jpw-style-wikipedia-mode ()
@@ -1262,7 +1285,7 @@ extended using an EOL-\"\\\"-char.  {jpw; 12/2004}"
   (local-set-key "\M-od" 'tempo-template-html-strikethru)
 
   ;; Paragraph styles
-  (local-set-key "\M-pc" 'tempo-template-html-preformatted)
+  (local-set-key "\M-pc" 'jpw-wikipedia-insert-pre)
   (local-set-key "\M-pa" 'wikipedia-insert-link)
   (local-set-key "\M-p\C-u" 'wikipedia-insert-link)
   (local-set-key "\M-pl" 'wikipedia-insert-itemize)
@@ -1270,9 +1293,11 @@ extended using an EOL-\"\\\"-char.  {jpw; 12/2004}"
   (local-set-key "\M-p\C-j" 'wikipedia-terminate-paragraph)
   (local-set-key "\M-p-" 'wikipedia-insert-html-hline)
   (local-set-key "\M-ph" 'wikipedia-insert-header)
+  (local-set-key "\M-p\M-h" 'jpw-wikipedia-insert-html)
   (local-set-key "\M-p1" 'jpw-wikipedia-insert-header1)
   (local-set-key "\M-p2" 'jpw-wikipedia-insert-header2)
   (local-set-key "\M-p3" 'jpw-wikipedia-insert-header3)
+  (local-set-key "\M-p4" 'jpw-wikipedia-insert-header4)
 
   ;; Entity expansion
   (local-set-key "\C-c'" 'jpw-html-entity-abbrev-expand)
@@ -1321,7 +1346,7 @@ extended using an EOL-\"\\\"-char.  {jpw; 12/2004}"
   ;; This, for some reason, needs to be in the mode-specific autohook defuns.
   ;; Leave it here, too, just for documentation clarity.
   (local-unset-key [f4])
-  ;; Force use of correct comment-break-fn.  
+  ;; Force use of correct comment-break-fn.
   (local-set-key "\M-j" 'do-comment-line-break)
   (local-set-key [?\C-c f7] 'compile)
   (local-set-key [?\C-c f8] 'recompile)
@@ -1363,7 +1388,7 @@ extended using an EOL-\"\\\"-char.  {jpw; 12/2004}"
            );; end and
       (c++-mode)
     ;; else - this really is a C-source file.
-    ;; 
+    ;;
     ;; Use the value of the `jpw-c-style' variable, for that added level of
     ;; indirection. ;)
     (c-set-style jpw-c-style)
