@@ -3,7 +3,7 @@
 ;; M$ WinBlows-specific setup.
 ;;
 ;;  Copyright © 1995-2008 John P. Weiss
-;;  
+;;
 ;;  This package is free software; you can redistribute it and/or modify
 ;;  it under the terms of the Artistic License, included as the file
 ;;  "LICENSE" in the source code archive.
@@ -40,7 +40,7 @@
 
 ;; Customization-Menu Variables.  These are set in a block, and will
 ;; show up in the user's .emacs file when they next save their
-;; customizations. 
+;; customizations.
 ;;
 (custom-set-variables
 ;;; '(printer-name "//SOME_WIN_DOMAIN/SOME_PRINTER" t)
@@ -56,11 +56,11 @@
 (defvar cygwin-basepath "C:/cygwin")
 ;;(defvar cygwin-basepath "D:/cygwin")
 ;;(defvar cygwin-basepath "D:/local/cygwin") ;Keep changin' my mind...
-(defvar cygwin-tmppath (or (getenv "TEMP") 
+(defvar cygwin-tmppath (or (getenv "TEMP")
                            (getenv "TMP")
                            ;; Customize below, or set one of the envvars above.
                            "C:/home/tmp"))
-(defvar cygwin-home (or (getenv "HOME") 
+(defvar cygwin-home (or (getenv "HOME")
                         ;; Customize below, or set the envvar above.
                         "C:/home/tmp"))
 
@@ -69,14 +69,14 @@
 
 ;; Installation Path for VSS
 ;; Leave commented out if you aren't using VSS
-;; 
+;;
 ;;;(defvar vss-install-path "C:\\Program Files\\Microsoft Visual Studio")
 
 ;; Variables defining the path to various VSS DB's.
 ;;;(defvar vss-db "p:\\RepositoryPath\\VSS")
 
 ;; VSS Login Info
-;; 
+;;
 ;;;(setq ss-username "JWeiss")
 ;;;(setq ss-password 'nil)
 ;;;(setq ss-tmp-dir cygwin-tmppath)
@@ -84,7 +84,7 @@
 ;;(setq ss-trace 'nil)
 
 ;; The list of VSS projects.
-;;;(setq jpw-vss-projects 
+;;;(setq jpw-vss-projects
 ;;;      (list
 ;;;       '("^C:/home/jweiss/SomeProjectDir.working"
 ;;;         "$/TheVSSRepository/" vss-db)
@@ -117,7 +117,7 @@
 
 (defvar cygwin-binpath (concat cygwin-basepath "/bin"))
 (setenv "INFOPATH"
-        (concat cygwin-basepath "/usr/info" 
+        (concat cygwin-basepath "/usr/info"
                 ";" cygwin-basepath "/usr/share/info")
         )
 
@@ -141,41 +141,41 @@
 (defvar win-default-frame-height '55)
 (defvar res (downcase (or (getenv "SCREENRES") "none")))
 (setq initial-frame-alist
-      '((top . 0) (left . 0) 
+      '((top . 0) (left . 0)
         (width . 80) (height . 46)
         (user-position t))
       )
-(cond 
+(cond
  ((equal res "800x600")
   (setq win-default-frame-height '37)
-  (set-default-font 
+  (set-default-font
    "-*-Lucida Console-normal-r-*-*-12-*-*-*-c-*-*")
   )
  ((equal res "1024x768")
   (setq win-default-frame-height '45)
-  (set-default-font 
+  (set-default-font
 ;;   "-*-Lucida Sans Typewriter-normal-r-*-*-13-*-*-*-*-*-*")
    "-*-Lucida Console-normal-r-*-*-15-*-*-*-c-*-*")
   )
  ((equal res "1152x864")
   ;; For NT, the height is '53.  For XP, it's down to '51
   ;;;(setcdr (assoc 'height initial-frame-alist) '51)
-  ;;;(set-default-font 
+  ;;;(set-default-font
   ;;; "-*-Lucida Console-normal-r-*-*-15-*-*-*-c-*-*")
   ;; For larger fonts, one could do this:
   (setq win-default-frame-height '43)
-  (set-default-font 
+  (set-default-font
    "-*-Lucida Console-normal-r-*-*-17-*-*-*-c-*-*")
   )
  ((equal res "1280x1024")
   (setq win-default-frame-height '55)
-  (set-default-font 
+  (set-default-font
    "-*-Lucida Console-normal-r-*-*-17-*-*-*-c-*-*")
   )
   ;;else
  (t
   (setq win-default-frame-height '24)
-  (set-default-font 
+  (set-default-font
    "-*-Lucida Console-normal-r-*-*-13-*-*-*-c-*-*")
   )
  );;end cond
@@ -187,7 +187,7 @@
 
 ;(set-fontset-font name charset-symbol fontname)
 ;;; To query font info, use these interactive commands:
-;; 
+;;
 ;;(describe-font) ;; gives details (including fullname) of current font
 ;;(describe-fontset) ;; gives details (including fullname) of current fontset
 ;;(list-fontsets)
@@ -237,7 +237,7 @@
          "L\x000\x000\x000\x001\x014\x002\x000\x000\x000\x000\x000\x0C0\x000\x000\x000\x000\x000\x000\x046\x00C")
         (progn
           (if (re-search-forward
-               "\x000\\([-A-Za-z0-9_\\.\\\\\\$%@(){}~!#^'`][-A-Za-z0-9_:\\.\\\\\\$%@(){}~!#^'` ]+\\)" 
+               "\x000\\([-A-Za-z0-9_\\.\\\\\\$%@(){}~!#^'`][-A-Za-z0-9_:\\.\\\\\\$%@(){}~!#^'` ]+\\)"
                nil t)
               (find-alternate-file (match-string 1))
             (progn (message "Cannot decode file into Cygwin symlink.")
@@ -277,7 +277,7 @@
 
 
 (autoload 'visual-basic-mode "visual-basic-mode" "Visual Basic mode." t)
-(add-to-list 'auto-mode-alist 
+(add-to-list 'auto-mode-alist
        '("\\.\\(frm\\|bas\\|cls\\)$" . visual-basic-mode)
        t)
 
@@ -301,7 +301,7 @@
 
 (if (and (boundp 'w32-fixed-font-alist)
          (listp w32-fixed-font-alist))
-    (add-to-list 
+    (add-to-list
      'w32-fixed-font-alist
      '(
        ("Monotype.com"
@@ -335,7 +335,7 @@
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Visual Source Safe support 
+;; Visual Source Safe support
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
@@ -344,7 +344,7 @@
 (if (boundp 'vss-install-path)
     (progn
       ;; Path to the VSS commandline binary.
-      (setq ss-program 
+      (setq ss-program
             (concat vss-install-path "\\Common\\VSS\\win32\\SS.EXE"))
 
       (require 'source-safe)
@@ -361,16 +361,16 @@ database `proj-db-path', lives in the local directory `proj-wrk-dir'.
 When called interactively, do *not* add extra '\' characters.  They
 will be added automatically by the minibuffer when the strings are read.
 
-Prepends the entries to the appropriate alists. 
+Prepends the entries to the appropriate alists.
 
 {jpw 10/01}"
         (interactive
          "DProject Working Directory: \nsVSS Project: \nsVSS DB Path: ")
-        (setq ss-project-dirs (cons 
-                               (cons proj-wrk-dir proj-name) 
+        (setq ss-project-dirs (cons
+                               (cons proj-wrk-dir proj-name)
                                ss-project-dirs))
-        (setq ss-database-alist (cons 
-                                 (cons proj-wrk-dir proj-db-path) 
+        (setq ss-database-alist (cons
+                                 (cons proj-wrk-dir proj-db-path)
                                  ss-database-alist))
         )
 
@@ -393,7 +393,7 @@ Prepends the entries to the appropriate alists.
         "Get the latest version of the file currently being visited." t)
       (autoload 'ss-checkout "source-safe"
         "Check out the currently visited file so you can edit it." t)
-      (autoload 'ss-uncheckout "source-safe" 
+      (autoload 'ss-uncheckout "source-safe"
         "Un-checkout the curently visited file." t)
       (autoload 'ss-update "source-safe"
         "Check in the currently visited file." t)
@@ -404,7 +404,7 @@ Prepends the entries to the appropriate alists.
         "Delete a private branch of the current file.  This is not undoable."
         t)
       (autoload 'ss-merge "source-safe"
-        "Check out the current file and merge in the changes that you have made." 
+        "Check out the current file and merge in the changes that you have made."
         t)
       (autoload 'ss-history "source-safe"
         "Show the checkin history of the currently visited file." t)
