@@ -1,9 +1,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;    
+;;
 ;; Keyboard Bindings File
 ;;
 ;;  Copyright © 1995-2008 John P. Weiss
-;;  
+;;
 ;;  This package is free software; you can redistribute it and/or modify
 ;;  it under the terms of the Artistic License, included as the file
 ;;  "LICENSE" in the source code archive.
@@ -14,15 +14,15 @@
 ;;
 ;;  You should have received a copy of the file "LICENSE", containing
 ;;  the License John Weiss originally placed this program under.
-;; 
+;;
 ;;
 ;; Binding conventions:
-;; 
+;;
 ;;    Use the ESC- prefix in place of "M-" modifier when binding
 ;;    function keys.  This will ensure that the binding is available
 ;;    to non-win mode.  Emacs will translate all "Meta- + charkey"
 ;;    combinations automagically.
-;;    
+;;
 ;;    raw key "Hyper-x" in a vector:  [?\H-x]
 ;;    prefix + fnkey:                 [?\C-x fnkey]
 ;;    Meta + prefix, "p" + key, "k":  "\M-pk"
@@ -152,7 +152,7 @@
     (global-set-key [?\e next] 'scroll-other-window)
     (global-set-key [f2] 'tmm-menubar)
     (global-set-key [menu] 'tmm-menubar)
-  
+
     ;; Bind F11 and F12 if we're not running X
     (global-set-key [f11] 'backward-word)
     (global-set-key [f12] 'forward-word)
@@ -223,7 +223,7 @@
 (global-set-key [\S-f2] '2C-command)
 (global-unset-key [f2])
 (global-set-key [menu] 'tmm-menubar)
- 
+
 ;; Emacs 22 binds <f3> and <f4>.  However, I have preexisting bindings that
 ;; conflict.  Keep mine and rebind the defaults.
 (global-set-key [\C-f3] 'kmacro-start-macro-or-insert-counter)
@@ -246,7 +246,7 @@
 
 (global-set-key [\C-home] 'beginning-of-buffer)
 (global-set-key [\C-end] 'end-of-buffer)
- 
+
 (global-set-key [\M-backspace] 'backward-kill-word)
 (global-set-key [\M-deletekey] 'kill-word)
 
@@ -264,7 +264,7 @@
 (global-set-key "\C-cr" 'isearch-repeat-backward)
 
 ;; NOTE:  Now on "\M-g g" :)
-;; binds the goto line command to something 
+;; binds the goto line command to something
 ;;;(global-set-key "\C-xg" 'goto-line)
 
 ;; binds the copy region command to something
