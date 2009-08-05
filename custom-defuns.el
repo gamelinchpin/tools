@@ -1156,7 +1156,7 @@ extended using an EOL-\"\\\"-char.  {jpw; 12/2004}"
   (local-set-key [\M-up] 'outline-previous-visible-heading)
   (local-set-key [\M-right] 'outline-forward-same-level)
   (local-set-key [\M-left] 'outline-backward-same-level)
-  (local-set-key [\C-c\C-tab] 'show-all)
+  (local-set-key [?\C-c \C-tab] 'show-all)
   (local-set-key [\C-\S-down] 'org-shiftmetadown)
   (local-set-key [\C-\S-up] 'org-shiftmetaup)
   (local-set-key [\C-\S-right] 'org-shiftmetaright)
