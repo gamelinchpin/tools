@@ -1,9 +1,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;    
+;;
 ;; Mutt mode customizations.
 ;;
 ;;  Copyright © 1995-2008 John P. Weiss
-;;  
+;;
 ;;  This package is free software; you can redistribute it and/or modify
 ;;  it under the terms of the Artistic License, included as the file
 ;;  "LICENSE" in the source code archive.
@@ -14,8 +14,8 @@
 ;;
 ;;  You should have received a copy of the file "LICENSE", containing
 ;;  the License John Weiss originally placed this program under.
-;; 
-;; 
+;;
+;;
 ;; Commands for setting up emacs Mutt modes.
 ;;
 ;;
@@ -46,10 +46,10 @@
 ;;;;;;;;;;;;;;;;;;;;
 
 (require 'mutt)
-(add-to-list 'auto-mode-alist 
+(add-to-list 'auto-mode-alist
              '("[Mm]utt-.*" . mutt-mode) t)
 (jpw-custom-set-faces-nonsaved
- '(mutt-header-keyword-face 
+ '(mutt-header-keyword-face
    ((t (:inherit font-lock-keyword-face :weight bold))))
  '(mutt-header-value-face
    ((((class color) (background light)) (:inherit font-lock-constant-face))))
