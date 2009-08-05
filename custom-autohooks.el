@@ -1,9 +1,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;    
+;;
 ;; Mode Hooks
 ;;
-;;  Copyright © 1995-2008 John P. Weiss
-;;  
+;;  Copyright © 1995-2009 John P. Weiss
+;;
 ;;  This package is free software; you can redistribute it and/or modify
 ;;  it under the terms of the Artistic License, included as the file
 ;;  "LICENSE" in the source code archive.
@@ -14,8 +14,8 @@
 ;;
 ;;  You should have received a copy of the file "LICENSE", containing
 ;;  the License John Weiss originally placed this program under.
-;; 
-;; 
+;;
+;;
 ;; Makes use of my mode-specific custom defuns.
 ;;
 ;;
@@ -33,13 +33,14 @@
 
 
 ;; Misc hooks
-(add-hook 'mail-mode-hook     '(lambda () (abbrev-mode 1)))
+(add-hook 'mail-mode-hook '(lambda () (abbrev-mode 1)))
 (add-hook 'mail-citation-hook 'sc-cite-original)
 (add-hook 'mail-yank-hooks 'sc-cite-original)
+(add-hook 'mutt-mode-hook 'use-jpw-style-mutt)
 (add-hook 'text-mode-hook 'use-jpw-style-text)
 (add-hook 'org-mode-hook 'use-jpw-style-org)
 (add-hook 'wikipedia-mode-hook 'use-jpw-style-wikipedia-mode)
-(add-hook 'outline-minor-mode-hook '(lambda () 
+(add-hook 'outline-minor-mode-hook '(lambda ()
                                       (if (eq major-mode 'wikipedia-mode)
                                           (use-jpw-style-wikipedia-mode))))
 
