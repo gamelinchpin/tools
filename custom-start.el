@@ -3,7 +3,7 @@
 ;; Core Emacs Setup File
 ;;
 ;;  Copyright © 1995-2008 John P. Weiss
-;;  
+;;
 ;;  This package is free software; you can redistribute it and/or modify
 ;;  it under the terms of the Artistic License, included as the file
 ;;  "LICENSE" in the source code archive.
@@ -75,13 +75,13 @@ You shouldn't change the value of this variable.
 
 ;; Special flag for WinEmacs
 ;;
-(defconst is-cygwin (or (string-match "cygwin" 
-                                      (downcase 
+(defconst is-cygwin (or (string-match "cygwin"
+                                      (downcase
                                        (or (getenv "OSTYPE") "")))
-                                      
+
                         (and (not is-winblows)
-                         (string-match "windows" 
-                                       (downcase 
+                         (string-match "windows"
+                                       (downcase
                                         (or (getenv "OS") ""))))
                         (and (not window-system) is-winblows)
                         )
@@ -170,7 +170,7 @@ You shouldn't change the value of this variable.
         )
   ;;else
   (if (not running-xemacs)
-      (progn 
+      (progn
         (require 'server)
         (server-start)
       )
@@ -189,7 +189,7 @@ You shouldn't change the value of this variable.
 ;; Customization-Menu Variables.
 ;; This block only changes what emacs thinks the default values of these
 ;; defcustom vars are.  It will NOT change the user's .emacs file when they
-;; next save their customizations. 
+;; next save their customizations.
 ;;
 (jpw-custom-set-variables-nonsaved
  '(line-number-mode t)
@@ -209,7 +209,7 @@ You shouldn't change the value of this variable.
  )
 
 (if running-xemacs
-    (progn    
+    (progn
       (require 'mwheel)
 
       (setq abbrev-file-name "~/.xemacs/.abbrevs"
@@ -255,7 +255,7 @@ You shouldn't change the value of this variable.
   ;; Inhibit displaying the startup message -EWINK
   (setq inhibit-startup-message t)
   )
-      
+
 
 ;; Use Latin1 encoding
 ;;
@@ -282,7 +282,7 @@ You shouldn't change the value of this variable.
 
 ;; Set the tab stops to be every 4 points by default
 (setq-default tab-width 4)
-(setq tab-stop-list 
+(setq tab-stop-list
       '(4 8 12 16 20 24 28 32 36 40 44 48 52 56 60 64 68 72 76) )
 
 ;; Auto-convert Tabs to the appropriate number of spaces.
@@ -313,7 +313,7 @@ You shouldn't change the value of this variable.
 ;; customization engine).  Custom-set-variables loses this, for some reason.
 ;; Let's try forcing it after everything starts.
 (setq require-final-newline 'nil)
-(add-hook 'emacs-startup-hook 
+(add-hook 'emacs-startup-hook
           (lambda () (setq require-final-newline 'nil)))
 
 
@@ -347,7 +347,7 @@ You shouldn't change the value of this variable.
 
 ;; Only turn it on automatically if we have windows (X11) or are on a
 ;; supported terminal type
-(if (or window-system 
+(if (or window-system
         (string= term-lc "xterm")
         (string= term-lc "linux")
         )
@@ -397,14 +397,14 @@ You shouldn't change the value of this variable.
             (set-face-foreground 'text-cursor "white")
             (set-face-background 'text-cursor "blue")
             (set-face-foreground 'font-lock-reference-face
-                                 "ForestGreen") 
+                                 "ForestGreen")
             (set-face-foreground 'font-lock-doc-string-face
                                  "DeepSkyBlue3")
             (set-face-foreground 'font-lock-preprocessor-face
                                  "ForestGreen")
             (set-face-background 'zmacs-region "LightBlue")
             (set-face-background 'highlight "Gray")
-            ) ;; end XEmacs  
+            ) ;; end XEmacs
         ;; else
         (jpw-custom-set-faces-nonsaved
          ;; General
@@ -413,25 +413,25 @@ You shouldn't change the value of this variable.
          '(highlight ((t (:background "Gray"))))
          '(underline ((t (:underline "purple4"))))
          ;; Faces that inherit from others.
-         '(font-lock-doc-face 
+         '(font-lock-doc-face
            ((t (:inherit font-lock-comment-face :background "azure"))))
          '(bold-italic ((t (:inherit (bold italic)))))
          '(woman-bold-face ((t (:inherit bold :foreground "blue"))))
-         '(woman-italic-face 
+         '(woman-italic-face
            ((t (:inherit italic :foreground "Purple4" :underline t))))
          )
         (if is-version-twentytwo
             (progn
               (jpw-custom-set-faces-nonsaved
-               '(mode-line ((t (:background "grey75" 
-                                :foreground "black" 
-                                :box (:line-width -1 
+               '(mode-line ((t (:background "grey75"
+                                :foreground "black"
+                                :box (:line-width -1
                                       :style released-button)))) t)
-               '(mode-line-inactive ((t (:inherit mode-line 
-                                         :background "grey90" 
-                                         :foreground "grey35" 
-                                         :box (:line-width -1 
-                                               :style released-button) 
+               '(mode-line-inactive ((t (:inherit mode-line
+                                         :background "grey90"
+                                         :foreground "grey35"
+                                         :box (:line-width -1
+                                               :style released-button)
                                          :weight light))))
                )
               )
@@ -454,7 +454,7 @@ You shouldn't change the value of this variable.
           (progn
             (jpw-custom-set-faces-nonsaved
              '(region ((t (:background "cyan" :foreground "black"))))
-             '(secondary-selection 
+             '(secondary-selection
                ((t (:background "blue" :foreground "white"))))
              '(highlight ((t (:background "yellow")))))
             )
@@ -465,7 +465,7 @@ You shouldn't change the value of this variable.
 
 
 ;;--------------------------------------------------------------------------
-;;   puts hilighted parens and warns you when they don't match. 
+;;   puts hilighted parens and warns you when they don't match.
 
 
 (setq paren-sexp-mode nil)
@@ -513,11 +513,11 @@ You shouldn't change the value of this variable.
 ;; are already added by default.
 
 ;; The old way of appending to a list:
-;;(setq auto-mode-alist 
-;;      (append 
-;;       '(("\\Makefile\\'" . makefile-mode) 
+;;(setq auto-mode-alist
+;;      (append
+;;       '(("\\Makefile\\'" . makefile-mode)
 ;;         ("\\.make\\'" . makefile-mode)
-;;         ("\\.mk\\'" . makefile-mode)) 
+;;         ("\\.mk\\'" . makefile-mode))
 ;;       auto-mode-alist
 ;;       )
 ;;      )
@@ -536,10 +536,10 @@ variable rather than hardcoded.
 
 
 ;; Create a style for use with c-mode, c++-mode, and objc-mode
-(c-add-style "jpw" 
+(c-add-style "jpw"
              '(;;(indent-tabs-mode . nil)
                (fill-column . 78)
-               (c-hanging-braces-alist 
+               (c-hanging-braces-alist
                 (substatement-open before after)
                 )
                (c-basic-offset . 4)
@@ -596,15 +596,15 @@ variable rather than hardcoded.
              ;;'t  ;; Activate it now
              )
 
-                
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;    Java Mode Setup
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
 ;; Create a style for use with java-mode and jde-mode
-(c-add-style "jpw-java" 
-             '("jpw" 
+(c-add-style "jpw-java"
+             '("jpw"
                (c-offsets-alist
                 (class-open . 0) ; Default indents lone '{' for classes
                 (class-close . 0) ; Default indents lone '}' for classes
@@ -633,8 +633,8 @@ variable rather than hardcoded.
 (setq sh-shell 'bash)
 (if (not running-xemacs)
     (jpw-custom-set-faces-nonsaved
-     '(sh-heredoc ((((class color) (background light)) 
-                         (:inherit font-lock-string-face 
+     '(sh-heredoc ((((class color) (background light))
+                         (:inherit font-lock-string-face
                                    :background "beige"))))
      )
   )
@@ -657,10 +657,10 @@ variable rather than hardcoded.
 
 
 (autoload 'sql-mode "trans-sql" "SQL mode with Transact/SQL keywords" t)
-(eval-after-load "sql-mode" 
-  '(lambda() 
+(eval-after-load "sql-mode"
+  '(lambda()
      (load "sql-indent")
-     (setq sql-mode-font-lock-keywords 
+     (setq sql-mode-font-lock-keywords
            sql-mode-oracle-font-lock-keywords)
 ;;           sql-mode-trans-sql-font-lock-keywords)
      )
@@ -682,13 +682,13 @@ variable rather than hardcoded.
 
 ;; Commented out
 ;;
-(if nil (progn 
+(if nil (progn
   (autoload 'sgml-mode "psgml" "Major mode to edit SGML files." t)
   (autoload 'xml-mode "psgml" "Major mode to edit XML files." t)
 
   ;; Things to set once, for all files.
   ;;
-  (eval-after-load "psgml" 
+  (eval-after-load "psgml"
     '(lambda()
        (setq sgml-set-face t
              sgml-ignore-undefined-elements t
@@ -730,17 +730,17 @@ variable rather than hardcoded.
      )
   )
 
-(autoload 'html-helper-mode "html-helper-mode" 
+(autoload 'html-helper-mode "html-helper-mode"
   "Major mode for editing HTML" t)
-(autoload 'asp-html-helper-mode "html-helper-mode" 
+(autoload 'asp-html-helper-mode "html-helper-mode"
   "Major mode for editing ASP" t)
-(autoload 'jsp-html-helper-mode "html-helper-mode" 
+(autoload 'jsp-html-helper-mode "html-helper-mode"
   "Major mode for editing JSP" t)
-(autoload 'php-html-helper-mode "html-helper-mode" 
+(autoload 'php-html-helper-mode "html-helper-mode"
   "Major mode for editing PHP" t)
 ;; Put this one to the front so that html-helper-mode is used instead of
 ;; any other modes.
-(dolist (mode-entry 
+(dolist (mode-entry
          '(("\\.html$" . html-helper-mode)
            ("\\.eml$" . html-helper-mode)
            ;;("\\.php$" . php-html-helper-mode)
@@ -767,8 +767,8 @@ variable rather than hardcoded.
      '(cperl-array-face ((t (:inherit font-lock-variable-name-face
                                       :underline t))))
      '(cperl-hash-face ((t (:inherit (cperl-array-face italic)))))
-     '(cperl-nonoverridable-face 
-       ((((class color) (background light)) 
+     '(cperl-nonoverridable-face
+       ((((class color) (background light))
          (:inherit font-lock-constant-face))))
      )
   )
