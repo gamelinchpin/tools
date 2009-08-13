@@ -509,13 +509,13 @@ regexp in `jwz-lj-entify'.
 
 (defconst jpw-lj-entity-shortcut-table-re
   (eval-when-compile
-    (concat "\\(?:\\w\\|\\s \\)"
+    (concat "\\(?:\\sw\\|\\s \\)"
             ;; N.B. - Must contain a single group, surrounding the portion of
             ;; the regex matching the shortcut-table keys.
             (regexp-opt
              (mapcar 'car jpw-lj-entity-shortcut-table)
              t)
-            "\\(?:\\w\\|\\s \\)"
+            "\\(?:\\sw\\|\\s \\)"
             )
     )
   "A cached regexp that matches any of the entity shortcuts in

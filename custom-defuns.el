@@ -756,7 +756,12 @@ the first.  The first is inserted as a block.
   "A table of abreviations for creating HTML entities.  Note that there are a
 few alternatives for the same entity, so that mixing two similar mnemnonics
 (e.g. \"->\" and \"|v\" to get \"-v\") still works.
-{jpw; 08/2008}")
+
+If your mnemnonic doesn't follow a word character or whitespace, you can
+\"separate\" it from the preceding character(s) using either a ';' or a ':'.
+The separator will be consumed with the mnemnonic when it's converted to the
+corresponding HTML entity.
+{jpw; 08/2009}")
 
 
 (defconst jpw-html-symbol-entity-table-maxlen
@@ -764,7 +769,7 @@ few alternatives for the same entity, so that mixing two similar mnemnonics
     (let* ((mnemonics (mapcar 'car jpw-html-symbol-entity-table))
            (mnemonics-len (mapcar 'length mnemonics))
            );end bindings
-      (1+ (eval (append '(max) mnemonics-len)))
+      (1+ (1+ (eval (append '(max) mnemonics-len))))
       )
     )
   "Length of the largest of the HTML entity mnemonics in
@@ -780,9 +785,9 @@ few alternatives for the same entity, so that mixing two similar mnemnonics
       ;; N.B. - Must contain a single group, surrounding the portion
       ;; of the regex matching the shortcut-table keys.
       (concat notSyms
-              "([\\;:]?"
+              "\\([;:]?"
               (regexp-opt mnemonics t)
-              ")"
+              "\\)"
               notSyms
        )
       );end let*
@@ -863,7 +868,7 @@ abbreviations/mnemnonics.
            );;end bindings
       (goto-char start)
       (if (posix-search-forward jpw-html-symbol-entity-table-re end t)
-          (setq entity (cdr (assoc (match-string 1)
+          (setq entity (cdr (assoc (match-string 2)
                                    jpw-html-symbol-entity-table)))
         )
       (if entity
