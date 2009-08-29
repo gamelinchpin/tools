@@ -37,6 +37,7 @@
 (add-hook 'mail-citation-hook 'sc-cite-original)
 (add-hook 'mail-yank-hooks 'sc-cite-original)
 (add-hook 'mutt-mode-hook 'use-jpw-style-mutt)
+(add-hook 'post-mode-hook 'use-jpw-style-mutt)
 (add-hook 'text-mode-hook 'use-jpw-style-text)
 (add-hook 'org-mode-hook 'use-jpw-style-org)
 (add-hook 'wikipedia-mode-hook 'use-jpw-style-wikipedia-mode)
