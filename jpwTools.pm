@@ -1,4 +1,4 @@
-#!/usr/bin/perl 
+#!/usr/bin/perl
 #
 # Copyright (C) 2002-2008 by John P. Weiss
 #
@@ -39,19 +39,19 @@ BEGIN {
 
     # Default exports.
     @EXPORT = qw(check_syscmd_status do_error
-                 datestamp datetime_now  
+                 datestamp datetime_now
                  const_array uniq select_sample
                  invert_hash pivot_hash
                  rename_keys transform_keys lc_keys uc_keys
                  asymm_diff circular_shift circular_pop
-                 stats stats_gaussian 
+                 stats stats_gaussian
                  set_seed random_indices randomize_array random_keys
                  get_files_from_dirs
-                 print_hash print_array print_dump 
+                 print_hash print_array print_dump
                  fprint_hash fprint_array
                  cmpVersionNumberLists
-                 create_regexp_group non_overlapping 
-                 not_empty set_array_if_nonempty set_scalar_if_nonempty 
+                 create_regexp_group non_overlapping
+                 not_empty set_array_if_nonempty set_scalar_if_nonempty
                  validate_options read_options);
     # Permissable exports.
     # your exported package globals go here,
@@ -109,10 +109,12 @@ sub check_syscmd_status {
 
     if (ref($_[0]) eq "ARRAY") {
         my %ignore = ();
-        @ignore{ @{shift()} } = ();
+        my $ref_ignoreList = shift();
+        my @ones = (1) x scalar(@$ref_ignoreList);
+        @ignore{ @$ref_ignoreList } = @ones;
         $ignore{0} = 1;
         my $errMsg="";
-        if (exists($ignore{$exitVal})) {
+        if (!exists($ignore{"$exitVal"})) {
             $errMsg .=
                 "WARNING: Command \"@_\" exited with status $exitVal.\n";
             unless ($lastErrmsg eq '') {
@@ -126,7 +128,7 @@ sub check_syscmd_status {
         if (defined($flags{"warn"})) {
             if ($flags{"warn"}) {
                 $abortOnError = 0;
-            }            
+            }
         } elsif (defined($flags{"abort"})) {
             $abortOnError = $flags{"abort"};
         }
@@ -186,7 +188,7 @@ sub datetime_now() {
     $timeinfo[5] += 1900;
 
     # Return in the order: YYYY, MM, DD, HH24, MI, SEC
-    return ($timeinfo[5], $timeinfo[4], $timeinfo[3], 
+    return ($timeinfo[5], $timeinfo[4], $timeinfo[3],
             $timeinfo[2], $timeinfo[1], $timeinfo[0]);
 }
 
@@ -203,10 +205,10 @@ sub const_array($$) {
 
 
 # Using a hash as a set:
-# 
+#
 #     my %set;
 #     @set{@elements} = ();
-#     
+#
 # ... Then use "exists" to test for membership (instead of using
 # "defined").
 #
@@ -230,7 +232,7 @@ sub uniq {
 
 
 # How to do a set union, intersection, and difference.
-# 
+#
 ##
 #sub set_ops {
 #    @union = @intersection = @difference = ();
@@ -238,7 +240,7 @@ sub uniq {
 #    foreach $element (@array1, @array2) { $count{$element}++ }
 #    foreach $element (keys %count) {
 #        push @union, $element;
-#        push @{ $count{$element} > 1 ? \@intersection : \@difference }, 
+#        push @{ $count{$element} > 1 ? \@intersection : \@difference },
 #             $element;
 #    }
 #}
@@ -270,7 +272,7 @@ sub select_sample($\@;$) {
     }
     if ( $alwaysIncludeLast && ($slice[$#slice] < $lastDataIdx) ) {
         # Missing the last item in the list, but the caller wants to include
-        # it. 
+        # it.
         push(@slice, $lastDataIdx);
     }
 
@@ -322,7 +324,7 @@ sub pivot_hash(\%$;$) {
     # - Every value is an arrayref;
     # - Each arrayref has something defined at $idx;
     # - All of those elements are scalar values.
-    my @pivotableKeys = grep({ ( (ref($ref_h->{$_}) eq 'ARRAY') 
+    my @pivotableKeys = grep({ ( (ref($ref_h->{$_}) eq 'ARRAY')
                                  && exists($ref_h->{$_}[$idx])
                                  && defined($ref_h->{$_}[$idx])
                                  && !ref($ref_h->{$_}[$idx]) )
@@ -337,7 +339,7 @@ sub pivot_hash(\%$;$) {
     my $nNewKeys = scalar(@newKeys);
     return 0 unless ($nNewKeys == scalar(@pivotableKeys));
 
-    # 
+    #
     # This is a faster operation, but will use much more memory than
     # pivotting one element at a time.
     map({ $ref_h->{$_} = $ref_h->{$new2old{$_}};
@@ -386,7 +388,7 @@ sub rename_keys(\%\%) {
     my $ref_hash = shift;
     my $ref_old2new_keys = shift;
 
-    foreach my $oldKey (grep({defined($ref_hash->{$_})} 
+    foreach my $oldKey (grep({defined($ref_hash->{$_})}
                              keys(%$ref_old2new_keys)))
     {
         $ref_hash->{$ref_old2new_keys->{$oldKey}} = $ref_hash->{$oldKey};
@@ -426,13 +428,13 @@ sub circular_pop(\@;$) {
 
 
 sub asymm_diff {
-    my ($ref_set1, 
+    my ($ref_set1,
         $ref_set2) = @_;
     my $set1_type=ref($ref_set1);
     my $set2_type=ref($ref_set2);
-    unless ( (($set1_type eq "HASH") || 
-              ($set1_type eq "ARRAY")) && 
-             (($set2_type eq "HASH") || 
+    unless ( (($set1_type eq "HASH") ||
+              ($set1_type eq "ARRAY")) &&
+             (($set2_type eq "HASH") ||
               ($set2_type eq "ARRAY")) ) {
         die "While calling jpwTools::asymm_diff()\n".
             "Syntax Error: First two args must be ref to hash or array.";
@@ -471,7 +473,7 @@ sub not_empty($) {
     }
     my $reftype=ref($arg);
     return ( (($reftype eq "ARRAY") && scalar(@$arg))
-             || 
+             ||
              (($reftype eq "HASH") && scalar(%$arg))
              ||
              (($reftype eq "SCALAR") && length($$arg))
@@ -486,7 +488,7 @@ sub set_scalar_if_nonempty(\$\%$) {
     my ($svar_ref,
         $map_ref,
         $keyname) = @_;
-    if (not_empty($map_ref->{$keyname})) 
+    if (not_empty($map_ref->{$keyname}))
     {
         $$svar_ref = $map_ref->{$keyname};
     }
@@ -497,7 +499,7 @@ sub set_array_if_nonempty(\@\%$) {
     my ($avar_ref,
         $map_ref,
         $keyname) = @_;
-    if (not_empty($map_ref->{$keyname})) 
+    if (not_empty($map_ref->{$keyname}))
     {
         @{$avar_ref} = @{$map_ref->{$keyname}};
     }
@@ -527,14 +529,14 @@ sub stats(\@;$) {
     my $N = scalar(@vals);
 
     # For small N, the median & dispersion are predetermined.  So, just return
-    # those 
+    # those
     if ($N < 4) {
         if ($N == 0) { return (0, 0, 0, 0, 0); }
-        if ($N == 1) { return ($vals[0], 
-                               $vals[0], $vals[0], $vals[0], 
+        if ($N == 1) { return ($vals[0],
+                               $vals[0], $vals[0], $vals[0],
                                $vals[0]); }
-        if ($N == 2) { return ($vals[0], 
-                               $vals[0], 0.5*($vals[0]+$vals[0]), $vals[1], 
+        if ($N == 2) { return ($vals[0],
+                               $vals[0], 0.5*($vals[0]+$vals[0]), $vals[1],
                                $vals[1]); }
     }
 
@@ -576,8 +578,8 @@ sub stats(\@;$) {
         $k_disp_hi = int( 0.84135 * $N );
     }
 
-    return ($vals[0], 
-            $vals[$k_disp_lo], $median, $vals[$k_disp_hi], 
+    return ($vals[0],
+            $vals[$k_disp_lo], $median, $vals[$k_disp_hi],
             $vals[$#vals]);
 }
 
@@ -605,7 +607,7 @@ sub stats_gaussian(\@) {
         $skew += $anom_sq*$anom;
         $kurt += $anom_sq*$anom_sq;
     }
-    # Compute Avg. Deviation 
+    # Compute Avg. Deviation
     $avg_dev /= $n;
 
     # Compute the variance using the "Corrected Two-Pass Algorithm," described
@@ -621,7 +623,7 @@ sub stats_gaussian(\@) {
     $skew /= ($n * $var * $stddev);
 
     # Divide the kurtosis by sigma^4, then adjust so that a gaussian has 0
-    # kurtosis. 
+    # kurtosis.
     $kurt /= ($n * $var * $var);
     $kurt -= 3.0;
 
@@ -761,7 +763,7 @@ sub get_files_from_dirs(\%$@) {
                 $ref_fileMap->{$k}[3] = $1;
             }
             if (-d $f) {
-                $ref_fileMap->{$k}[4] = 1;                
+                $ref_fileMap->{$k}[4] = 1;
             }
         }
         closedir DH;
@@ -901,7 +903,7 @@ sub non_overlapping {
     my @wrk = sort @_;
     if (scalar(@wrk) == 0) {
         # Nothing to do; no prune expressions.
-        return @wrk; 
+        return @wrk;
     }
     # This isn't ideal, but it'll do for now.  Using create_regexp_group is
     # also somewhat overkill.
@@ -926,8 +928,8 @@ sub validate_options(\%\%;$) {
         if (ref($v) eq "HASH") {
             while (my ($k2, $v2) = each(%$v)) {
                 next unless(defined($ref_options->{$k}{$k2}));
-                push(@validation_stack, [$k.".".$k2, 
-                                         ref($ref_options->{$k}{$k2}), 
+                push(@validation_stack, [$k.".".$k2,
+                                         ref($ref_options->{$k}{$k2}),
                                          $v2]);
             }
         } else {
@@ -949,19 +951,19 @@ sub validate_options(\%\%;$) {
                 }
             }
             print "\tParameter \"$k\" must be ";
-            if ($vt eq "") { 
-                print "scalar"; 
+            if ($vt eq "") {
+                print "scalar";
             } elsif ($vt eq "ARRAY") {
                 print "an array";
-            } else { 
+            } else {
                 print "a ", lc($vt);
             }
             print " (not ";
-            if ($ovt eq "") { 
-                print "scalar).\n"; 
+            if ($ovt eq "") {
+                print "scalar).\n";
             } elsif ($ovt eq "ARRAY") {
                 print "an array).\n";
-            } else { 
+            } else {
                 print "a ", lc($ovt), ").\n";
             }
             $is_valid = 0;
@@ -1075,7 +1077,7 @@ sub make_char_regexp {
 
     my $start=-1;
     my $end=-2;
-    foreach my $current (@charlist) { 
+    foreach my $current (@charlist) {
         if ($current == ord("^")) { $caret = "^"; next; }
         if ($current == ord("-")) { $dash = "-"; next; }
         if ($current == ord("]")) { $rbracket = "]"; next;}
@@ -1192,7 +1194,7 @@ sub recursive_regexp_grouper() { #($$$@) {
     }
 
     if ($_UnitTest) {
-        print STDERR ("# recursive_regexp_grouper():  ", $nwords, 
+        print STDERR ("# recursive_regexp_grouper():  ", $nwords,
                       " \"@words\"\n");
     }
 
@@ -1247,14 +1249,14 @@ sub recursive_regexp_grouper() { #($$$@) {
         return $patstr;
     }
 
-    ## Default Behavior: list of different-length strings. 
+    ## Default Behavior: list of different-length strings.
 
     my $prefix = find_prefix(@words);
     if ($prefix ne "") {
         # Common prefix => recurse on the suffixes.
         if ($_Verbose) {
             print STDERR ("# recursive_regexp_grouper():  ",
-                          " Common prefix: \"",$prefix, 
+                          " Common prefix: \"",$prefix,
                           "\".  Grouping on suffixes.\n");
         }
         my @suffixes = ();
@@ -1277,7 +1279,7 @@ sub recursive_regexp_grouper() { #($$$@) {
 		# Common suffix => recurse on the prefixes.
         if ($_Verbose) {
             print STDERR ("# recursive_regexp_grouper():  ",
-                          " Common suffix: \"",$suffix, 
+                          " Common suffix: \"",$suffix,
                           "\".  Grouping on prefixes.\n");
         }
         my @prefixes = ();
@@ -1345,7 +1347,7 @@ jpwTools - Package containing John's Perl Tools.
 
 =item datestamp
 
-=item datetime_now 
+=item datetime_now
 
 =item check_syscmd_status [I<ctrlRef>, ] I<cmd>
 
@@ -1425,21 +1427,21 @@ jpwTools - Package containing John's Perl Tools.
 
 =over 2
 
-=item * 
+=item *
 
 datestamp
 
 Returns string containing the current date, in the form 'YYYYMMDD'.  Useful
 for creating date-stamped filenames.
 
-=item * 
+=item *
 
 datetime_now
 
 Returns 6 element array containing the date and time.  The array contents are
 of the form: C<(year, month, day, hour24, min, sec)>.
 
-=item * 
+=item *
 
 check_syscmd_status [I<ctrlRef>, ] I<cmd>...
 
@@ -1492,7 +1494,7 @@ do "file.pl" or die(do_error("file.pl", $!, $@));
 =back
 
 
-=item * 
+=item *
 
 circular_shift I<@list> [, I<count>]
 
@@ -1502,7 +1504,7 @@ C<shift>, it takes the shifted elements and immediately C<push>es them onto
 the back of I<@list>.  Thus, I<@list> never loses elements; they merely change
 location.
 
-=item * 
+=item *
 
 circular_pop I<@list> [, I<count>]
 
@@ -1510,9 +1512,9 @@ Pops I<count> elements off of I<@list>, or 1 if I<count> isn't specified.
 Like the builtin C<pop> command, returns the popped elements.  Unlike
 C<popped>, it takes the popped elements and immediately C<unshift>s them onto
 the front of I<@list>.  Thus, I<@list> never loses elements; they merely
-change location. 
+change location.
 
-=item * 
+=item *
 
 const_array I<value>, I<n_elements>
 
@@ -1531,7 +1533,7 @@ C<my @set{@members} = ( I<value> ) x I<@members>;>
 I.e.  the C<x> operator works on arrays as well as strings.  Note that the
 thing following the C<x> operator is always evaluated in scalar context.
 
-=item * 
+=item *
 
 uniq I<@list>
 
@@ -1623,7 +1625,7 @@ lc_keys(I<%hash>)
 uc_keys(I<%hash>)
 
 Both of these functions are akin to calling C<transform_keys(I<%hash>, &lc)>
-and C<transform_keys(I<%hash>, &uc)>, respectively.  
+and C<transform_keys(I<%hash>, &uc)>, respectively.
 
 They are not, however, I<equivalent> to the two calls above.  Those two calls
 are not legal Perl.
@@ -1638,7 +1640,7 @@ C<uc()>.
 Bear this in mind whey trying to pass one of the built-in Perl functions to
 C<transform_keys()>.
 
-=item * 
+=item *
 
 asymm_diff I<set1>, I<set2>
 
@@ -1663,7 +1665,7 @@ C<(min, lowerDispersion, median, upperDispersion, max)>
 C<min> and C<max> are self-explanatory, and are computed for free as a
 by-product of determining the C<median>.  C<lowerDispersion> and
 C<upperDispersion> are the dispersion about the C<median>, computed to the
-specified interval or percentage. 
+specified interval or percentage.
 
 The term "central tendency" refers to the value in a set of data that is most
 likely to occur.  The "dispersion" refers to a range of values in a set of
@@ -1707,7 +1709,7 @@ For any other value of I<confidence>, or if it's omitted, computes 68.27%
 dispersion about the median.  This is equivalent to 1 standard deviations for
 a Gaussian distribution.
 
-=back 
+=back
 
 Note that C<stats()> will not work well for multi-modal distributions,
 especially if two or more of the peaks in the distributions are of similar
@@ -1819,7 +1821,7 @@ file's parent.
 
 fprint_hash I<fh_ref>, I<name>, I<%hash> [, I<regexp, sub> ...]
 
-Convenience wrapper around 
+Convenience wrapper around
 C<print_dump(I<fh_ref>, [I<name>,] I<\%hash> [, ...])>.  I<name> can be the
 empty string, in which case L<print_dump()|/"print_dump"> is called without it.
 
@@ -1827,7 +1829,7 @@ empty string, in which case L<print_dump()|/"print_dump"> is called without it.
 
 fprint_array I<fh_ref>, I<name>, I<@list> [, I<regexp, sub> ...]
 
-Convenience wrapper around 
+Convenience wrapper around
 C<print_dump(I<fh_ref>, [I<name>,] I<\@list> [, ...])>.  I<name> can be the
 empty string, in which case L<print_dump()|/"print_dump"> is called without it.
 
@@ -1843,7 +1845,7 @@ print_array I<name>, I<@list> [, I<regexp, sub> ...]
 
 Equivalent to C<fprint_array(\*STDOUT, I<name>, I<@list> [, ...])>.
 
-=item * 
+=item *
 
 print_dump [I<fh_ref>, ] [I<name>, ] I<$ref> [, I<regexp, sub> ...]
 
@@ -1924,7 +1926,7 @@ For any other type of variable or reference, returns C<false>.
 set_array_if_nonempty I<@array>, I<%map>, I<key>
 
 If C<$I<map>{I<key>}> is non-empty (as determined by C<not_empty()>),
-sets I<@array> to C<@{I<$map>{I<key>}}>.  
+sets I<@array> to C<@{I<$map>{I<key>}}>.
 
 (Thus, the value of I<%map> corresponding to I<key> had better be an array
 reference, or this function will return an error.)
@@ -1948,71 +1950,71 @@ The option file syntax:
 
 =over 2
 
-=item - 
+=item -
 
 Blank lines and whitespace at the beggining or end of a line are
 ignored.
 
-=item - 
+=item -
 
 Comments are lines starting with the '#' character.
 
 =item -
- 
+
 The first non-whitespace character on a line starts an option name.
 
-=item - 
+=item -
 
 Scalar options appear on the same line with their value, separated
-by the one of delimiter characters ':' or '='.  
+by the one of delimiter characters ':' or '='.
 
-=item - 
+=item -
 
 Option names can contain any character except '.', ':' and '='.
 
-=item - 
+=item -
 
 Any whitespace surrounding the '=' or ':' delimiter is ignored.
 
-=item - 
+=item -
 
 You cannot set a scalar option to the value "(".  [See below.]
 
-=item - 
+=item -
 
 Options can contain an array value:
 
 =over 2
 
-=item * 
+=item *
 
 To start an array value, use a '(' character after the delimiter.
 
-=item * 
+=item *
 
 The elements of the array are each subsequent line in the file.
 
-=item * 
+=item *
 
 You can indent array elements.  [See below.]
 
-=item * 
+=item *
 
 The array ends at the next line containing a lone ')' character.
 
 =back
 
-=item - 
+=item -
 
 Option names, scalar values, and array elements can neither begin
 nor end with whitespace characters.  They are stripped off.
 
-=item - 
+=item -
 
 The options are returned in a hash map, keyed by name.   Array
 options are stored as references to anonymous Perl arrays.
 
-=item - 
+=item -
 
 Options can be grouped into sections:
 
@@ -2055,7 +2057,7 @@ complex structures, you're on your own.
 
 =back
 
-Before returning, C<read_options()> will call C<validate_options()> using 
+Before returning, C<read_options()> will call C<validate_options()> using
 the optional hash argument, I<%validator>.  See
 L<validate_options()|DESCRIPTION/"validate_options"> for a description of what
 the I<%validator> argument should look like.
@@ -2091,7 +2093,7 @@ The optional argument I<filename> is used for pretty-printing error messages
 (if any errors are present).  It should be the name of the configuration file
 being validated.
 
-=back 
+=back
 
 =cut
 
