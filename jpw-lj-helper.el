@@ -472,6 +472,14 @@ and a few typography symbols.")
     (":~=" . "&cong;")
     (":~" . "&sim;")
     (":~~" . "&asymp;")
+    (":<->" . "&darr;")
+    (":<-" . "&larr;")
+    (":->" . "&rarr;")
+    (":<==" . "&lArr;")
+    (":==>" . "&rArr;")
+    (":---" . "&mdash;")
+    (":--" . "&ndash;")
+    (":..." . "&hellip;")
     ("<->" . "&darr;")
     ("<-" . "&larr;")
     ("->" . "&rarr;")
@@ -488,7 +496,7 @@ and a few typography symbols.")
 
 NOTE: The order in which these are listed is important for the proper construction
 of search regexps.
-{jpw: 03/2006}")
+{jpw: 11/2009}")
 
 
 (defconst jpw-jwz-lj-entity-table-re
@@ -662,6 +670,20 @@ strong tags.
 {jpw: 03/2006}"
   nil
   "<del>" _ "</del>")
+
+(define-skeleton jpw-html-super
+  "Insert HTML \"<sup>\" tags, or puts the active region inside HTML
+strong tags.
+{jpw: 11/2009}"
+  nil
+  "<sup>" _ "</sup>")
+
+(define-skeleton jpw-html-sub
+  "Insert HTML \"<sub>\" tags, or puts the active region inside HTML
+strong tags.
+{jpw: 11/2009}"
+  nil
+  "<sub>" _ "</sub>")
 
 (define-skeleton jpw-html-code
   "Insert HTML code tags, or puts the active region inside HTML code
@@ -921,6 +943,8 @@ Call this function after changing certain customization variables manually
       (define-key jpw-lj-mode-map "\M-of" 'tempo-template-html-fixed)
 
       (define-key jpw-lj-mode-map "\M-od" 'jpw-html-del)
+      (define-key jpw-lj-mode-map "\M-o^" 'jpw-html-super)
+      (define-key jpw-lj-mode-map "\M-o_" 'jpw-html-sub)
 
       (define-key jpw-lj-mode-map "\M-o\C-s" 'jpw-html-size-small)
       (define-key jpw-lj-mode-map "\M-o\C-b" 'jpw-html-size-big)
