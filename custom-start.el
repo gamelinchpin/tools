@@ -331,8 +331,8 @@ You shouldn't change the value of this variable.
 
 ;; This evidently disables ^S/^Q, enables interrupt via ^C
 ; (set-input-mode (car (current-input-mode))
-; 			 (nth 1 (current-input-mode))
-; 			 0)
+;            (nth 1 (current-input-mode))
+;            0)
 
 ;;
 ;; Rebinds the C-x C-s sequence in case we have flow control

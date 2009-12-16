@@ -567,8 +567,8 @@ whatever buffer is presently open.
   "As the name implies.  Useful when working on a long piece of sourcecode.
 {jpw: 12/2004}"
   (interactive)
-  (let ( (mybufname (current-buffer))
-         );;end let-varlist
+  (let ((mybufname (current-buffer))
+        );;end let-varlist
     (switch-to-buffer-using-other-window mybufname)
     );;end let
   )
@@ -826,6 +826,48 @@ the URL prompt.
 {jpw: 03/2006}"
   "URL: "
   "<a href=\"" str "\">" _ "</a>")
+
+(define-skeleton jpw-html-del
+  "Insert HTML [logical] \"<del>\" tags, or puts the active region inside HTML
+strong tags.
+{jpw: 03/2006}"
+  nil
+  "<del>" _ "</del>")
+
+(define-skeleton jpw-html-super
+  "Insert HTML \"<sup>\" tags, or puts the active region inside HTML
+strong tags.
+{jpw: 11/2009}"
+  nil
+  "<sup>" _ "</sup>")
+
+(define-skeleton jpw-html-sub
+  "Insert HTML \"<sub>\" tags, or puts the active region inside HTML
+strong tags.
+{jpw: 11/2009}"
+  nil
+  "<sub>" _ "</sub>")
+
+
+(define-skeleton jpw-html-size-small
+  "Insert HTML font resizing tag \"<small>\".
+{jpw: 03/2006}"
+  nil
+  "<small>" _  "</small>"
+  )
+
+(define-skeleton jpw-html-size-big
+  "Insert HTML font resizing tag \"<big>\".
+{jpw: 03/2006}"
+  nil
+  "<big>" _  "</big>"
+  )
+
+(define-skeleton jpw-html-size-relative
+  "Insert XHTML font resizing markup.
+{jpw: 03/2006}"
+  (completing-read "Size: " jpw-html-size-alist nil nil "small")
+  "<span style=\"font-size: " str "\">" _ "</span>")
 
 
 (defun jpw-html-insert-list (&optional type)
@@ -1206,7 +1248,12 @@ extended using an EOL-\"\\\"-char.  {jpw; 12/2004}"
   (local-set-key "\M-of" 'tempo-template-html-fixed)
   (local-set-key "\M-oo" 'tempo-template-html-code)
   (local-set-key "\M-oc" 'tempo-template-html-code)
-  (local-set-key "\M-od" 'tempo-template-html-strikethru)
+  (local-set-key "\M-od" 'jpw-html-del)
+  (local-set-key "\M-o^" 'jpw-html-super)
+  (local-set-key "\M-o_" 'jpw-html-sub)
+  (local-set-key "\M-o\C-s" 'jpw-html-size-small)
+  (local-set-key "\M-o\C-b" 'jpw-html-size-big)
+  (local-set-key "\M-oz" 'jpw-html-size-relative)
 
   ;; Paragraph styles
   (local-set-key "\M-p\C-i" 'tempo-template-html-image)
@@ -1220,6 +1267,19 @@ extended using an EOL-\"\\\"-char.  {jpw; 12/2004}"
   (local-set-key "\M-p\C-m" 'tempo-template-html-paragraph)
   (local-set-key "\M-p\C-j" 'tempo-template-html-line-break)
   (local-set-key "\M-p-" 'tempo-template-html-horizontal-line)
+  (local-set-key "\M-pq" 'tempo-template-html-blockquote)
+  (local-set-key "\M-p1" 'tempo-template-html-header-1)
+  (local-set-key "\M-ph1" 'tempo-template-html-header-1)
+  (local-set-key "\M-p2" 'tempo-template-html-header-2)
+  (local-set-key "\M-ph2" 'tempo-template-html-header-2)
+  (local-set-key "\M-p3" 'tempo-template-html-header-3)
+  (local-set-key "\M-ph3" 'tempo-template-html-header-3)
+  (local-set-key "\M-p4" 'tempo-template-html-header-4)
+  (local-set-key "\M-ph4" 'tempo-template-html-header-4)
+  (local-set-key "\M-p5" 'tempo-template-html-header-5)
+  (local-set-key "\M-ph5" 'tempo-template-html-header-5)
+  (local-set-key "\M-p6" 'tempo-template-html-header-6)
+  (local-set-key "\M-ph6" 'tempo-template-html-header-6)
 
   ;; Entity expansion
   (local-set-key "\C-c'" 'jpw-html-entity-abbrev-expand)

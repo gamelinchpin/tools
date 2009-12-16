@@ -664,56 +664,12 @@ strong tags.
   nil
   "<strong>" _ "</strong>")
 
-(define-skeleton jpw-html-del
-  "Insert HTML [logical] \"<del>\" tags, or puts the active region inside HTML
-strong tags.
-{jpw: 03/2006}"
-  nil
-  "<del>" _ "</del>")
-
-(define-skeleton jpw-html-super
-  "Insert HTML \"<sup>\" tags, or puts the active region inside HTML
-strong tags.
-{jpw: 11/2009}"
-  nil
-  "<sup>" _ "</sup>")
-
-(define-skeleton jpw-html-sub
-  "Insert HTML \"<sub>\" tags, or puts the active region inside HTML
-strong tags.
-{jpw: 11/2009}"
-  nil
-  "<sub>" _ "</sub>")
-
 (define-skeleton jpw-html-code
   "Insert HTML code tags, or puts the active region inside HTML code
 tags.
 {jpw: 03/2006}"
   nil
   "<code>" _ "</code>")
-
-
-(define-skeleton jpw-html-size-small
-  "Insert HTML font resizing tag \"<small>\".
-{jpw: 03/2006}"
-  nil
-  "<small>" _  "</small>"
-  )
-
-
-(define-skeleton jpw-html-size-big
-  "Insert HTML font resizing tag \"<big>\".
-{jpw: 03/2006}"
-  nil
-  "<big>" _  "</big>"
-  )
-
-
-(define-skeleton jpw-html-size-relative
-  "Insert XHTML font resizing markup.
-{jpw: 03/2006}"
-  (completing-read "Size: " jpw-html-size-alist nil nil "small")
-  "<span style=\"font-size: " str "\">" _ "</span>")
 
 
 (define-skeleton jpw-lj-user
