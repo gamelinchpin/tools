@@ -2,7 +2,7 @@
 ;;
 ;; Custom Functions
 ;;
-;;  Copyright © 1995-2009 John P. Weiss
+;;  Copyright © 1995-2010 John P. Weiss
 ;;
 ;;  This package is free software; you can redistribute it and/or modify
 ;;  it under the terms of the Artistic License, included as the file
@@ -1497,7 +1497,7 @@ extended using an EOL-\"\\\"-char.  {jpw; 12/2004}"
   (cperl-set-style "PerlStyle")
   (setq cperl-label-offset -2)
   (use-jpw-perl-dabbrev-skip)
-)
+  )
 
 
 (defun use-jpw-style-octave ()
@@ -1567,6 +1567,15 @@ extended using an EOL-\"\\\"-char.  {jpw; 12/2004}"
   (xml-lite-mode)
   (font-lock-mode)
   (jpw-set-xml-lite-indent 4)
+  )
+
+
+(defun jpw-speedbar-settings ()
+  (interactive)
+  (speedbar-disable-update)
+  (speedbar-change-initial-expansion-list "buffers")
+  (speedbar-update-contents)
+  (speedbar-set-mode-line-format)
   )
 
 

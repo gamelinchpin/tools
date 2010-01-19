@@ -2,7 +2,7 @@
 ;;
 ;; Mode Hooks
 ;;
-;;  Copyright © 1995-2009 John P. Weiss
+;;  Copyright © 1995-2010 John P. Weiss
 ;;
 ;;  This package is free software; you can redistribute it and/or modify
 ;;  it under the terms of the Artistic License, included as the file
@@ -44,6 +44,7 @@
 (add-hook 'outline-minor-mode-hook '(lambda ()
                                       (if (eq major-mode 'wikipedia-mode)
                                           (use-jpw-style-wikipedia-mode))))
+(add-hook 'speedbar-after-create-hook 'jpw-speedbar-settings)
 
 ;; Makefiles
 (add-hook 'makefile-mode-hook 'turn-on-auto-fill)
@@ -76,7 +77,7 @@
 (add-hook 'sh-mode-hook 'use-jpw-sh-dabbrev-skip)
 
 
-;; WWW Friends
+;; WWW and Friends
 (add-hook 'sgml-mode-hook 'use-jpw-style-sgml)
 ; Not needed with `xml-lite-mode'
 ;(add-hook 'xml-mode-hook 'use-jpw-style-xml)
@@ -102,8 +103,6 @@
 
 ;; SQL
 (add-hook 'sql-mode-hook 'use-jpw-style-sql)
-
-
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;

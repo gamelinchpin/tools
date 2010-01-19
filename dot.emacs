@@ -3,7 +3,7 @@
 ;;  .emacs setup file
 ;;
 ;;
-;;  last modified 06/2008            (jpw)
+;;  last modified 01/2010            (jpw)
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -14,10 +14,14 @@
 (message "In ~/.emacs")
 
 ;; Initial frame state.  Set before any other package is loaded.
-(setq initial-frame-alist '((width . 80) 
+(setq initial-frame-alist '((width . 80)
                             (vertical-scroll-bars . 'right)
-                            (menu-bar-lines . 1) 
+                            (menu-bar-lines . 1)
                             (tool-bar-lines . 0)))
+;; Needed when using the Ubuntu package, "emacs-extras":
+;;(set-background-color "white")
+;;(set-foreground-color "black")
+;;(set-cursor-color "blue")
 
 ;; Fix Alt-key for certain window managers under X
 ;;;(load "map-alt-to-meta")
@@ -27,7 +31,7 @@
 (add-to-list 'load-path (expand-file-name "~/.emacs.d"))
 
 ;; [jpw; 11/2004]
-;; On local installations, put the site-lisp in ~/.emacs.d/ and run 
+;; On local installations, put the site-lisp in ~/.emacs.d/ and run
 ;; custom-start manually.
 ;; ;(add-to-list 'load-path (expand-file-name "~/.emacs.d/site-lisp"))
 ;; ;(load "custom-start")
@@ -50,7 +54,7 @@
 (remove-hook 'html-mode-hook 'semantic-default-html-setup)
 ;; Custom-set-variables loses this, for some reason.  Let's try forcing it
 ;; after everything starts.
-(add-hook 'emacs-startup-hook 
+(add-hook 'emacs-startup-hook
           (lambda () (setq require-final-newline 'nil)))
 
 
@@ -64,9 +68,11 @@
 
 
 ;; Work Stuff
-;;...
-(load "wikipedia-mode")
-(global-set-key "\M-pw" 'wikipedia-mode)
+
+;; Wikipedia Mode Customizations
+;; ;(load "longlines")
+;; ;(load "wikipedia-mode")
+;; ;(global-set-key "\M-pw" 'wikipedia-mode)
 
 
 ;; If we have the official version of Tramp installed (and not the one bundled
@@ -88,10 +94,14 @@
 
 ;; Temp [TpX40 only]:  Map the [\C-menu] key to something.
 ;; ;(define-key function-key-map [print] [\C-menu])
-;; ;(global-set-key [?\C-c f7] 'compile)
-;; ;(global-set-key [?\C-c f8] 'recompile)
+
+;; Todo:  Move to custom-keybindings.
+(global-set-key [?\C-c f7] 'compile)
+(global-set-key [?\C-c f8] 'recompile)
 
 
+;; N.B. - In the current version of Emacs {1/07}, `type-break-mode' interferes
+;; with the latin-15 keymap ("\C-x 8" and "\C-menu").
 (put 'scroll-left 'disabled nil)
 
 
@@ -102,7 +112,7 @@
 
 
 ;; Local Customizations
-;; 
+;;
 (custom-set-variables
   ;; custom-set-variables was added by Custom.
   ;; If you edit it by hand, you could mess it up, so be careful.
@@ -132,7 +142,7 @@
  '(history-delete-duplicates t)
  '(jpw-lj-friend-groups (quote ("husband" "from way back" "Regularly Read")))
  '(jpw-lj-unfill-on-save t)
- '(jpw-lj-user-avatars (quote ("Dr._Alchemist" "Fiend::Kitty" "Gir::cheery" "Gir::cheery" "Gir::piggy" "Gir::serious" "Gir::waffles" "Me_1995" "MsBitters::doom" "MsBitters::looming" "MsBitters::pensive" "My_Icon" "fascists")))
+ '(jpw-lj-user-avatars (quote ("Babuuuuusha" "Dr._Alchemist" "Fiend::Kitty" "Frannie" "Gay::duo""Gay::rainbow_flag" "Gir::cheery""Gir::cheery" "Gir::piggy" "Gir::serious""Gir::waffles" "Ian""Ian::Bashful""Martin" "Me_1995" "MsBitters::doom""MsBitters::looming" "MsBitters::pensive""My_Icon" "fascists" "linux")))
  '(jpw-lj-xlate-entities-on-save t)
  '(minibuffer-prompt-properties (quote (read-only t point-entered minibuffer-avoid-prompt face minibuffer-prompt)))
  '(org-blank-before-new-entry (quote ((heading . t) (plain-list-item))))
@@ -149,7 +159,7 @@
  '(ps-printer-name "~/emacs-out.ps")
  '(recentf-save-file "~/.emacs.d/.recentf")
  '(require-final-newline nil)
- '(safe-local-variable-values (quote ((buffer-file-coding-system-explicit . mule-utf-8-dos) (tab-stop-list 8 16 24 32 40 48 56 64 72))))
+ '(safe-local-variable-values (quote ((coding-system . utf-8-unix) (coding-system . utf-8) (buffer-file-coding-system . utf-8) (buffer-file-coding-system-explicit . mule-utf-8-dos) (tab-stop-list 8 16 24 32 40 48 56 64 72))))
  '(scroll-bar-mode (quote right))
  '(show-paren-delay 0.5)
  '(show-paren-style (quote mixed))
@@ -197,12 +207,16 @@
 ;; '(outline-regexp "[*§¶]+\\|[	  ]+[*§¶­]+")
 
 ;; For Speedbar w/o icons, use this as the button face:
-;;  '(speedbar-button-face 
-;;    ((((class color) (background light)) 
-;;      (:background "yellow4" :foreground "purple4" 
-;;                   :box (:line-width 1 
-;;                                     :color "yellow3" 
+;;  '(speedbar-button-face
+;;    ((((class color) (background light))
+;;      (:background "yellow4" :foreground "purple4"
+;;                   :box (:line-width 1
+;;                                     :color "yellow3"
 ;;                                     :style released-button)))))
+
+;; Needed when using the Ubuntu package, "emacs-extras"
+;; '(highlight ((t (:background "CornflowerBlue"))))
+
 
 
 ;; [jpw] Force the recentf menu to update.  Dunno if it'll work.
@@ -215,4 +229,4 @@
 ;; Local Variables:
 ;; mode: emacs-lisp
 ;; End:
-;; 
+;;

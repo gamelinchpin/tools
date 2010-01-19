@@ -2,8 +2,8 @@
 ;;
 ;; A major mode for editing phpBB messages.
 ;;
-;;  Copyright © 2005-2007 John P. Weiss
-;;  
+;;  Copyright © 2005-2010 John P. Weiss
+;;
 ;;  This package is free software; you can redistribute it and/or modify
 ;;  it under the terms of the Artistic License, included as the file
 ;;  "LICENSE" in the source code archive.
@@ -15,10 +15,10 @@
 ;;  You should have received a copy of the file "LICENSE", containing
 ;;  the License John Weiss originally placed this program under.
 ;;
-;;  
+;;
 ;; You can enter this mode using `\M-p\M-P'.
 ;;
-;;  
+;;
 ;; RCS $Id$
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -32,7 +32,7 @@
 ;;------------------------------------------------------------
 ;;
 ;; User Customizations
-;; 
+;;
 
 
 (defgroup phpBB nil
@@ -42,7 +42,7 @@
   :group 'local)
 
 
-(defface phpBB-bold-face 
+(defface phpBB-bold-face
   '((t (:inherit bold)))
   "How to color [b]...[/b] tags."
   :group 'phpBB)
@@ -57,44 +57,44 @@
   "How to color [u]...[/u] tags."
   :group 'phpBB)
 
-(defface phpBB-smiley-face 
+(defface phpBB-smiley-face
   '((t (:bold t :foreground "orange")))
   "How to color smileys"
   :group 'phpBB)
 
-(defface phpBB-tag-face 
+(defface phpBB-tag-face
   '((t (:inherit font-lock-function-name-face)))
   "The face to use for non-markup phpBB tags."
   :group 'phpBB)
 
-(defface phpBB-size-face 
+(defface phpBB-size-face
   '((t (:inherit font-lock-type-face)))
   "The face to use for size markup."
   :group 'phpBB)
 
-(defface phpBB-color-face 
+(defface phpBB-color-face
   '((t (:foreground "magenta" :background "PaleGreen")))
   "The face to use for color markup."
   :group 'phpBB)
 
-(defface phpBB-quote-face 
+(defface phpBB-quote-face
   '((t (:inherit font-lock-comment-face)))
   "The face to use for quoted text."
   :group 'phpBB)
 
-(defface phpBB-multiply-quoted-face 
-  '((t (:inherit phpBB-quote-face 
+(defface phpBB-multiply-quoted-face
+  '((t (:inherit phpBB-quote-face
         :background "LightCyan")))
   "The face to use for text that has been quoted more than once.
 (i.e. a quote that contains another quote)."
   :group 'phpBB)
 
-(defface phpBB-code-face 
+(defface phpBB-code-face
   '((t (:inherit font-lock-constant-face)))
   "The face to use for code markup."
   :group 'phpBB)
 
-(defface phpBB-url-face 
+(defface phpBB-url-face
   '((t (:inherit font-lock-keyword-face
         :underline t :bold t)))
   "The face to use for URLs."
@@ -104,7 +104,7 @@
 ;;------------------------------------------------------------
 ;;
 ;; Variables
-;; 
+;;
 
 
 (defvar jpw-phpBB-tag-analysis-cache '()
@@ -120,7 +120,7 @@
 ;;------------------------------------------------------------
 ;;
 ;; Tag-Type-Specific Constants
-;; 
+;;
 
 
 (defconst jpw-tag-finder-re "\\[.+\\]")
@@ -131,7 +131,7 @@
 ;;------------------------------------------------------------
 ;;
 ;; Utility Functions
-;; 
+;;
 
 
 (defsubst jpw-insert-phpBB-tag (tag)
@@ -154,10 +154,10 @@ either side of the region.
   (or (stringp arg)
       (signal 'wrong-type-argument (list 'stringp arg)))
   (if unquoted
-      (jpw-insert-markup-tags (concat "[" tag "=" arg "]") 
+      (jpw-insert-markup-tags (concat "[" tag "=" arg "]")
                           (concat "[/" tag "]"))
     ;; else
-    (jpw-insert-markup-tags (concat "[" tag "=\"" arg "\"]") 
+    (jpw-insert-markup-tags (concat "[" tag "=\"" arg "\"]")
                             (concat "[/" tag "]"))
     );;end if
   )
@@ -238,7 +238,7 @@ If `pos' is a list, uses the first non-nil element.  (Actually, it checks only
 
 Alters `point'.  Be sure to call this only from within a `save-excursion'.
 {jpw 03/05}"
-  (if pos 
+  (if pos
       (if (listp pos)
           (goto-char (cond ((car pos)) ((cadr pos))))
         );; end if listp
@@ -246,7 +246,7 @@ Alters `point'.  Be sure to call this only from within a `save-excursion'.
     (goto-char pos)
     )
   (if (looking-at jpw-tag-full-startend-re)
-      (match-string-no-properties 1)) 
+      (match-string-no-properties 1))
   )
 
 
@@ -269,7 +269,7 @@ This defun *greatly* simplifies all of the subsequent syntactic analysis code.
   )
 
 
-(defsubst jpw-phpBB-tag-find-nearest (&optional pos-last-start 
+(defsubst jpw-phpBB-tag-find-nearest (&optional pos-last-start
                                                 pos-next-end
                                                 from-pos
                                                 to-pos)
@@ -303,7 +303,7 @@ Alters `point'.  Be sure to call this only from within a `save-excursion'.
                 (jpw-phpBB-tag-find-last pos-last-start from-pos)))
          (next (jpw-phpBB-tag-pos-to-syntactic
                 (jpw-phpBB-tag-find-next pos-next-end to-pos)))
-        ) ;; end var defs    
+        ) ;; end var defs
 
     (if (or last next)
         (list last next))
@@ -322,7 +322,7 @@ otherwise.
 (defsubst jpw-phpBB-tag-skip-ignorable (nearest
                                         &optional from-pos to-pos)
   "Extension of `jpw-phpBB-tag-find-nearest' which skips tags that
-`jpw-phpBB-tag-analysis-ignore' returns `t' for.  
+`jpw-phpBB-tag-analysis-ignore' returns `t' for.
 
 `nearest' should be the a list of the same form returned by
 `jpw-phpBB-tag-find-nearest', which is what this defun evals to, as well.
@@ -334,7 +334,7 @@ the entire buffer.
 
 Alters `point'.  Be sure to call this only from within a `save-excursion'.
 {jpw: 07/2005}"
-  (and 
+  (and
    nearest
    (let* ((info-last-tag (car nearest))
           (info-next-tag (cadr nearest))
@@ -343,7 +343,7 @@ Alters `point'.  Be sure to call this only from within a `save-excursion'.
      ;; Check the preceding tag
      (while (and info-last-tag
                  (jpw-phpBB-tag-analysis-ignore (caddr info-last-tag)))
-       (setq info-last-tag 
+       (setq info-last-tag
              (jpw-phpBB-tag-pos-to-syntactic
               (jpw-phpBB-tag-find-last (car info-last-tag) from-pos)))
        );; end backward search
@@ -351,7 +351,7 @@ Alters `point'.  Be sure to call this only from within a `save-excursion'.
      ;; Check the following tag
      (while (and info-next-tag
                  (jpw-phpBB-tag-analysis-ignore (caddr info-next-tag)))
-       (setq info-next-tag 
+       (setq info-next-tag
              (jpw-phpBB-tag-pos-to-syntactic
               (jpw-phpBB-tag-find-next (1+ (car info-next-tag)) to-pos)))
        );; end forward search
@@ -364,7 +364,7 @@ Alters `point'.  Be sure to call this only from within a `save-excursion'.
   )
 
 
-(defun jpw-phpBB-tag-find-enclosing (&optional pos-last-start 
+(defun jpw-phpBB-tag-find-enclosing (&optional pos-last-start
                                                pos-next-end
                                                skip-unanalyzable-tags
                                                from-pos
@@ -386,7 +386,7 @@ search.  This lets you narrow the tag search to the region between these two
 positions without having to call `narrow-to-region'.  The default is to search
 the entire buffer.
 
-Returns nil if `point' is not enclosed in any phpBB tags whatsoever.  
+Returns nil if `point' is not enclosed in any phpBB tags whatsoever.
 
 Returns a `nil' TAG when the nearest tags aren't a matching \"[TAG]
 ... [/TAG]\" pair.
@@ -408,18 +408,18 @@ Returns a `nil' TAG when the nearest tags aren't a matching \"[TAG]
            (info-last-tag (car tmp-nearest-pair))
            (info-next-tag (cadr tmp-nearest-pair))
            (last-tag (caddr info-last-tag))
-           (next-tag (caddr info-next-tag)) 
+           (next-tag (caddr info-next-tag))
            nested-tag-count
            );;end var defs
 
       ;; Here are the various cases we're looking for:
 
       (and
-       ;; Edge Cases:    
+       ;; Edge Cases:
        ;;   ..pt.. [TAG]
        ;;   ..pt.. [/TAG]
-       ;;   [/TAG] ..pt.. 
-       ;;   [TAG] ..pt.. 
+       ;;   [/TAG] ..pt..
+       ;;   [TAG] ..pt..
        ;;   ..pt..
        ;; Returns `nil'
        info-last-tag info-next-tag
@@ -428,7 +428,7 @@ Returns a `nil' TAG when the nearest tags aren't a matching \"[TAG]
        ;; Design Note:  The boolean logic of the first case:
        ;;
        ;;   (and (not is-edge-case) (cond ... other-cases ...))
-       ;; 
+       ;;
        ;; makes use of shortcut-side-effects.  When faced with the edge case,
        ;; the (and ...) will stop here an eval to `nil', as desired.
        ;;
@@ -474,13 +474,13 @@ Returns a `nil' TAG when the nearest tags aren't a matching \"[TAG]
            ;; Note:  To prevent `jpw-phpBB-tag-find-next' from "getting
            ;; stuck" at the tag we found on the last iteration, we need to
            ;; start the search one char forward from `pos-next-end'.
-           (setq info-next-tag 
+           (setq info-next-tag
                  (jpw-phpBB-tag-pos-to-syntactic
                   (jpw-phpBB-tag-find-next (1+ (car info-next-tag)) to-pos)))
            (if (equal last-tag (caddr info-next-tag))
                (if (cadr info-next-tag) ;; is end tag
                    (setq nested-tag-count (1- nested-tag-count))
-                 ;; else:  it's a nested start tag 
+                 ;; else:  it's a nested start tag
                  (setq nested-tag-count (1+ nested-tag-count))
                  );;end if end-or-start tag
              );;end if equal
@@ -505,13 +505,13 @@ Returns a `nil' TAG when the nearest tags aren't a matching \"[TAG]
                (if (equal (caddr info-last-tag) next-tag) 2 1))
          (while (and info-last-tag
                      (> nested-tag-count 0))
-           (setq info-last-tag 
+           (setq info-last-tag
                  (jpw-phpBB-tag-pos-to-syntactic
                   (jpw-phpBB-tag-find-last (car info-last-tag) from-pos)))
            (if (equal (caddr info-last-tag) next-tag)
                (if (cadr info-last-tag) ;; is end tag
                    (setq nested-tag-count (1+ nested-tag-count))
-                 ;; else:  it's a matching start tag 
+                 ;; else:  it's a matching start tag
                  (setq nested-tag-count (1- nested-tag-count))
                  );;end if end-or-start tag
              );;end if equal
@@ -556,7 +556,7 @@ The result of analysis is nil if `point' is not enclosed in any phpBB tags.
          ;; Pull out the first pair of positions.
          (cached-startag-pos (car (cadr taginfo-from-iter)))
          (cached-endtag-pos (cadr (cadr taginfo-from-iter)))
-         from-pos 
+         from-pos
          to-pos
          analysis-cache-working
          current-tagspec
@@ -573,7 +573,7 @@ The result of analysis is nil if `point' is not enclosed in any phpBB tags.
                       (<= cached-startag-pos (point))
                       (<= (point) cached-endtag-pos)
                       )
-            (setq 
+            (setq
              ;; Update the search bounds with the old position
              from-pos cached-startag-pos
              to-pos cached-endtag-pos
@@ -611,11 +611,11 @@ The result of analysis is nil if `point' is not enclosed in any phpBB tags.
     (save-excursion
       ;; Reset the buffer state and start rebuilding.
       (setq jpw-phpBB-t-a-c-l-u-buffer-state buffer-state
-            current-tagspec (jpw-phpBB-tag-find-enclosing nil 
-                                                          nil 
-                                                          t 
-                                                          from-pos 
-                                                          to-pos)  
+            current-tagspec (jpw-phpBB-tag-find-enclosing nil
+                                                          nil
+                                                          t
+                                                          from-pos
+                                                          to-pos)
             )
       (while (car current-tagspec)
         ;; Prepend each new tag pair.  Since we're searching outward, this
@@ -625,7 +625,7 @@ The result of analysis is nil if `point' is not enclosed in any phpBB tags.
               )
         ;;  Note the backward/forward offsetting by one character from the
         ;;  positions of the last start/end tags.
-        (setq current-tagspec 
+        (setq current-tagspec
               (jpw-phpBB-tag-find-enclosing (1- (caadr current-tagspec))
                                             (1+ (cadadr current-tagspec))
                                             t
@@ -638,21 +638,22 @@ The result of analysis is nil if `point' is not enclosed in any phpBB tags.
     ;; cache (both of which are in depth-descending order).  This will also
     ;; make the contents of the cache the expression to which this defun
     ;; evals.
-    (setq jpw-phpBB-tag-analysis-cache 
+    (setq jpw-phpBB-tag-analysis-cache
           (nconc jpw-phpBB-tag-analysis-cache analysis-cache-working))
     );;end let
   )
 
 
 (defsubst jpw-phpBB-unfill-skip-line (next-nonws-char)
-  (char-equal (char-after next-nonws-char) ?\[)
+  (or (char-equal (char-after next-nonws-char) ?\[)
+      (char-equal (char-after next-nonws-char) ?:))
   )
 
 
 ;;------------------------------------------------------------
 ;;
 ;; Mode Interactive Functions
-;; 
+;;
 
 
 (defun phpBB-insert-italic ()
@@ -757,7 +758,7 @@ specified using a prefix-arg.  If `type' is a string, that string is used
 directly as the type attribute.  If `type' is an integer (e.g. a prefix-arg),
 then its sign determines the type of list:
   `type' > 0 : Enumerated list, lowercase letters.
-  `type' == 0 : Numbered list, lowercase Roman numerals 
+  `type' == 0 : Numbered list, lowercase Roman numerals
 Any other type is an error.
 
 When no arg is specified, the opening \"[list]\" tag contains no type, and
@@ -767,7 +768,7 @@ will therefore be a bullet-list.
   ;; Validation check.
   (or (null type)
       (char-or-string-p type)
-      (signal 'wrong-type-argument 
+      (signal 'wrong-type-argument
               (list 'char-or-string-p type)))
   (let ((type-str (and (not (null type))
                        (or (and (stringp type) type)
@@ -795,7 +796,7 @@ Evals to `nil' and does nothing if we're not inside of a quote environment.
   (let (enclosing-tag
         quote-arg
         );;end vardefs.
-    (save-excursion 
+    (save-excursion
       (setq enclosing-tag (jpw-phpBB-tag-find-enclosing))
       (and enclosing-tag
            (equal "quote" (car enclosing-tag))
@@ -810,7 +811,7 @@ Evals to `nil' and does nothing if we're not inside of a quote environment.
 
     ;; If we're inside a quote-tag, split it.
     (if (and enclosing-tag quote-arg)
-        (jpw-insert-markup-tags "[/quote]\n" 
+        (jpw-insert-markup-tags "[/quote]\n"
                                 (concat "\n[quote" quote-arg "]"))
       );;end if
     );; end let
@@ -832,7 +833,7 @@ buffer.
 lines that begin with a phpBB tag are not unfilled.
 {jpw: 03/2006}"
   (interactive "P")
-  (jpw-unfill-paragraph-engine (not (eq remove-blank-line nil)) 
+  (jpw-unfill-paragraph-engine (not (eq remove-blank-line nil))
                                'jpw-phpBB-unfill-skip-line)
   )
 
@@ -840,7 +841,7 @@ lines that begin with a phpBB tag are not unfilled.
 ;;------------------------------------------------------------
 ;;
 ;; Bindings: Define Local Keymap
-;; 
+;;
 
 
 (defvar phpBB-mode-map nil)
@@ -887,7 +888,7 @@ lines that begin with a phpBB tag are not unfilled.
 ;;------------------------------------------------------------
 ;;
 ;; Font-Lock Support
-;; 
+;;
 
 
 ;;
@@ -930,7 +931,7 @@ lines that begin with a phpBB tag are not unfilled.
   ;; Examines region between `point' and `upper-limit', looking for all
   ;; multiply-nested quotes.  Sets the `match-data' to a list of points as
   ;; follows:
-  ;; 
+  ;;
   ;;    ( all-matched-begin-p all-matched-end-p
   ;;      tag-begin-p                tag-end-p
   ;;      start-tag-post-arg-begin-p start-tag-post-arg-end-p
@@ -972,7 +973,7 @@ lines that begin with a phpBB tag are not unfilled.
     (if (bobp) (setq phpBB-nested-quote-level 0))
     ;; Note:  We _will_ NOT try to determine our nesting level if we're in the
     ;; middle of the buffer.  Yes, we may be refontifying a specific region.
-    ;; 
+    ;;
     ;; BUT - we may already be fontifying the text.  We want back-to-back
     ;; calls to this defun by the font-lock engine to work, quickly, and with
     ;; no side-effects.
@@ -996,7 +997,7 @@ lines that begin with a phpBB tag are not unfilled.
            ;; Start quote tag.
            ;; Set the 1st and 2nd matches to the tag itself, ignoring any tab
            ;; attribute in the middle.  Also bumps the quote nesting level.
-           (nconc quote-match-data 
+           (nconc quote-match-data
                   (list (match-beginning 1) (match-end 1)
                         (match-beginning 3) (match-end 3)
                         )
@@ -1010,7 +1011,7 @@ lines that begin with a phpBB tag are not unfilled.
        ;; end-quote tag is 8 chars long.
        ;; Set the 1st match to the tag itself.  The 2nd match is unused for
        ;; an end tag.   Also drops the quote nesting level.
-       (nconc quote-match-data 
+       (nconc quote-match-data
               (list tag1-start-pos (+ tag1-start-pos 8)
                     nil nil)
               )
@@ -1041,7 +1042,7 @@ lines that begin with a phpBB tag are not unfilled.
              ;; This is singly-quoted text.
              ;; The 3rd-match marks the text between the quote-tags.  The
              ;; 4th-match is now unused.
-             (nconc quote-match-data 
+             (nconc quote-match-data
                     (list tag1-end-pos text-end-pos nil nil))
              );; end if quote-level
            ;; Remember that placeholder-nil in the "0th-match"?  Now we set
@@ -1093,7 +1094,7 @@ lines that begin with a phpBB tag are not unfilled.
     "\\[i\\]"
     "[^[]*\\(\\[[^/]+/[^i]\\][^[]*\\)*"
     "\\[/i\\]"
-    "\\)"    
+    "\\)"
     );;end concat
    '(1 'phpBB-italic-face prepend)
    );;end list
@@ -1109,7 +1110,7 @@ lines that begin with a phpBB tag are not unfilled.
     "\\[u\\]"
     "[^[]*\\(\\[[^/]+/[^u]\\][^[]*\\)*"
     "\\[/u\\]"
-    "\\)"    
+    "\\)"
     );;end concat
    '(1 'phpBB-underline-face prepend)
    );;end list
@@ -1342,7 +1343,7 @@ lines that begin with a phpBB tag are not unfilled.
 ;;------------------------------------------------------------
 ;;
 ;; Define the mode proper
-;; 
+;;
 
 
 
@@ -1369,13 +1370,13 @@ Key bindings:
   (setq font-lock-defaults phpBB-font-lock-defaults
         font-lock-multiline t
         ;; `jit-lock-mode' doesn't correctly fontify everything we want it to.
-        ;; 
+        ;;
         ;; `fast-lock-mode' and `lazy-lock-mode' require you to
         ;; manually-refontify when editing text in some of the more complex
         ;; multiline expressions.  `fast-lock-mode' works by keeping a cache
         ;; of fontifications.  Great for programming modes.  Bad for modes
         ;; operating on temporary buffers.
-        ;; 
+        ;;
         ;; So, we'll use `lazy-lock-mode', suitably tuned to behave as
         ;; desired.
         font-lock-support-mode 'lazy-lock-mode
@@ -1391,7 +1392,7 @@ Key bindings:
   ;; Eventually, this will be moved into an if-statement controlled by a
   ;; customization flag.  That flag will also need to perform an unfill-buffer
   ;; before saving/killing.  Will need to build in that functionality, as
-  ;; well. 
+  ;; well.
   (progn (setq fill-column 0) (auto-fill-mode -1))
   )
 
@@ -1415,7 +1416,7 @@ Key bindings:
 ;;------------------------------------------------------------
 ;;
 ;; Unit Tests
-;; 
+;;
 
 
 ;; (defun jpw-phpBB-test-tag-find-last ()
@@ -1424,7 +1425,7 @@ Key bindings:
 ;;     (let* ( (tagspec (jpw-phpBB-tag-find-last))
 ;;             (starttag (car tagspec))
 ;;             (endtag (cadr tagspec)) )
-;;       (cond 
+;;       (cond
 ;;        (starttag (goto-char starttag))
 ;;        (endtag (goto-char endtag))
 ;;        ))))
@@ -1434,7 +1435,7 @@ Key bindings:
 ;;     (let* ( (tagspec (jpw-phpBB-tag-find-next))
 ;;             (starttag (car tagspec))
 ;;             (endtag (cadr tagspec)) )
-;;       (cond 
+;;       (cond
 ;;        (starttag (goto-char starttag))
 ;;        (endtag (goto-char endtag))
 ;;        ))))

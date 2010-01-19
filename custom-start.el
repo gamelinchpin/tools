@@ -2,7 +2,7 @@
 ;;
 ;; Core Emacs Setup File
 ;;
-;;  Copyright © 1995-2008 John P. Weiss
+;;  Copyright © 1995-2010 John P. Weiss
 ;;
 ;;  This package is free software; you can redistribute it and/or modify
 ;;  it under the terms of the Artistic License, included as the file
@@ -38,8 +38,10 @@
 ;; (setq inhibit-startup-message t)
 
 (defconst term-lc (or (getenv "TERM")
-                       (setq term (downcase term))
-                       )
+                      (and (boundp 'term)
+                           (setq term (downcase term))
+                           )
+                      )
   "The value of the \"TERM\" environment variable lowercased.  Used by the
 startup files to shorten the elisp.
 
@@ -238,7 +240,6 @@ You shouldn't change the value of this variable.
    '(recentf-save-file "~/.emacs.d/.recentf")
    '(type-break-mode-line-message-mode nil)
    '(type-break-keystroke-threshold (quote (10000)))
-   '(type-break-mode t nil (type-break))
    '(type-break-interval 6000)
    '(type-break-good-rest-interval 60)
    '(type-break-query-interval 180)
@@ -786,7 +787,6 @@ variable rather than hardcoded.
 
 
 ;;---------------------------------------------------------------------------
-
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
