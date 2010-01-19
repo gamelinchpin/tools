@@ -2,7 +2,7 @@
 ;;
 ;; Major and Minor modes for editing LiveJournal entries.
 ;;
-;;  Copyright © 2006-2009 John P. Weiss except as documented below
+;;  Copyright © 2006-2010 John P. Weiss except as documented below
 ;;
 ;;  This package is free software; you can redistribute it and/or modify
 ;;  it under the terms of the Artistic License, included as the file
@@ -1274,14 +1274,26 @@ similarly structured variable.
   ;; Behavior specific to LJ mode.
   ;;
 
-  (if jpw-lj-unfill-on-save
-      (add-hook 'local-write-file-hooks 'jpw-lj-unfill-buffer)
-      )
-  (if jpw-lj-xlate-entities-on-save
-      (add-hook 'local-write-file-hooks 'jwz-lj-entify)
-      )
-  )
+  (if (or jpw-lj-unfill-on-save jpw-lj-xlate-entities-on-save)
+      (progn
+        ;; For Emacs v22
+        (make-local-variable 'before-save-hook)
+        (if jpw-lj-unfill-on-save
+            ;; For Emacs v22
+            (add-hook 'before-save-hook 'jpw-lj-unfill-buffer)
+          ;; Older Versions:
+          ;; ;(add-hook 'local-write-file-hooks 'jpw-lj-unfill-buffer)
+          )
+        (if jpw-lj-xlate-entities-on-save
+            ;; For Emacs v22
+            (add-hook 'before-save-hook 'jwz-lj-entify)
+          ;; Older Versions:
+          ;; ;(add-hook 'local-write-file-hooks 'jwz-lj-entify)
+          )
+        )
+    );; end if
 
+  )
 
 
 ;;;###autoload (jpw-lj-mode)
