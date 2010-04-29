@@ -1192,10 +1192,33 @@ extended using an EOL-\"\\\"-char.  {jpw; 12/2004}"
   )
 
 
+(defvar jpw-outline-toggle-all-visible 'nil)
+(defun jpw-outline-toggle-show-hide-all()
+  (interactive)
+  (if jpw-outline-toggle-all-visible
+      (progn
+        (setq jpw-outline-toggle-all-visible 'nil)
+        (hide-sublevels 1)
+        )
+    ;; else:
+    (setq jpw-outline-toggle-all-visible 't)
+    (show-all)
+    )
+  )
+
+
 (defun use-jpw-style-org ()
   (interactive)
   ;;(setq fill-column 78)
   (turn-on-auto-fill)
+  ;; Initialize, using the state of the customization variable,
+  ;;"org-startup-folded"
+  (setq jpw-outline-toggle-all-visible
+        (or (not org-startup-folded)
+            (eq org-startup-folded 'nofold)
+            (eq org-startup-folded 'showall)
+            )
+        )
   (local-set-key [\M-\S-return] 'org-meta-return)
   (local-set-key [\C-return] 'org-meta-return)
   (local-set-key [\M-return] 'join-next-line)
@@ -1203,7 +1226,7 @@ extended using an EOL-\"\\\"-char.  {jpw; 12/2004}"
   (local-set-key [\M-up] 'outline-previous-visible-heading)
   (local-set-key [\M-right] 'outline-forward-same-level)
   (local-set-key [\M-left] 'outline-backward-same-level)
-  (local-set-key [?\C-c \C-tab] 'show-all)
+  (local-set-key [?\C-c \C-tab] 'jpw-outline-toggle-show-hide-all)
   (local-set-key [\C-\S-down] 'org-shiftmetadown)
   (local-set-key [\C-\S-up] 'org-shiftmetaup)
   (local-set-key [\C-\S-right] 'org-shiftmetaright)

@@ -194,17 +194,99 @@ You shouldn't change the value of this variable.
 ;; next save their customizations.
 ;;
 (jpw-custom-set-variables-nonsaved
- '(line-number-mode t)
- '(column-number-mode t)
+ ;; Misc Default Filenames
  '(abbrev-file-name "~/.emacs.d/.abbrevs" t)
- '(generic-define-mswindows-modes t)
- '(generic-define-unix-modes t)
  '(ps-printer-name "~/emacs-out.ps")
  '(quickurl-url-file "~/.emacs.d/.quickurls")
+
+ ;; Frame Settings
+ '(column-number-mode t)
+ '(line-number-mode t)
+ '(minibuffer-prompt-properties (quote (read-only t point-entered minibuffer-avoid-prompt face minibuffer-prompt)))
+ '(scroll-bar-mode (quote right))
+
+ ;; General Behavior
+ '(case-fold-search t)
+ '(confirm-kill-emacs (quote y-or-n-p))
+ '(default-major-mode (quote text-mode))
+ '(history-delete-duplicates t)
  '(revert-without-query (quote (".*")))
- '(version-control t)
- '(transient-mark-mode 1)
+ '(safe-local-variable-values (quote ((coding-system . utf-8-unix) (coding-system . utf-8) (buffer-file-coding-system . utf-8) (buffer-file-coding-system-explicit . mule-utf-8-dos) (tab-stop-list 8 16 24 32 40 48 56 64 72))))
  '(save-abbrevs (quote silently))
+
+ ;; Misc. Modes to Enable by Default
+ '(abbrev-mode t)
+ '(partial-completion-mode t)
+
+ ;; Editing Behavior
+ '(blink-matching-paren t)
+ '(fill-column 78)  ;; For all but text mode.
+ '(indent-tabs-mode 'nil) ;; Auto-convert Tabs to Spaces.
+ '(next-line-add-newlines nil) ;; [Down] doesn't add \n at EOB
+ '(require-final-newline nil)
+ '(tab-width 4)  ;; Tab every 4 spaces.
+ '(tab-stop-list (quote (4 8 12 16 20 24 28 32 36 40
+                           44 48 52 56 60 64 68 72 76)) )
+
+ ;; Keep Running File Versions (swiped from Jerry Leichter)
+ '(delete-old-versions nil)
+ '(kept-new-versions 100)
+ '(kept-old-versions 0)
+ '(version-control t)
+
+ ;; Fontification-Related
+ '(global-font-lock-mode t nil (font-lock))
+ '(transient-mark-mode 1)
+ '(show-paren-delay 0.5)
+ '(show-paren-style (quote mixed))
+
+ ;; Settings for Multiple Languages:  use Latin1
+ '(current-language-environment "Latin-1")
+ '(default-input-method "latin-1-prefix")
+
+ ;; Programming-Related Settings
+ '(align-c++-modes (quote (c++-mode c-mode java-mode javascript-generic-mode)))
+ '(align-open-comment-modes (quote (vhdl-mode emacs-lisp-mode lisp-interaction-mode lisp-mode scheme-mode c++-mode c-mode java-mode perl-mode cperl-mode python-mode makefile-mode javascript-generic-mode)))
+ '(c-doc-comment-style (quote ((c-mode . javadoc) (c++-mode . javadoc) (java-mode . javadoc) (pike-mode . autodoc))))
+ '(c-echo-syntactic-information-p t)
+ '(c-report-syntactic-errors t)
+ '(compile-command "LC_CTYPE=ascii make -k ")
+ '(cperl-font-lock t)
+ '(cperl-highlight-variables-indiscriminately t)
+ '(ediff-window-setup-function (quote ediff-setup-windows-plain))
+ '(generic-define-mswindows-modes t)
+ '(generic-define-unix-modes t)
+ '(grep-command "grep --binary-files=without-match --exclude=\\*.svn\\* -n -r -P ")
+ '(vc-handled-backends (quote (SVN RCS CVS SCCS)))
+ '(which-function-mode nil nil (which-func))
+
+ ;; Time Display Settings (only shown in TTYs)
+ '(display-time-24hr-format t)
+ '(display-time-mail-face (quote mode-line))
+ '(display-time-mail-file (quote none))
+ '(display-time-string-forms (quote ((format-time-string (or display-time-format (if display-time-24hr-format "%H:%M" "%-I:%M%p")) now))))
+
+ ;; Org/Outline Mode
+ '(org-blank-before-new-entry (quote ((heading . t) (plain-list-item))))
+ '(org-cycle-include-plain-lists t)
+ '(org-ellipsis "···
+")
+ '(org-level-color-stars-only nil)
+ '(org-startup-folded t) ;; Just top-level headings.
+ '(org-startup-truncated nil)
+ '(org-todo-keywords (quote ("TODO" "STARTED" "DONE")))
+ '(outline-regexp "[*§¶­]+")
+
+ ;; Speedbar
+ '(speedbar-update-speed 300 t)
+ '(speedbar-directory-unshown-regexp "^\\(CVS\\|RCS\\|SCCS\\|.svn\\)\\'")
+
+ ;; TRAMP Mode Settings
+ '(password-cache-expiry 86400)
+ '(tramp-auto-save-directory "/tmp/")
+ '(tramp-default-method "ssh")
+
+ ;; WOMAN Settings
  '(woman-cache-filename "~/.emacs.d/.wmncache.el")
  '(woman-cache-level 1)
  '(woman-use-own-frame nil)
@@ -258,16 +340,6 @@ You shouldn't change the value of this variable.
   )
 
 
-;; Use Latin1 encoding
-;;
-;;;(set-language-environment "Latin-1")
-;;;(set-keyboard-coding-system 'iso-latin-1-unix)
-;;;(set-terminal-coding-system 'iso-8859-15)
-
-;; Abbrev mode setups
-;;
-(setq-default abbrev-mode t)
-
 ;; From Fred Korz.
 ;;
 ;; Activate certain commands disabled by default.
@@ -275,40 +347,20 @@ You shouldn't change the value of this variable.
 (put 'narrow-to-region 'disabled nil)
 (put 'downcase-region 'disabled nil)
 
-;; Fill column is at 78 for all but text mode
-(setq-default fill-column 78)
-
-;; set text as the default mode for unknown buffer types
-(setq default-major-mode 'text-mode)
-
-;; Set the tab stops to be every 4 points by default
-(setq-default tab-width 4)
-(setq tab-stop-list
-      '(4 8 12 16 20 24 28 32 36 40 44 48 52 56 60 64 68 72 76) )
-
-;; Auto-convert Tabs to the appropriate number of spaces.
-(setq-default indent-tabs-mode 'nil)
-
-;; Swiped from Jerry Leichter.  Keeps running versions, a' la VMS
-(setq delete-old-versions nil)
-(setq kept-new-versions 100)
-(setq kept-old-versions 0)
-(setq version-control 't)
-
 ;; PostScript® printout var.
 ;;
 (setq ps-font-size 10)
 (setq ps-print-color-p 'nil)
 
+;; Puts hilighted parens and warns you when they don't match.
+;;
+(setq paren-sexp-mode nil)
+(setq paren-dingaling-mode t)
 
 ;; Misc.
 ;;
 (setq bookmark-save-flag 1)
 
-
-;; Prevent Emacs from extending file when pressing down arrow at end of
-;; buffer.
-(setq next-line-add-newlines 'nil)
 ;; Stop Emacs from pestering us whenever a file doesn't end in a newline (a
 ;; setting which, for some odd reason, Emacs ignores when set via the standard
 ;; customization engine).  Custom-set-variables loses this, for some reason.
@@ -316,11 +368,6 @@ You shouldn't change the value of this variable.
 (setq require-final-newline 'nil)
 (add-hook 'emacs-startup-hook
           (lambda () (setq require-final-newline 'nil)))
-
-
-;; Ediff Setup.
-;;
-(setq ediff-window-setup-function 'ediff-setup-windows-plain)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -406,7 +453,7 @@ You shouldn't change the value of this variable.
             (set-face-background 'zmacs-region "LightBlue")
             (set-face-background 'highlight "Gray")
             ) ;; end XEmacs
-        ;; else
+        ;; else - GNU Emacs
         (jpw-custom-set-faces-nonsaved
          ;; General
          '(italic ((t (:foreground "#544080" :slant italic))))
@@ -424,16 +471,69 @@ You shouldn't change the value of this variable.
         (if is-version-twentytwo
             (progn
               (jpw-custom-set-faces-nonsaved
-               '(mode-line ((t (:background "grey75"
-                                :foreground "black"
-                                :box (:line-width -1
-                                      :style released-button)))) t)
-               '(mode-line-inactive ((t (:inherit mode-line
-                                         :background "grey90"
-                                         :foreground "grey35"
-                                         :box (:line-width -1
-                                               :style released-button)
-                                         :weight light))))
+               '(diff-added ((t (:inherit diff-changed
+                                          :foreground "SpringGreen2"
+                                          :weight bold))))
+               '(diff-changed ((nil (:foreground "#8000FF" :weight bold))))
+               '(diff-removed ((t (:inherit diff-changed
+                                            :foreground "VioletRed4"))))
+               '(escape-glyph ((((class color) (background light))
+                                (:foreground "chartreuse"))))
+               '(font-wikipedia-bold-face ((((class color)
+                                             (background light))
+                                            (:inherit bold))))
+               '(font-wikipedia-italic-face ((((class color)
+                                               (background light))
+                                              (:inherit italic))))
+               '(font-wikipedia-math-face
+                 ((((class color) (background light))
+                   (:inherit font-lock-function-name-face))))
+               '(font-wikipedia-sedate-face
+                 ((((class color) (background light))
+                   (:inherit variable-pitch
+                             :foreground "SlateGray" :height 1.25))))
+               '(font-wikipedia-string-face
+                 ((((class color) (background light))
+                   (:inherit font-lock-string-face))))
+               '(font-wikipedia-verbatim-face
+                 ((((class color) (background light))
+                   (:inherit font-lock-constant-face))))
+               '(minibuffer-prompt ((((class color) (background light))
+                       (:foreground "blue"))))
+               '(mode-line
+                 ((t (:background "plum3" :foreground "black"
+                                  :box (:line-width -1
+                                        :style released-button))))
+                 nil
+                 "For when I'm in the mood for a more colorful modeline, use
+                  this instead of \"grey75\".")
+               '(mode-line-highlight
+                 ((t (:foreground "green4"
+                                  :box (:line-width 2 :color "grey40"
+                                        :style released-button))))
+                 nil
+                 "Just using a box with a darker gray is unsatisfying.
+                  Let's change the text color to something that will stand
+                  out (but not water our eyes).  Change the modeline
+                  color, and we may need to change this.")
+               '(mode-line-inactive
+                 ((t (:inherit mode-line
+                               :background "PaleGoldenrod"
+                               :foreground "grey35"
+                               :box (:line-width -1
+                                     :style released-button)
+                               :weight light)))
+                 nil
+                 "To accompany my more colorful modeline, I'll pick an
+                  off-white color for the inactive modeline instead of
+                  \"grey90\"")
+               '(sh-heredoc ((((class color) (background light))
+                              (:inherit font-lock-string-face
+                                        :background "beige"))))
+               '(show-paren-match-face ((((class color))
+                                         (:background "yellow"))) t)
+               '(show-paren-mismatch-face ((((class color))
+                                            (:background "yellow3"))) t)
                )
               )
           );; end if GNU Emacs v22
@@ -463,16 +563,6 @@ You shouldn't change the value of this variable.
 
       ) ;;end progn
   );; end if-fontifiable-term-type
-
-
-;;--------------------------------------------------------------------------
-;;   puts hilighted parens and warns you when they don't match.
-
-
-(setq paren-sexp-mode nil)
-(setq paren-dingaling-mode t)
-(setq blink-matching-paren t)
-
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
