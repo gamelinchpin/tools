@@ -39,6 +39,7 @@ BEGIN {
 
     # Default exports.
     @EXPORT = qw(check_syscmd_status do_error
+                 openPipeDie closePipeDie failedOpenDie
                  datestamp datetime_now
                  const_array uniq select_sample
                  invert_hash pivot_hash
@@ -64,6 +65,7 @@ BEGIN {
 our @EXPORT_OK;
 
 # Other Imported Packages/requirements.
+use Carp;
 use Data::Dumper;
 use List::Util qw(shuffle);
 use File::Spec;
@@ -106,10 +108,65 @@ sub check_syscmd_status {
     my $exitVal = ($laststat >> 8);
     my $signal = ($laststat & 0x7F);
     my $abortOnError = 1;
+    my $whatHappened="Command failed";
 
+    # Return %Carp::CarpInternal to its original state if there's no error.
+    local %Carp::CarpInternal; ++$Carp::CarpInternal{jpwTools};
+    if (($Carp::Verbose != $_Verbose) || $_UnitTest) {
+        $Carp::Verbose = $_Verbose + $_UnitTest;
+    }
+
+    my $ref_ignoreList = undef;
     if (ref($_[0]) eq "ARRAY") {
-        my %ignore = ();
         my $ref_ignoreList = shift();
+    }
+
+    if (ref($_[0]) eq "HASH") {
+        my %flags = %{shift()};
+
+        # In case this was called from a wrapper routine.
+        if (defined($flags{"laststat"})) {
+            $laststat = $flags{"laststat"};
+            $exitVal = ($laststat >> 8);
+            $signal = ($laststat & 0x7F);
+        }
+
+        if (defined($flags{"ignore"})) {
+            if (ref($flags{"ignore"}) eq "ARRAY") {
+                $ref_ignoreList = $flags{"ignore"};
+            }
+        }
+
+        # Warn/Abort flags (mutually-exclusive)
+        if (defined($flags{"warn"})) {
+            if ($flags{"warn"}) {
+                $abortOnError = 0;
+            }
+        } elsif (defined($flags{"abort"})) {
+            $abortOnError = $flags{"abort"};
+        }
+
+        # open/close flags (mutually-exclusive)
+        if (defined($flags{"close_pipe"})) {
+            if ($flags{"close_pipe"}) {
+                $whatHappened = "Error while closing pipe";
+            }
+        } elsif (defined($flags{"open_pipe"})) {
+            if ($flags{"open_pipe"}) {
+                $whatHappened = "Failed to open pipe";
+            }
+        } elsif (defined($flags{"open_file"})) {
+            $whatHappened = "Failed to open file for ";
+            $whatHappened .= $flags{"open_file"};
+            # No signal or exit val when opening a file, so disable
+            # their respective error messages.
+            $exitVal = 0;
+            $signal = 0;
+        }
+    }
+
+    if (defined($ref_ignoreList)) {
+        my %ignore = ();
         my @ones = (1) x scalar(@$ref_ignoreList);
         @ignore{ @$ref_ignoreList } = @ones;
         $ignore{0} = 1;
@@ -120,17 +177,8 @@ sub check_syscmd_status {
             unless ($lastErrmsg eq '') {
                $errMsg .= "  Reason: \"$lastErrmsg\".\n";
             }
-            warn($errMsg);
+            carp($errMsg);
             return $exitVal;
-        }
-    } elsif (ref($_[0]) eq "HASH") {
-        my %flags = %{shift()};
-        if (defined($flags{"warn"})) {
-            if ($flags{"warn"}) {
-                $abortOnError = 0;
-            }
-        } elsif (defined($flags{"abort"})) {
-            $abortOnError = $flags{"abort"};
         }
     }
 
@@ -140,7 +188,7 @@ sub check_syscmd_status {
         return 0;
     }
 
-    my $errMsg="Command \"@_\" failed;\n";
+    my $errMsg="$whatHappened:  \"@_\";\n";
     unless ($lastErrmsg eq '') {
         $errMsg .= "Reason: \"$lastErrmsg\".\n";
     }
@@ -150,13 +198,42 @@ sub check_syscmd_status {
     unless ($exitVal == 0) {
         $errMsg .= "Exit status: $exitVal.";
     }
-    warn($errMsg);
+    $errMsg .= "\n";
+    carp($errMsg);
 
     if ($abortOnError) {
         print "\nAborting...\n";
         exit $laststat;
     } #else
     return $laststat;
+}
+
+
+sub closePipeDie($) {
+    my $exitstat=$?;
+    # Because we're closing a pipe, $? will be zero iff the pipe command
+    # exited with status==0.  So, no need to change what we pass to
+    # 'laststat'.
+    check_syscmd_status({'close_pipe' => 1, 'laststat' => $exitstat}, @_);
+}
+
+
+sub openPipeDie($) {
+    my $exitstat=$?;
+    # Because we're closing a pipe, $? may or may not be zero if the pipe
+    # command fails at startup.  Since this function is guaranteed to die, set
+    # $exitstat to 13 (== SIGPIPE).
+    $exitstat = 13 unless ($exitstat);
+    check_syscmd_status({'open_pipe' => 1, 'laststat' => $exitstat}, @_);
+}
+
+
+sub failedOpenDie($$) {
+    my $fname = shift();
+    my $what = shift();
+    # Since this function is guaranteed to die, set 'laststat' to true.
+    check_syscmd_status({'open_file' => $what,
+                         'laststat' => 1}, $fname);
 }
 
 
@@ -225,9 +302,15 @@ sub const_array($$) {
 
 
 sub uniq {
-    my %seen;
-    @seen{@_} = ();
-    return keys(%seen);
+    my %seen =();
+
+    # This works, is fast, but doesn't preserve the original list's order.
+    #@seen{@_} = ();
+    #return keys(%seen);
+
+    # This is also fast AND preserves the original list's order, but is a bit
+    # harder to read.
+    return grep({ !$seen{$_}++ } @_);
 }
 
 
@@ -290,6 +373,9 @@ sub invert_hash(\%;\%\@) {
         $ref_inv = { };
         $returnInverse = 1;
     }
+
+    # While 'reverse %hash' will invert %hash, it won't work if multiple keys
+    # map to the same value.
 
     while(my ($k, $v) = each(%$ref_h)) {
         next if(ref($v)); # Must be scalar
@@ -652,9 +738,18 @@ sub set_seed(;$) {
 sub randomize_array(\@) {
     my $ref_targArray = shift;
     @$ref_targArray = shuffle(@$ref_targArray);
+    # This is the naive shuffle algorithm.  It also suffers from bias.
 #     my $n = scalar(@$ref_targArray);
 #     for (my $i=0; $i < $n; ++$i) {
 #         my $randIdx = int(rand($n));
+#         my $tmp = $ref_targArray->[$i];
+#         $ref_targArray->[$i] = $ref_targArray->[$randIdx];
+#         $ref_targArray->[$randIdx] = $tmp;
+#     }
+    # This is the Fisher-Yates shuffle algorithm.  No bias here.
+#     my $n = scalar(@$ref_targArray);
+#     for (my $i=$n-1; $i > 0; --$i) {
+#         my $randIdx = int(rand($i+1));
 #         my $tmp = $ref_targArray->[$i];
 #         $ref_targArray->[$i] = $ref_targArray->[$randIdx];
 #         $ref_targArray->[$randIdx] = $tmp;
@@ -1349,23 +1444,29 @@ jpwTools - Package containing John's Perl Tools.
 
 =item datetime_now
 
-=item check_syscmd_status [I<ctrlRef>, ] I<cmd>
+=item check_syscmd_status([I<ctrlRef>, ] I<cmd>...)
+
+=item openPipeDie(I<pipeCmd>)
+
+=item closePipeDie(I<pipeCmd>)
+
+=item failedOpenDie(I<fname>, I<openAction>)
 
 =item do_error(I<filename>, $!, $@)
 
-=item circular_shift I<@list> [, I<count>]
+=item circular_shift(I<@list> [, I<count>])
 
-=item circular_pop I<@list> [, I<count>]
+=item circular_pop(I<@list> [, I<count>])
 
-=item const_array I<value>, I<n_elements>
+=item const_array(I<value>, I<n_elements>)
 
-=item uniq I<@list>
+=item uniq(I<@list>)
 
-=item select_sample I<nSelected>, I<@list> [, I<keepLast>]
+=item select_sample(I<nSelected>, I<@list> [, I<keepLast>])
 
-=item invert_hash I<%hash> [, I<%invHash_out>]
+=item invert_hash(I<%hash> [, I<%invHash_out>])
 
-=item pivot_hash I<%hash>, I<idx> [, I<ignoreInvalidElements>]
+=item pivot_hash(I<%hash>, I<idx> [, I<ignoreInvalidElements>])
 
 =item rename_keys(I<%hash>, I<%oldKey2newKey>)
 
@@ -1375,51 +1476,51 @@ jpwTools - Package containing John's Perl Tools.
 
 =item uc_keys(I<%hash>)
 
-=item asymm_diff I<\@list1, \@list2>
+=item asymm_diff(I<\@list1, \@list2>)
 
-=item asymm_diff I<\@list, \%hash>
+=item asymm_diff(I<\@list, \%hash>)
 
-=item asymm_diff I<\%hash, \@list>
+=item asymm_diff(I<\%hash, \@list>)
 
-=item asymm_diff I<\%hash1, \%hash2>
+=item asymm_diff(I<\%hash1, \%hash2>)
 
-=item stats I<@list> [, I<confidence>]
+=item stats(I<@list> [, I<confidence>])
 
-=item stats_gaussian I<@list>
+=item stats_gaussian(I<@list>)
 
-=item set_seed [I<seed>]
+=item set_seed([I<seed>])
 
-=item randomize_array I<@list>
+=item randomize_array(I<@list>)
 
-=item random_indices I<nIndices>, [I<@list>]
+=item random_indices(I<nIndices>, [I<@list>])
 
-=item random_keys I<%hash>
+=item random_keys(I<%hash>)
 
-=item get_files_from_dirs I<%hash>, I<match_regexp>, I<dir> [, I<dir> ...]
+=item get_files_from_dirs(I<%hash>, I<match_regexp>, I<dir> [, I<dir> ...])
 
-=item print_hash I<name>, I<%hash> [, I<regexp, sub> ...]
+=item print_hash(I<name>, I<%hash> [, I<regexp, sub> ...])
 
-=item print_array I<name>, I<@list> [, I<regexp, sub> ...]
+=item print_array(I<name>, I<@list> [, I<regexp, sub> ...])
 
-=item fprint_hash I<fh_ref>, I<name>, I<%hash> [, I<regexp, sub> ...]
+=item fprint_hash(I<fh_ref>, I<name>, I<%hash> [, I<regexp, sub> ...])
 
-=item fprint_array I<fh_ref>, I<name>, I<@list> [, I<regexp, sub> ...]
+=item fprint_array(I<fh_ref>, I<name>, I<@list> [, I<regexp, sub> ...])
 
-=item print_dump [I<fh_ref>, ]  [I<name>, ] I<$ref> [, I<regexp, sub> ...]
+=item print_dump([I<fh_ref>, ]  [I<name>, ] I<$ref> [, I<regexp, sub> ...])
 
-=item create_regexp_group I<@words>
+=item create_regexp_group(I<@words>)
 
-=item not_empty I<var>
+=item not_empty(I<var>)
 
-=item set_array_if_nonempty I<$scalarvar>, I<%map>, I<key>
+=item set_array_if_nonempty(I<$scalarvar>, I<%map>, I<key>)
 
-=item set_scalar_if_nonempty I<@listvar>, I<%map>, I<key>
+=item set_scalar_if_nonempty(I<@listvar>, I<%map>, I<key>)
 
-=item non_overlapping I<@prefixes>
+=item non_overlapping(I<@prefixes>)
 
-=item read_options I<option_filename> [, I<%validator>]
+=item read_options(I<option_filename> [, I<%validator>])
 
-=item validate_options I<%option_map>, I<%validator> [, I<filename>]
+=item validate_options(I<%option_map>, I<%validator> [, I<filename>])
 
 =back
 
@@ -1443,13 +1544,15 @@ of the form: C<(year, month, day, hour24, min, sec)>.
 
 =item *
 
-check_syscmd_status [I<ctrlRef>, ] I<cmd>...
+check_syscmd_status([I<ctrlRef>, ] I<cmd>...)
 
-Checks \$\?, the status of the last system command run.  If the status is
+Checks $?, the status of the last system command run.  If the status is
 nonzero, it prints out the specified args as part of an error message, then
 aborts the program.
 
-You should call this function immediately after your call to C<system>.
+You should call this function immediately after your call to C<system>.  You
+can also use it when opening a file or pipe, and when closing a pipe (see
+below).
 
 I<cmd> is one or more strings containing the command you executed with the
 C<system> call.  It will usually be the same args you just passed to
@@ -1459,24 +1562,135 @@ The first arg may, optionally, be a reference to an array or a hash, used to
 control whether or not C<check_syscmd_status> aborts the program.
 
 When called with an array reference, the array should contain a list of one or
-more exit values to ignore.  If the command run using C<system> exited with
-one of these values, then C<check_syscmd_status> will only issue a warning and
-return, instead of aborting.
+more exit values to ignore.  If the command run using C<system> (or via a
+pipe; see below) exited with one of these values, then C<check_syscmd_status>
+will only issue a warning and return, instead of aborting.
 
 If I<ctrlRef> is a hash, it may contain one of the following keys:
 
 =over 1
 
+=item C<ignore>
+
+This option lets you specify the list of exit values to ignore when you also
+need to use one of the other options listed below.  The value of this key
+should be an array reference.  Any other value will be silently ignored..
+
+=item C<laststat>
+
+Normally, C<check_syscmd_status> uses the value of the $? variable
+directly.  That doesn't work if you need to call some other function before
+C<check_syscmd_status>, or if you call C<check_syscmd_status> from a
+wrapper-function.  This option solves that problem.  Set its value to your
+previously saved $? value.
+
+=item C<open_pipe>
+
+This option lets you use C<check_syscmd_status> with something other than the
+C<system> function.  It alters the warning/error message appropriately.  As
+the name implies, this option is for checking for errors after calling the
+C<open> function on a pipe.  When using this option, you should pass the
+opened pipe-command as this function's I<cmd> argument.
+
+Set the value of this key to true to enable it; setting it to false does
+nothing.  Mutually-exclusive with C<open_file> and C<close_pipe>.
+
+=item C<close_pipe>
+
+This option lets you use C<check_syscmd_status> with something other than the
+C<system> function.  It alters the warning/error message appropriately.  Use
+this option after calling C<close> on a filehandle to an opened pipe.
+C<check_syscmd_status> will examine the exit status of the piped command to
+see if/how it failed.
+
+When using this option, you should pass the closed pipe-command as this
+function's I<cmd> argument.  Set the value of this key to true to enable it;
+setting it to false does nothing.  Mutually-exclusive with C<open_pipe> and
+C<open_file>.
+
+=item C<open_file>
+
+This option lets you use C<check_syscmd_status> with something other than the
+C<system> function, specifically the C<open> function when used for reading or
+writing a file.  It alters the warning/error message appropriately.  When
+using this option, you should pass file's name as this function's I<cmd>
+argument.
+
+Mutually-exclusive with C<open_pipe> and C<close_pipe>.
+
+Unlike its siblings, the value of this key must be one of the following:
+
+=over 4
+
+=item 'reading'
+
+=item 'writing'
+
+=item 'modifying'
+
+=back
+
+Any other value will create a gibberish error/warning message.
+
 =item C<warn>
 
 If the value of this key evaluates to true, C<check_syscmd_status> will return
 the command's exit value instead of aborting the program.  Any value that
-evaluates to false is ignored.
+evaluates to false is ignored.  Mutually-exclusive with C<abort>.
 
 =item C<abort>
 
 The value of this flag directly controls whether or not C<check_syscmd_status>
-aborts on error.
+aborts on error.  Mutually-exclusive with C<warn>.
+
+=back
+
+=item *
+
+openPipeDie(I<pipeCmd>)
+
+Convenience wrapper around:
+    check_syscmd_status({'open_pipe' => 1,
+                         'laststat' => ($? ? $? : 13)}, I<cmd>).
+Use it in a statement like this:
+
+=over 4
+
+open(my $pipefh, "someCmd |") or openPipeDie("someCmd |");
+
+=back
+
+(The reason for using '13' if C<open()> doesn't set C<$?> is that
+C<check_syscmd_status> will report a signal 13 == SIGPIPE.  Appropriate, no?)
+
+=item *
+
+closePipeDie(I<pipeCmd>)
+
+Convenience wrapper around:
+    check_syscmd_status({'close_pipe' => 1,
+                         'laststat' => \I<valOf$?>}, I<cmd>).
+Use it in a statement like this:
+
+=over 4
+
+close($pipefh) or closePipeDie("someCmd |");
+
+=back
+
+=item *
+
+failedOpenDie(I<fname>, I<openAction>)
+
+Convenience wrapper around:
+    check_syscmd_status({'open_file' => I<openAction>,
+                        'laststat' => 1}, I<fname>);
+Use it to perform the usual post-C<open()>-error-checking-song-n-dance:
+
+=over 4
+
+open(my $rfh, "<somefile.txt") or failedOpenDie("somefile.txt", 'reading');
+open(my $wfh, ">outfile.txt") or failedOpenDie("outfile.txt", 'writing');
 
 =back
 
@@ -1496,7 +1710,7 @@ do "file.pl" or die(do_error("file.pl", $!, $@));
 
 =item *
 
-circular_shift I<@list> [, I<count>]
+circular_shift(I<@list> [, I<count>])
 
 Shifts I<count> elements off of I<@list>, or 1 if I<count> isn't specified.
 Like the builtin C<shift> command, returns the shifted elements.  Unlike
@@ -1506,7 +1720,7 @@ location.
 
 =item *
 
-circular_pop I<@list> [, I<count>]
+circular_pop(I<@list> [, I<count>])
 
 Pops I<count> elements off of I<@list>, or 1 if I<count> isn't specified.
 Like the builtin C<pop> command, returns the popped elements.  Unlike
@@ -1516,7 +1730,7 @@ change location.
 
 =item *
 
-const_array I<value>, I<n_elements>
+const_array(I<value>, I<n_elements>)
 
 Create an array, I<n_elements> long, with each element set to I<value>.
 You can do this inline, without the overhead of the function call, with this
@@ -1535,19 +1749,18 @@ thing following the C<x> operator is always evaluated in scalar context.
 
 =item *
 
-uniq I<@list>
+uniq(I<@list>)
 
 Like the Unix utility C<uniq>: Returns an array containing only the unique
 members of I<@list>.  The input list does not need to be sorted.  The output
-is in an arbitrary order (neither sorted, nor related to the ordering of
-I<@list>).
+is in the same order as I<@list>).
 
 Consider using a hash instead of an array if you truly need a set of unique
-values.
+values (and if perserving order isn't an issue).
 
 =item *
 
-select_sample I<nSelected>, I<@list> [, I<keepLast>]
+select_sample(I<nSelected>, I<@list> [, I<keepLast>])
 
 Select a uniform I<nSelected>-point sample of elements from I<@list>.  Returns
 an array containing the selected elements.
@@ -1562,7 +1775,7 @@ array may contain (I<nSelected>+1) elements ... or not.
 
 =item *
 
-invert_hash I<%hash> [, I<%invHash_out>]
+invert_hash(I<%hash> [, I<%invHash_out>])
 
 Takes I<%hash> and inverts it, converting each scalar value in I<%hash> to a
 key in I<%invHash_out> whose value is the corresponding key from I<%hash>.
@@ -1575,7 +1788,7 @@ When called with only one arg, C<invert_hash()> returns the inverse hash.
 
 =item *
 
-pivot_hash I<%hash>, I<idx> [, I<ignoreInvalidElements>]
+pivot_hash(I<%hash>, I<idx> [, I<ignoreInvalidElements>])
 
 "Pivots" the I<%hash> by swapping each key with the value at
 C<$hash{I<anykey>}[I<idx>]>.  Unlike L<invert_hash()>, this function directly
@@ -1642,7 +1855,7 @@ C<transform_keys()>.
 
 =item *
 
-asymm_diff I<set1>, I<set2>
+asymm_diff(I<set1>, I<set2>)
 
 Performs a "set subtraction", returning all of the elements from I<set1> that
 are not also in I<set2>.  The arguments I<set1> and I<set2> must be references
@@ -1654,7 +1867,7 @@ subroutine.
 
 =item *
 
-stats I<@list> [, I<confidence>]
+stats(I<@list> [, I<confidence>])
 
 For the given I<@list>, computes general measures of central tendency ... in
 this case, the median ...  and dispersion about the median.  Returns an array
@@ -1718,7 +1931,7 @@ computing central tendency and dispersion.
 
 =item *
 
-stats_gaussian I<@list>
+stats_gaussian(I<@list>)
 
 Computes the "Gaussian statistics" of I<@list>, a la §14 of "Numerical
 Recipies."  Returns an array containing:
@@ -1739,7 +1952,7 @@ distributions, the mean and variance will not be meaningful values.
 
 =item *
 
-set_seed [I<seed>]
+set_seed([I<seed>])
 
 Sets the seed of Perl's internal PRNG in a reproducable way, returning the
 seed that it used.
@@ -1754,7 +1967,7 @@ it'll do.
 
 =item *
 
-randomize_array I<@list>
+randomize_array(I<@list>)
 
 Shuffles the contents of I<@list>, leaving it in a random order.
 
@@ -1763,7 +1976,7 @@ now uses internally).
 
 =item *
 
-random_indices I<nIndices>, [I<@list>]
+random_indices(I<nIndices>, [I<@list>])
 
 Generates indices from C<0> to I<nIndices>C< - 1> in a random (read: shuffled)
 order.  If the optional I<@list> argument is specified, the indices are stored
@@ -1774,7 +1987,7 @@ This function invokes L<shuffle()> from L<List::Util>.
 
 =item *
 
-random_keys I<%hash>
+random_keys(I<%hash>)
 
 Returns the keys of I<%hash> in a random (read: shuffled) order.
 
@@ -1782,7 +1995,7 @@ This function invokes L<shuffle()> from L<List::Util>.
 
 =item *
 
-get_files_from_dirs I<%fileMap>, I<match_regexp>, I<dir> [, I<dir> ...]
+get_files_from_dirs(I<%fileMap>, I<match_regexp>, I<dir> [, I<dir> ...])
 
 Searches through the specified list of directories (the I<dir> passed to this
 function) for all files/subdirectories matching I<match_regexp>.  The results
@@ -1819,7 +2032,7 @@ file's parent.
 
 =item *
 
-fprint_hash I<fh_ref>, I<name>, I<%hash> [, I<regexp, sub> ...]
+fprint_hash(I<fh_ref>, I<name>, I<%hash> [, I<regexp, sub> ...])
 
 Convenience wrapper around
 C<print_dump(I<fh_ref>, [I<name>,] I<\%hash> [, ...])>.  I<name> can be the
@@ -1827,7 +2040,7 @@ empty string, in which case L<print_dump()|/"print_dump"> is called without it.
 
 =item *
 
-fprint_array I<fh_ref>, I<name>, I<@list> [, I<regexp, sub> ...]
+fprint_array(I<fh_ref>, I<name>, I<@list> [, I<regexp, sub> ...])
 
 Convenience wrapper around
 C<print_dump(I<fh_ref>, [I<name>,] I<\@list> [, ...])>.  I<name> can be the
@@ -1835,19 +2048,19 @@ empty string, in which case L<print_dump()|/"print_dump"> is called without it.
 
 =item *
 
-print_hash I<name>, I<%hash> [, I<regexp, sub> ...]
+print_hash(I<name>, I<%hash> [, I<regexp, sub> ...])
 
 Equivalent to C<fprint_hash(\*STDOUT, I<name>, I<%hash> [, ...])>.
 
 =item *
 
-print_array I<name>, I<@list> [, I<regexp, sub> ...]
+print_array(I<name>, I<@list> [, I<regexp, sub> ...])
 
 Equivalent to C<fprint_array(\*STDOUT, I<name>, I<@list> [, ...])>.
 
 =item *
 
-print_dump [I<fh_ref>, ] [I<name>, ] I<$ref> [, I<regexp, sub> ...]
+print_dump([I<fh_ref>, ] [I<name>, ] I<$ref> [, I<regexp, sub> ...])
 
 Calls C<Data::Dumper::Dumper()> on I<$ref>, printing the results.  When called
 with more than one arg, the first and/or second arg can be one of the
@@ -1884,7 +2097,7 @@ to pass each I<regexp> and I<sub> single-quoted.
 
 =item *
 
-create_regexp_group I<@words>
+create_regexp_group(I<@words>)
 
 Takes the array I<@words> and groups it into a pattern string for use in a
 regular expression.  The pattern string is compact, with words grouped
@@ -1892,14 +2105,14 @@ together by common prefix & suffix.
 
 =item *
 
-non_overlapping I<@words>
+non_overlapping(I<@words>)
 
 Returns a list of "non-overlapping elements":  elements that are not
 prefixes of any other element, or those that are a minimum-sized prefix.
 
 =item *
 
-not_empty I<var>
+not_empty(I<var>)
 
 Returns C<true> if I<var> is:
 
@@ -1923,7 +2136,7 @@ For any other type of variable or reference, returns C<false>.
 
 =item *
 
-set_array_if_nonempty I<@array>, I<%map>, I<key>
+set_array_if_nonempty(I<@array>, I<%map>, I<key>)
 
 If C<$I<map>{I<key>}> is non-empty (as determined by C<not_empty()>),
 sets I<@array> to C<@{I<$map>{I<key>}}>.
@@ -1933,14 +2146,14 @@ reference, or this function will return an error.)
 
 =item *
 
-set_scalar_if_nonempty I<@listvar>, I<%map>, I<key>
+set_scalar_if_nonempty(I<@listvar>, I<%map>, I<key>)
 
 If C<$%I<map>{I<key>}> is non-empty (as determined by C<not_empty()>),
 sets I<$scalarvar> to its value.
 
 =item *
 
-read_options I<option_filename> [, I<%validator>]
+read_options(I<option_filename> [, I<%validator>])
 
 Reads the file named I<option_filename> for options, returning them in a
 hash.  This is a very powerful routine, permitting you to create B<safe>
@@ -2064,7 +2277,7 @@ the I<%validator> argument should look like.
 
 =item *
 
-validate_options I<%option_map>, I<%validator> [, I<filename>]
+validate_options(I<%option_map>, I<%validator> [, I<filename>])
 
 Checks the options in I<%option_map> for type-consistency.  I<%option_map>
 should be the hash read from a configuration file by
