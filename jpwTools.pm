@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 #
-# Copyright (C) 2002-2008 by John P. Weiss
+# Copyright (C) 2002-2010 by John P. Weiss
 #
 # This package is free software; you can redistribute it and/or modify
 # it under the terms of the Artistic License, included as the file
@@ -38,7 +38,7 @@ BEGIN {
     @ISA         = qw(Exporter);
 
     # Default exports.
-    @EXPORT = qw(check_syscmd_status do_error
+    @EXPORT = qw(dbgprint check_syscmd_status do_error
                  openPipeDie closePipeDie failedOpenDie
                  datestamp datetime_now
                  const_array uniq select_sample
@@ -100,6 +100,88 @@ $Data::Dumper::Indent = 1;
 # Exported Functions
 #
 ############
+
+
+sub dbgprint($@_) {
+    my $lvl = shift();
+
+    unless ($lvl > 0) {
+        $lvl = 1;
+    }
+    my $prefix = '#' x $lvl;
+    $prefix .= 'DBG';
+    $prefix .= '#' x $lvl;
+
+    my $prefixNextLvl = '#';
+    $prefixNextLvl .= $prefix;
+    $prefixNextLvl .= '#';
+
+    $prefix .= ' ';
+    $prefixNextLvl .= ' ';
+
+    # Keep track of where the prefix was last time we printed it.
+    my $lastOut_startsWithPrefix = 0;
+
+    # Begin with the prefix ... unless the first element is one of our special
+    # ones.
+    unless ( (ref($_[0] eq 'HASH') && (scalar(keys(%{$_[0]})) == 2)
+              &&
+              exists($_[0]{'_.name._'})
+              &&
+              (exists($_[0]{'_.href._'}) || exists($_[0]{'_.aref._'})) ) )
+    {
+        print STDERR ("\r", $prefix);
+        $lastOut_startsWithPrefix = 1;
+    }
+
+    while (scalar(@_))
+    {
+        $_ = shift();
+        if ( (ref eq 'HASH') && (scalar(keys(%$_)) == 2)
+             &&
+             exists($_->{'_.name._'})
+             &&
+             (exists($_->{'_.href._'}) || exists($_->{'_.aref._'})) )
+        {
+            # We have a special hash.  Just invoke print_dump on it (which
+            # will figure out whether or not it's an array
+            my $thingRef = (exists($_->{'_.href._'})
+                            ? $_->{'_.href._'}
+                            : $_->{'_.aref._'});
+
+            if ($lastOut_startsWithPrefix) {
+                print STDERR ("\n");
+            } else {
+                print STDERR ("\n", $prefix, "\n");
+            }
+            print_dump(\*STDERR,
+                       $_->{'_.name._'},
+                       $thingRef,
+                       '^',
+                       $prefixNextLvl);
+            print STDERR ($prefix, "\n");
+
+            if (scalar(@_)) {
+                # Only print this if there's more to do.
+                print STDERR ($prefix);
+            }
+            $lastOut_startsWithPrefix = 1;
+        }
+        else
+        {
+            # Handle as string.
+
+            # Don't prefix every newline; ignore any blank lines at the end of
+            # the last string arg.
+            if ( (scalar(@_) && m/\n/) ||  m/\n+[^\n]/ ) {
+                $lastOut_startsWithPrefix = m/\n$/;
+                s/\n/\n$prefix/g;
+            }
+
+            print STDERR;
+        }
+    }
+}
 
 
 sub check_syscmd_status {
@@ -739,13 +821,13 @@ sub randomize_array(\@) {
     my $ref_targArray = shift;
     @$ref_targArray = shuffle(@$ref_targArray);
     # This is the naive shuffle algorithm.  It also suffers from bias.
-#     my $n = scalar(@$ref_targArray);
-#     for (my $i=0; $i < $n; ++$i) {
-#         my $randIdx = int(rand($n));
-#         my $tmp = $ref_targArray->[$i];
-#         $ref_targArray->[$i] = $ref_targArray->[$randIdx];
-#         $ref_targArray->[$randIdx] = $tmp;
-#     }
+    #my $n = scalar(@$ref_targArray);
+    #for (my $i=0; $i < $n; ++$i) {
+    #     my $randIdx = int(rand($n));
+    #     my $tmp = $ref_targArray->[$i];
+    #     $ref_targArray->[$i] = $ref_targArray->[$randIdx];
+    #     $ref_targArray->[$randIdx] = $tmp;
+    #}
     # This is the Fisher-Yates shuffle algorithm.  No bias here.
 #     my $n = scalar(@$ref_targArray);
 #     for (my $i=$n-1; $i > 0; --$i) {
@@ -1438,11 +1520,13 @@ jpwTools - Package containing John's Perl Tools.
 
 =head1 SYNOPSIS
 
-=over 0
+=over 1
 
 =item datestamp
 
 =item datetime_now
+
+=item dbgprint(I<lvl>, I<stringsOrHashref>...)
 
 =item check_syscmd_status([I<ctrlRef>, ] I<cmd>...)
 
@@ -1541,6 +1625,49 @@ datetime_now
 
 Returns 6 element array containing the date and time.  The array contents are
 of the form: C<(year, month, day, hour24, min, sec)>.
+
+=item *
+
+dbgprint(I<lvl>, I<stringsOrHashref>...)
+
+Prints the arguments to C<STDERR>, prefixing each line with a special string.
+The "special string" contains the word 'DBG', surrounded by I<lvl> '#'
+characters on each side.
+
+C<dbgprint> always prints a "\r" followed by the prefix before it starts.
+This way, the first line printed each call will seem to start with the
+prefix.  However, this will also mask any unterminated lines you may have
+printed to C<STDERR> beforehand.  (You can prevent that from happening by
+piping to C<less> run w/o the C<-r> option.)
+
+Normally, I<stringsOrHashref> will just be a list of strings or
+string-expressions, each of which is printed out.  However, if any of the args
+are a reference to a special hash, it will be handled differently.  The
+"special hash" must have exaclty two elements, with a specific key.  Here are
+the special hashes and what they do:
+
+=over 4
+
+=item {  '_.name._' => I<hashname>, '_.href._' => I<hashref> }
+
+Invokes C<print_hash(I<hashname>, I<hashref>, '^', I<prefix_nextLvl>)
+
+=item { '_.name._' => I<arrayname>, '_.aref._' => I<arrayref> }
+
+Invokes C<print_hash(I<arrayname>, I<arrayref>, '^', I<prefix_nextLvl>)
+
+=back
+
+...where I<prefix_nextLvl> is the prefix that (I<lvl>+1) would generate.  If
+the hashref doesn't match either of these specs, it's treated as a
+string-expression.
+
+Lastly, if the last arg ends with a sequence of "\n", they will B<not> be
+prefixed.  Normally, you want this, since the next call to C<dbgprint> will
+print out the prefix at the start.  However, you might actually want to print
+out a bunch of lines containing only the prefix.  To do that, add one more
+argument --- the empty string --- turning the sequence of "\n" into the
+second-to-last arg.
 
 =item *
 
@@ -1969,10 +2096,11 @@ it'll do.
 
 randomize_array(I<@list>)
 
-Shuffles the contents of I<@list>, leaving it in a random order.
+Shuffles the contents of I<@list> in-place, using the Fisher-Yates method.
 
-DEPRECATED.  Use L<shuffle()> from L<List::Util> instead (which this function
-now uses internally).
+NOTE:  Consider using L<shuffle()> from L<List::Util> instead.  Only prefer
+this function if I<@list> is very large (causing L<shuffle()> to be
+inefficient due to copying the the return value).
 
 =item *
 
@@ -1983,7 +2111,8 @@ order.  If the optional I<@list> argument is specified, the indices are stored
 in it, erasing any existing elements.  Otherwise, C<random_indices()> returns
 the list of randomly-ordered indices.
 
-This function invokes L<shuffle()> from L<List::Util>.
+This function invokes either L<shuffle()> from L<List::Util> or
+L<randomize_array()>, depending on whether or not you omitted I<@list>.
 
 =item *
 
