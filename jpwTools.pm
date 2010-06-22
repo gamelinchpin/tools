@@ -1650,11 +1650,11 @@ the special hashes and what they do:
 
 =item {  '_.name._' => I<hashname>, '_.href._' => I<hashref> }
 
-Invokes C<print_hash(I<hashname>, I<hashref>, '^', I<prefix_nextLvl>)
+Invokes C<print_hash(I<hashname>, I<hashref>, '^', I<prefix_nextLvl>)>
 
 =item { '_.name._' => I<arrayname>, '_.aref._' => I<arrayref> }
 
-Invokes C<print_hash(I<arrayname>, I<arrayref>, '^', I<prefix_nextLvl>)
+Invokes C<print_hash(I<arrayname>, I<arrayref>, '^', I<prefix_nextLvl>)>
 
 =back
 
