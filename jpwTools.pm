@@ -190,6 +190,7 @@ sub check_syscmd_status {
     my $exitVal = ($laststat >> 8);
     my $signal = ($laststat & 0x7F);
     my $abortOnError = 1;
+    my $noStacktrace = 0;
     my $whatHappened="Command failed";
 
     # Return %Carp::CarpInternal to its original state if there's no error.
@@ -211,6 +212,10 @@ sub check_syscmd_status {
             $laststat = $flags{"laststat"};
             $exitVal = ($laststat >> 8);
             $signal = ($laststat & 0x7F);
+        }
+
+        if (defined($flags{"no_stacktrace"})) {
+            $noStacktrace = $flags{"no_stacktrace"};
         }
 
         if (defined($flags{"ignore"})) {
@@ -259,11 +264,16 @@ sub check_syscmd_status {
             unless ($lastErrmsg eq '') {
                $errMsg .= "  Reason: \"$lastErrmsg\".\n";
             }
-            carp($errMsg);
+
+            if ($noStacktrace) {
+                print STDERR ($errMsg);
+            } else {
+                carp($errMsg);
+            }
+
             return $exitVal;
         }
     }
-
 
     if ($laststat == 0) {
         # Everything's A-okay!
@@ -281,7 +291,12 @@ sub check_syscmd_status {
         $errMsg .= "Exit status: $exitVal.";
     }
     $errMsg .= "\n";
-    carp($errMsg);
+
+    if ($noStacktrace) {
+        print STDERR ($errMsg);
+    } else {
+        carp($errMsg);
+    }
 
     if ($abortOnError) {
         print "\nAborting...\n";
@@ -1711,6 +1726,11 @@ C<check_syscmd_status>, or if you call C<check_syscmd_status> from a
 wrapper-function.  This option solves that problem.  Set its value to your
 previously saved $? value.
 
+=item C<no_stacktrace>
+
+Setting this flag to C<1> causes C<check_syscmd_status> to omit the
+stacktrace that it normally creates.
+
 =item C<open_pipe>
 
 This option lets you use C<check_syscmd_status> with something other than the
@@ -1796,7 +1816,7 @@ closePipeDie(I<pipeCmd>)
 
 Convenience wrapper around:
     check_syscmd_status({'close_pipe' => 1,
-                         'laststat' => \I<valOf$?>}, I<cmd>).
+                         'laststat' => I<valOf_$?>}, I<cmd>).
 Use it in a statement like this:
 
 =over 4
@@ -1811,7 +1831,7 @@ failedOpenDie(I<fname>, I<openAction>)
 
 Convenience wrapper around:
     check_syscmd_status({'open_file' => I<openAction>,
-                        'laststat' => 1}, I<fname>);
+                         'laststat' => 1}, I<fname>);
 Use it to perform the usual post-C<open()>-error-checking-song-n-dance:
 
 =over 4
