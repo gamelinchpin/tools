@@ -105,6 +105,9 @@ $Data::Dumper::Indent = 1;
 sub dbgprint($@_) {
     my $lvl = shift();
 
+    # No more args?  Nothing to do.
+    return unless(scalar(@_));
+
     unless ($lvl > 0) {
         $lvl = 1;
     }
@@ -124,39 +127,33 @@ sub dbgprint($@_) {
 
     # Begin with the prefix ... unless the first element is one of our special
     # ones.
-    unless ( (ref($_[0] eq 'HASH') && (scalar(keys(%{$_[0]})) == 2)
-              &&
-              exists($_[0]{'_.name._'})
-              &&
-              (exists($_[0]{'_.href._'}) || exists($_[0]{'_.aref._'})) ) )
+    unless ( (ref($_[0]) eq 'ARRAY') && (scalar(@{$_[0]}) > 1) &&
+             defined($_[0][0]) && defined($_[0][1]) )
     {
         print STDERR ("\r", $prefix);
         $lastOut_startsWithPrefix = 1;
     }
 
+    # Can't use a for-loop, since we need to know when we're on the last
+    # element.
     while (scalar(@_))
     {
-        $_ = shift();
-        if ( (ref eq 'HASH') && (scalar(keys(%$_)) == 2)
-             &&
-             exists($_->{'_.name._'})
-             &&
-             (exists($_->{'_.href._'}) || exists($_->{'_.aref._'})) )
-        {
-            # We have a special hash.  Just invoke print_dump on it (which
-            # will figure out whether or not it's an array
-            my $thingRef = (exists($_->{'_.href._'})
-                            ? $_->{'_.href._'}
-                            : $_->{'_.aref._'});
+        # Yes, this IS needed
+        my $arg = shift();
 
+        if ( (ref($arg) eq 'ARRAY') && (scalar(@$arg) > 1) &&
+             defined($arg->[0]) && defined($arg->[1]) )
+        {
+            # We have the special array.  Just invoke print_dump on it (which
+            # will figure out whether or not it's an array
             if ($lastOut_startsWithPrefix) {
                 print STDERR ("\n");
             } else {
                 print STDERR ("\n", $prefix, "\n");
             }
             print_dump(\*STDERR,
-                       $_->{'_.name._'},
-                       $thingRef,
+                       $arg->[0],
+                       $arg->[1],
                        '^',
                        $prefixNextLvl);
             print STDERR ($prefix, "\n");
@@ -173,12 +170,15 @@ sub dbgprint($@_) {
 
             # Don't prefix every newline; ignore any blank lines at the end of
             # the last string arg.
-            if ( (scalar(@_) && m/\n/) ||  m/\n+[^\n]/ ) {
+            if ( ( scalar(@_) && ($arg =~ m/\n/) )
+                 ||
+                 ($arg =~ m/\n+[^\n]/) )
+            {
                 $lastOut_startsWithPrefix = m/\n$/;
-                s/\n/\n$prefix/g;
+                $arg =~ s/\n/\n$prefix/g;
             }
 
-            print STDERR;
+            print STDERR ($arg);
         }
     }
 }
@@ -1541,7 +1541,7 @@ jpwTools - Package containing John's Perl Tools.
 
 =item datetime_now
 
-=item dbgprint(I<lvl>, I<stringsOrHashref>...)
+=item dbgprint(I<lvl>, I<stringsOrArrayref>...)
 
 =item check_syscmd_status([I<ctrlRef>, ] I<cmd>...)
 
@@ -1643,7 +1643,7 @@ of the form: C<(year, month, day, hour24, min, sec)>.
 
 =item *
 
-dbgprint(I<lvl>, I<stringsOrHashref>...)
+dbgprint(I<lvl>, I<stringsOrArrayref>...)
 
 Prints the arguments to C<STDERR>, prefixing each line with a special string.
 The "special string" contains the word 'DBG', surrounded by I<lvl> '#'
@@ -1655,21 +1655,20 @@ prefix.  However, this will also mask any unterminated lines you may have
 printed to C<STDERR> beforehand.  (You can prevent that from happening by
 piping to C<less> run w/o the C<-r> option.)
 
-Normally, I<stringsOrHashref> will just be a list of strings or
+Normally, I<stringsOrArrayref> will just be a list of strings or
 string-expressions, each of which is printed out.  However, if any of the args
-are a reference to a special hash, it will be handled differently.  The
-"special hash" must have exaclty two elements, with a specific key.  Here are
-the special hashes and what they do:
+are a reference to an array, it will be handled differently.  The
+array must have at least two elements:
 
 =over 4
 
-=item {  '_.name._' => I<hashname>, '_.href._' => I<hashref> }
+=item [ I<hashname>, I<hashref> ]
 
 Invokes C<print_hash(I<hashname>, I<hashref>, '^', I<prefix_nextLvl>)>
 
-=item { '_.name._' => I<arrayname>, '_.aref._' => I<arrayref> }
+=item [ I<arrayname>, I<arrayref> ]
 
-Invokes C<print_hash(I<arrayname>, I<arrayref>, '^', I<prefix_nextLvl>)>
+Invokes C<print_array(I<arrayname>, I<arrayref>, '^', I<prefix_nextLvl>)>
 
 =back
 
@@ -1679,10 +1678,12 @@ string-expression.
 
 Lastly, if the last arg ends with a sequence of "\n", they will B<not> be
 prefixed.  Normally, you want this, since the next call to C<dbgprint> will
-print out the prefix at the start.  However, you might actually want to print
-out a bunch of lines containing only the prefix.  To do that, add one more
-argument --- the empty string --- turning the sequence of "\n" into the
-second-to-last arg.
+print out the prefix at the start.
+
+However, you might actually want to print out a bunch of lines containing only
+the prefix.  To do that, remove one of the "\n" and make it the last arg.
+This turns your sequence of "\n" into the second-to-last arg, and terminates
+the last "prefix-only line".
 
 =item *
 
