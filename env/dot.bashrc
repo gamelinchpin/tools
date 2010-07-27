@@ -31,56 +31,180 @@ if [ -n "$PS1" -a -z "${INTERACTIVE}" ]; then
         esac
     fi
 fi
-if [ -n "$INTERACTIVE" -a -n "$BASHRC_INTERACTIVE" ]; then
-    . $BASHRC_INTERACTIVE
-fi
+
 
 # Punt if non-interactive.
-unset BASHRC_INTERACTIVE
 if [ -z "${INTERACTIVE}" ]; then
+    unset BASHRC_INTERACTIVE
     return
 fi
 
+
+#############################################################################
+#
+# Debian/(K)Ubuntu defaults.
+#
+#############################################################################
+
+
+# don't put duplicate lines in the history. See bash(1) for more options
+# don't overwrite GNU Midnight Commander's setting of `ignorespace'.
+export HISTCONTROL=$HISTCONTROL${HISTCONTROL+,}ignoredups
+# ... or force ignoredups and ignorespace
+export HISTCONTROL=ignoreboth
+
+# append to the history file, don't overwrite it
+shopt -s histappend
+
+# for setting history length see HISTSIZE and HISTFILESIZE in bash(1)
+
+# check the window size after each command and, if necessary,
+# update the values of LINES and COLUMNS.
+shopt -s checkwinsize
+
+# make less more friendly for non-text input files, see lesspipe(1)
+[ -x /usr/bin/lesspipe ] && eval "$(SHELL=/bin/sh lesspipe)"
+
+# set variable identifying the chroot you work in (used in the prompt below)
+if [ -z "$debian_chroot" ] && [ -r /etc/debian_chroot ]; then
+    debian_chroot=$(cat /etc/debian_chroot)
+fi
+
+
+#### [jpw]
+# Conditional to disable the defaults when we're gonna source
+# $BASHRC_INTERACTIVE
+if [ -z "${BASHRC_INTERACTIVE}" ]; then
+    echo "Loading Debian/Ubuntu bash-defaults."
+
+# set a fancy prompt (non-color, unless we know we "want" color)
+case "$TERM" in
+    xterm-color) color_prompt=yes;;
+esac
+
+# uncomment for a colored prompt, if the terminal has the capability; turned
+# off by default to not distract the user: the focus in a terminal window
+# should be on the output of commands, not on the prompt
+#force_color_prompt=yes
+
+if [ -n "$force_color_prompt" ]; then
+    if [ -x /usr/bin/tput ] && tput setaf 1 >&/dev/null; then
+	# We have color support; assume it's compliant with Ecma-48
+	# (ISO/IEC-6429). (Lack of such support is extremely rare, and such
+	# a case would tend to support setf rather than setaf.)
+	color_prompt=yes
+    else
+	color_prompt=
+    fi
+fi
+
+if [ "$color_prompt" = yes ]; then
+    PS1='${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '
+else
+    PS1='${debian_chroot:+($debian_chroot)}\u@\h:\w\$ '
+fi
+unset color_prompt force_color_prompt
+
+# If this is an xterm set the title to user@host:dir
+case "$TERM" in
+xterm*|rxvt*)
+    PS1="\[\e]0;${debian_chroot:+($debian_chroot)}\u@\h: \w\a\]$PS1"
+    ;;
+*)
+    ;;
+esac
+
+# Alias definitions.
+# You may want to put all your additions into a separate file like
+# ~/.bash_aliases, instead of adding them here directly.
+# See /usr/share/doc/bash-doc/examples in the bash-doc package.
+
+if [ -f ~/.bash_aliases ]; then
+    . ~/.bash_aliases
+fi
+
+# enable color support of ls and also add handy aliases
+if [ -x /usr/bin/dircolors ]; then
+    eval "`dircolors -b`"
+    alias ls='ls --color=auto'
+    alias dir='dir --color=auto'
+    alias vdir='vdir --color=auto'
+
+    alias grep='grep --color=auto'
+    alias fgrep='fgrep --color=auto'
+    alias egrep='egrep --color=auto'
+fi
+
+# some more ls aliases
+alias ll='ls -l'
+alias la='ls -A'
+alias l='ls -CF'
+
+# enable programmable completion features (you don't need to enable
+# this, if it's already enabled in /etc/bash.bashrc and /etc/profile
+# sources /etc/bash.bashrc).
+if [ -f /etc/bash_completion ]; then
+    . /etc/bash_completion
+fi
+
+
+#### [jpw]
+fi # [ -z $BASHRC_INTERACTIVE ]
+
+
+########################################
+#
+# Source the global interactive file.
+# 
+########################################
+
+
+if [ -n "$INTERACTIVE" -a -n "$BASHRC_INTERACTIVE" ]; then
+    . $BASHRC_INTERACTIVE
+fi
 
 
 #############################################################################
 #
 # User-Defined Aliases, Variables, Functions
 #
-# Place your personal settings after this comment.
 #############################################################################
-
 
 
 STTYPE="${MACHTYPE}-${OSTYPE}"
 
-export NAME="John Weiss"
-export PATH="${PATH}:/usr/X11R6/bin:${HOME}/bin"
-
 
 alias edit="runemacs.sh"
-alias tbv='PAGER=/usr/bin/less pagecommand tar -jtvf'
-alias untar='tar -zxvf'
-alias untarb='tar -jxvf'
-alias tarzf='tar -zcvf'
-alias tarbf='tar -jcvf'
+
 alias veryclean="(cd ; clean -r)"
 
 alias repath="export PATH=${PATH}"
 alias resharc='source ~/.bashrc'
+alias resharc_all='INTERACTIVE="y" source ~/.bashrc'
 
-alias twoup='enscript -2jv -f Courier-Bold7 --landscape'
+alias untar='tar -zxvf'
+alias untarb='tar -jxvf'
+alias uncpioz='uncpio --gzip'
+alias uncpiob='uncpio --bzip2'
+
+r_enscrCmd="enscript -v -D Duplex:true --non-printable-format=caret"
+alias twoup="$r_enscrCmd -2 -j -f Courier-Bold7 --landscape"
+alias enscript_lp="$r_enscrCmd -1 -l"
+unset r_enscrCmd
+
 alias odx='od -A x -t x1z'
 
 # CVS Stuff
 #
-alias cvsmerge='cvs update -kk -j'
-alias cvsmerge-head='cvs update -kk -j HEAD'
+##alias cvsmerge='cvs update -kk -j'
+##alias cvsmerge-head='cvs update -kk -j HEAD'
 case ${OSTYPE} in
     [Cc]ygwin)
+        export PATH="${PATH}:${HOME}/bin"
         return
         ;;
 esac
+
 
 #######################################################################
 #
@@ -88,25 +212,20 @@ esac
 #
 #######################################################################
 
-export CVSROOT=${HOME}/src/0_Local_CVS_Repos
-export LV="-lic -E'runemacs.sh +%d'"
+
+export NAME="John Weiss"
 export PRINTER="ps"
-export BIBINPUTS="${HOME}/docs/refs:"
-export BSTINPUTS="${BIBINPUTS}:"
-export TEXINPUTS=".//:${HOME}/docs/tex.sty//:"
-export BROWSER_REMOTE_CTRL=/usr/local/firefox/mozilla-xremote-client
+#export CVSROOT=${HOME}/src/0_Local_CVS_Repos
+#export BIBINPUTS="${HOME}/docs/refs:"
+#export BSTINPUTS="${BIBINPUTS}:"
+#export TEXINPUTS=".//:${HOME}/docs/tex.sty//:"
+export BROWSER_REMOTE_CTRL=/usr/lib/firefox-2.0.*/mozilla-xremote-client
 
 alias mail='mutt'
 alias oldmail="mutt -f =received"
 alias adminmail="mutt -f =admin"
-alias lyxl='mutt -f =lyx.incoming'
-alias boostl='mutt -f =boost.incoming'
-alias accul='mutt -f =accu.incoming'
 
 alias sgroff='PAGER=${LESSBIN:-more} pagecommand groff -eptsR -Tascii -ms'
-
-      alias latin1='luit -encoding ISO8859-1 -c'
-alias latin15='luit -encoding ISO8859-15 -c'
 
 # dpkg stuff
 alias dpkg-h='PAGER=${LESSBIN:-more} pagecommand dpkg --help'
@@ -121,7 +240,7 @@ alias rpm-all='PAGER=${LESSBIN:-more} pagecommand rpm -qa'
 alias rpm-qfile='PAGER=${LESSBIN:-more} pagecommand rpm -qp'
 alias rpm-upgrade='sudo rpm --upgrade -hv'
 alias rpm-install='sudo rpm --install -hv'
-whatrequires-rpm() {
+whatrequires_rpm() {
     rpm -q --whatrequires \
         `rpm -q --provides "$@" | grep -v " = " | \
              awk '{ print $1 }'`
@@ -151,28 +270,27 @@ extract_from_rpm() {
     pkg="$1"
     shift
     tarball=`basename ${pkg%%.rpm}.${suffix}`
+    # Note: Conversion fails.  Haven't figured out how to get tar to archive
+    # from stdin.
+    #echo "Converting package \"$pkg\""
+    #echo "to tarball:  $tarball"
+    #rpm2cpio ${pkg} | cpio --extract --to-stdout | \
+    #    tar $compress -cf $tarball -
+
     rpm2cpio ${pkg} | cpio --extract --make-directories \
         --preserve-modification-time --no-absolute-filenames "$@"
 }
 
-# admin stuff
-alias smacs="sudo emacs"
-alias svi="sudo vi"
-alias sv="sudo folded-less.sh"
-alias sudoclean="sudo purge-files.sh"
-alias uqbarcon='xtoolwait xterm -e sudo minicom -l -w --color=on consoleS0' # -t linux-lat
-
-# xtoolwait aliases
-alias lyx="xtoolwait lyx -geometry 800x$((${X11_YRES:-786} - 48))+0+0"
-alias xephem='xtoolwait xephem'
-alias gnucash='xtoolwait gnucash'
-alias gnumeric='xtoolwait gnumeric'
-alias gv='xtoolwait gv'
-alias kdecd='xtoolwait kscd'
-alias konq='xtoolwait konqueror --profile webbrowsing'
-alias kcalc='xtoolwait kcalc'
-alias uqbarmon='xtoolwait gkrellm -s uqbar'
-#alias xanim='xanim +f +Zr +Av100 +Gd2.0 \!* ; reset-mixer.sh'
+# runx/xtoolwait aliases
+alias lyx="runx lyx -geometry 800x$((${X11_YRES:-786} - 32))+0+0"
+alias xephem='runx xephem'
+alias gnucash='runx gnucash'
+alias gnumeric='runx gnumeric'
+alias gv='runx gv'
+alias kdecd='runx kscd'
+alias konq='runx konqueror --profile webbrowsing'
+alias kcalc='runx kcalc'
+alias uqbarmon='runx gkrellm -s uqbar'
 
 alias xanim='xanim +f +Zr +Av70 +Gd1.5'
 alias mplayer='artsdsp mplayer'
@@ -180,9 +298,31 @@ alias trayclose='eject -t'
 
 # Local networking stuff
 alias ssh='ssh -4'
-alias netoff='drainq.sh; ssh -4 inetctrl@uqbar /usr/local/bin/closenet.sh -dsl'
-alias netoff_NOW='ssh -4 inetctrl@uqbar /usr/local/bin/closenet.sh -dsl'
-alias neton='ssh -4 inetctrl@uqbar /usr/local/bin/netlogin.sh -dsl'
+
+#
+# *Admin Stuff*
+#
+
+alias smacs="sudo emacs"
+alias svi="sudo vim"
+alias sv="sudo folded-less.sh"
+alias sudoclean="sudo purge-files.sh"
+alias uqbarcon='runx xterm -e sudo minicom -l -w --color=on consoleS0'
+
+
+########################################
+#
+# Startup Commands
+#
+########################################
 
 
 ddate
+
+
+
+##################
+# Local Variables:
+# mode: Shell-script
+# sh-shell: bash
+# End:
