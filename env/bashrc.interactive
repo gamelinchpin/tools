@@ -502,15 +502,24 @@ runx() {
             -pid)
                 xtoolwaitOpts="$xtoolwaitOpts $1"
                 ;;
+            -*)
+                echo "runx:  Unknown/unsupported option:  '$1'"
+                return 1
+                ;;
+            *)
+                break
+                ;;
         esac
         shift
     done
 
-    if [ -n "$toDesk" -a $(type -t wmctrl >/dev/null) ]; then
-        echo "wmctrl $toDesk"
+    if [ -n "$toDesk" ]; then
+        if type -t wmctrl >/dev/null; then
+            wmctrl -s $toDesk
+        fi
     fi
 
-    runlog="/tmp/runx-${1}.log"
+    runlog="/tmp/runx-${USER}.log"
     if type -t xtoolwait >/dev/null; then
         if [ -n "$use_sudo" ]; then
             sudo xtoolwait $xtoolwaitOpts "$@" 2>&1 >>$runlog
@@ -518,7 +527,7 @@ runx() {
             xtoolwait $xtoolwaitOpts "$@" 2>&1 >>$runlog
         fi
     else
-        echo "Error!  xtoolwait isn't installed!"
+        echo "Error\!  xtoolwait isn't installed\!"
         echo "Running as a background job and disowning..."
         echo ""
         if [ -n "$use_sudo" ]; then
