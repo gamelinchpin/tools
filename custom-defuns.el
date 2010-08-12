@@ -25,6 +25,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
+(eval-when-compile
+  (require 'sh-script))
 (require 'skeleton)
 (require 'tempo)
 
@@ -1035,6 +1037,40 @@ Unfortunately, it doesn't work too well.
   )
 
 
+(defun jpw-sh-mode-font-lock-enhance ()
+  "Modify the variable `sh-font-lock-keywords-var' to correctly highlight
+function definitions in bash and ksh.
+
+{jpw:  08/2010}"
+  (let ((font-lock-sh-fn-name-keywords
+         ;; Function names.  Taken from sh-script.el
+         (list
+          '("^\\(\\sw+\\)[ \t]*(" 1 font-lock-function-name-face)
+          '("\\<\\(function\\)\\>[ \t]*\\(\\sw+\\)?"
+            (1 font-lock-keyword-face) (2 font-lock-function-name-face nil t))
+          ))
+        (modified-keywords-var (list))
+        shell-specific-keywords
+        shell-type
+        new-keyword-regex
+        ) ;; end varbindings
+
+    (dolist (shell-specific-keywords sh-font-lock-keywords-var)
+      (setq shell-type (car shell-specific-keywords))
+      (if (or (equal shell-type 'bash)
+              (equal shell-type 'ksh)
+              (equal shell-type 'ksh88))
+          (dolist (new-keyword-regex font-lock-sh-fn-name-keywords)
+            (add-to-list 'shell-specific-keywords new-keyword-regex 't)
+            )
+        ) ;;end if
+      (add-to-list 'modified-keywords-var shell-specific-keywords 't)
+      )
+     (setq sh-font-lock-keywords-var modified-keywords-var)
+    ) ;; end let
+  )
+
+
 ;;----------------------------------------------------------------------
 ;;
 ;; Autohook-specific functions.
@@ -1048,7 +1084,9 @@ There's a common technique used for scripts whose interpreter cannot be
 started via the \"#!\"-technique:  call 'exec' on the interpreter, passing the
 script itself.  This only works with scripting languages that also use the
 \"#\" character to start comments and which permit comment lines to be
-extended using an EOL-\"\\\"-char.  {jpw; 12/2004}"
+extended using an EOL-\"\\\"-char.
+
+{jpw; 12/2004}"
   (and
    (save-excursion
      (goto-char (point-min))
