@@ -686,21 +686,6 @@ the first.  The first is inserted as a block.
   )
 
 
-(defun jpw-insert-tcldoc-tag (tagname)
-  "Insert a TCLDoc '@' tag.
-{jpw: 09/2006}"
-  (interactive "*sEnter TCLDoc tag: ")
-  (do-comment-line-break)
-  (insert " @" tagname " ")
-  (if (equal tagname "param")
-      (save-excursion
-        (jpw-insert-doc-unitag "br")
-        (do-comment-line-break)
-        )
-    )
-  )
-
-
 ;;----------------------------------------------------------------------
 ;;
 ;; Common HTML Editing Commands
@@ -1056,6 +1041,16 @@ Unfortunately, it doesn't work too well.
   )
 
 
+(defun jpw-sh-mode-font-lock-enhance
+  (cons
+    ;; Function names.
+    ("^\\(\\sw+\\)[ \t]*(" 1 font-lock-function-name-face)
+    ("\\<\\(function\\)\\>[ \t]*\\(\\sw+\\)?"
+      (1 font-lock-keyword-face) (2 font-lock-function-name-face nil t))
+    )
+)
+
+
 ;;----------------------------------------------------------------------
 ;;
 ;; Autohook-specific functions.
@@ -1084,12 +1079,6 @@ extended using an EOL-\"\\\"-char.  {jpw; 12/2004}"
           ))
    (funcall mode)
    )
-  )
-
-
-(defun jpw-flip-to-tcl-mode ()
-  (interactive)
-  (jpw-flip-to-mode "tclsh" 'tcl-mode)
   )
 
 
@@ -1536,27 +1525,6 @@ extended using an EOL-\"\\\"-char.  {jpw; 12/2004}"
   (turn-on-auto-fill)
   (font-lock-mode)
   (local-set-key "\M-j" 'octave-indent-new-comment-line)
-  )
-
-
-(defun use-jpw-style-tcl ()
-  (interactive)
-  (turn-on-auto-fill)
-  (setq fill-column 78)
-  (use-jpw-sh-dabbrev-skip)
-  (font-lock-mode t)
-  (bind-jpw-doc-comment)
-  (local-set-key "\M-po" (lambda() (interactive)
-                             (jpw-insert-doc-tag "code")))
-  (local-set-key "\M-pp" (lambda() (interactive)
-                             (jpw-insert-tcldoc-tag "param")))
-  (local-set-key "\M-pa" (lambda() (interactive)
-                             (jpw-insert-tcldoc-tag "param")))
-  (local-set-key "\M-pr" (lambda() (interactive)
-                             (jpw-insert-tcldoc-tag "return")))
-  (local-set-key "\M-ps" (lambda() (interactive)
-                             (jpw-insert-tcldoc-tag "see")))
-  (local-set-key "\M-pl" 'jpw-insert-javadoc-link)
   )
 
 

@@ -2,8 +2,8 @@
 ;;
 ;; Some enhancements for the default TCL-mode that comes with Emacs
 ;;
-;;  Copyright © 2005-2007 John P. Weiss
-;;  
+;;  Copyright © 2005-2010 John P. Weiss
+;;
 ;;  This package is free software; you can redistribute it and/or modify
 ;;  it under the terms of the Artistic License, included as the file
 ;;  "LICENSE" in the source code archive.
@@ -15,26 +15,76 @@
 ;;  You should have received a copy of the file "LICENSE", containing
 ;;  the License John Weiss originally placed this program under.
 ;;
-;;  
+;;
 ;; Based on a post on the EmacsWiki.
 ;;
-;;  
+;;
 ;; RCS $Id$
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
 (require 'tcl)
+(require 'custom-defuns)
 (require 'jpw-indent-tools)
-(eval-when-compile
-  (if running-xemacs
-      (require 'custom-defuns)))
+
+
+;;------------------------------------------------------------
+;;
+;; My personal custom defuns and autohooks.
+;;
+
+
+(defun jpw-flip-to-tcl-mode ()
+  (interactive)
+  (jpw-flip-to-mode "tclsh" 'tcl-mode)
+  )
+
+
+(defun jpw-insert-tcldoc-tag (tagname)
+  "Insert a TCLDoc '@' tag.
+{jpw: 09/2006}"
+  (interactive "*sEnter TCLDoc tag: ")
+  (do-comment-line-break)
+  (insert " @" tagname " ")
+  (if (equal tagname "param")
+      (save-excursion
+        (jpw-insert-doc-unitag "br")
+        (do-comment-line-break)
+        )
+    )
+  )
+
+
+(defun use-jpw-style-tcl ()
+  (interactive)
+  (turn-on-auto-fill)
+  (setq fill-column 78)
+  (use-jpw-sh-dabbrev-skip)
+  (font-lock-mode t)
+  (bind-jpw-doc-comment)
+  (local-set-key "\M-po" (lambda() (interactive)
+                             (jpw-insert-doc-tag "code")))
+  (local-set-key "\M-pp" (lambda() (interactive)
+                             (jpw-insert-tcldoc-tag "param")))
+  (local-set-key "\M-pa" (lambda() (interactive)
+                             (jpw-insert-tcldoc-tag "param")))
+  (local-set-key "\M-pr" (lambda() (interactive)
+                             (jpw-insert-tcldoc-tag "return")))
+  (local-set-key "\M-ps" (lambda() (interactive)
+                             (jpw-insert-tcldoc-tag "see")))
+  (local-set-key "\M-pl" 'jpw-insert-javadoc-link)
+  )
+
+
+(add-hook 'tcl-mode-hook 'use-jpw-style-tcl t)
+(add-hook 'sh-mode-hook 'jpw-flip-to-tcl-mode)
 
 
 ;;------------------------------------------------------------
 ;;
 ;; User Customizations
-;; 
+;;
 
 
 (defface tcl-builtin-face
@@ -86,7 +136,7 @@ clause on its own line, placing the separating \"} {\" on a line by itself.
 Setting `jpw-tcl-align-for-loop-braces' to non-nil will align those close-open
 braces like so:
 
-    for { 
+    for {
             ...
         } {
             ...
@@ -116,7 +166,7 @@ the \"for\" statement\(1\).
 
 If, for example, you set this to 2, your for-loop would look like this:
 
-    for { 
+    for {
           ...
       } {
           ...
@@ -155,7 +205,7 @@ By default, `tcl-mode' aligns the first statement in the body to its opening
 brace, i.e. it uses the indentation of the line containing the brace, plus
 `tcl-indent-level'.  As a result, every other statement in the body is
 indented an \"extra\" `tcl-indent-level' relative to the original \"for\"
-statement.  
+statement.
 
 That includes the closing \"}\", which end up aligned with the opening braces
 instead of the \"for\" command.
@@ -182,7 +232,7 @@ pair.  When non-nil, aligns to the first word after the command in the
 ;;------------------------------------------------------------
 ;;
 ;; Enhancement Vars
-;; 
+;;
 
 
 (defconst tcl-core-builtins
@@ -247,7 +297,7 @@ else.
 
 (defconst tcl-misc-builtins
   '("bgerror" "dde" "msgcat"
-    "resource" 
+    "resource"
     "socket"
     "tcltest"
     "load" "time"
@@ -285,7 +335,7 @@ else.
   (eval-when-compile
     (sort (copy-list orig-tcl-proc-list) 'string-lessp)
     )
-  "The original value of `tcl-proc-list', sorted. 
+  "The original value of `tcl-proc-list', sorted.
 {jpw: 6/05}")
 
 (defconst tcl-typeword-list-enhanced
@@ -295,9 +345,9 @@ else.
   "The original value of `tcl-typeword-list', sorted.
 {jpw: 6/05}")
 
-(defconst tcl-keyword-list-enhanced 
+(defconst tcl-keyword-list-enhanced
   (eval-when-compile
-    (sort 
+    (sort
      ;; The order of the following is important, since:
      ;; (1) `append' doesn't copy the last arg
      ;; (2) `sort' modifies the list passed to it.
@@ -333,20 +383,20 @@ keyword list, not the builtin list.
   "Special keywords; they take a required arg, which is a known-constant.
 {jpw: 6/05}")
 
-(defconst tcl-const-list-re 
+(defconst tcl-const-list-re
   (eval-when-compile
     (regexp-opt '("argc" "argv" "argv0" "errorCode" "env" "stderr" "stdin"
                   "stdout" "errorInfo" "tcl_library"
                   "tcl_patchLevel" "tcl_pkgPath"  "tcl_platform"
                   "tcl_precision" "tcl_traceCompile" "tcl_traceExec"
-                  "tcl_version" 
+                  "tcl_version"
                   "auto_execs" "auto_index" "auto_noexec" "auto_noload"
                   "auto_path"))
     )
   "Builtin Tcl constants/variables.
 {jpw: 6/05}")
 
-(defconst tcl-builtins-with-arg-re 
+(defconst tcl-builtins-with-arg-re
   (eval-when-compile
     (regexp-opt '("array" "info" "interp" "string" "trace" "binary"
                   "file" "clock"
@@ -428,7 +478,7 @@ plus `tcl-misc-builtins'.
 ;;------------------------------------------------------------
 ;;
 ;; Enhancement Inlines
-;; 
+;;
 
 
 (defsubst jpw-tcl-electric-indent ()
@@ -476,14 +526,14 @@ plus `tcl-misc-builtins'.
     (if (looking-at "} +{")
         (progn
           (setq matching-open-brace-line-indent (current-column)
-                matching-open-brace-indent 
+                matching-open-brace-indent
                 (+ (current-column) (- (match-end 0) (match-beginning 0))))
           (while (looking-at "} +{")
             (if (jpw-back-to-matching '?{ '?})
                 (setq last-matching-open-brace-column (current-column))
               ;; else
               ;; Move off-char in case `jpw-back-to-matching' didn't move
-              ;; point.   Otherwise, we risk an infinite loop. 
+              ;; point.   Otherwise, we risk an infinite loop.
               (forward-char -1)
               )
             (back-to-indentation)
@@ -549,7 +599,7 @@ plus `tcl-misc-builtins'.
 
 (defsubst jpw-tcl-analyze-extended-line ()
   ;; If the present line is part of a continued line, evaluates to a 5-element
-  ;; list containing: 
+  ;; list containing:
   ;; 1. The type of parent statement;
   ;; 2. The indentation of the 1st line in the statement;
   ;; 3. The `point' where the 1st line in the statement begins;
@@ -561,7 +611,7 @@ plus `tcl-misc-builtins'.
   ;; This function does not change `point'.
   (save-excursion
     (if (jpw-backward-extended-line)
-        (let ((parent-point (progn (back-to-indentation) 
+        (let ((parent-point (progn (back-to-indentation)
                                    (point)))
               (parent (jpw-tcl-statement-data))
               );;end vars
@@ -575,7 +625,7 @@ plus `tcl-misc-builtins'.
                                  nil nil))
             )
           );; end let
-      ;; else 
+      ;; else
       nil
       );; end if backward-extended-line
     );; end excursion
@@ -604,7 +654,7 @@ plus `tcl-misc-builtins'.
       )
      ;; Case (b):
      ;; If we're looking at some non-conditional statement, then
-     ;; find the matching curly and align to it. 
+     ;; find the matching curly and align to it.
      ((eq statement-type 'other-tcl-statement)
       (and (jpw-back-to-matching '?{ '?})
            (current-column))
@@ -638,7 +688,7 @@ plus `tcl-misc-builtins'.
 
 (defsubst jpw-tcl-compute-extended-line-indent (extended-line-info)
   ;; Computes the indentation for an extended TCL statement.
-  ;; 
+  ;;
   ;; EXTENDED-LINE-INFO must be non-nil; the behavior of this function is
   ;; undefined otherwise.
   (let ((old-pos (point))
@@ -650,7 +700,7 @@ plus `tcl-misc-builtins'.
         last-line-bolp
         tmp-1st-arg-column
         ) ;; end vars
-          
+
     (if (jpw-back-to-matching "\([{" "\)]}" statement-bolp t)
         (setq nearest-open-grp (char-after))
       ;; else
@@ -682,7 +732,7 @@ plus `tcl-misc-builtins'.
           )
 
          ;; A ?\\ means "not in any parens".  This case indents almost like an
-          ;; in-?[ statement. 
+          ;; in-?[ statement.
          ((eq nearest-open-grp '?\\)
           (if (= statement-bolp last-line-bolp)
               (progn
@@ -693,7 +743,7 @@ plus `tcl-misc-builtins'.
                     (if (and (eq (char-after) ?\")
                              (not (progn
                                     (forward-char)
-                                    (re-search-forward "[^\\]\"" 
+                                    (re-search-forward "[^\\]\""
                                                        (line-end-position)
                                                        t))
                                   );;end not
@@ -734,7 +784,7 @@ plus `tcl-misc-builtins'.
 ;;------------------------------------------------------------
 ;;
 ;; Enhancement Functions
-;; 
+;;
 
 
 (defsubst jpw-tcl-run-native-indent (&optional arg)
@@ -780,7 +830,7 @@ function does.
             ;; followed by an open curly-brace.
             (jpw-tcl-compute-brace-pair-indent)
           ;; else:
-          ;; 
+          ;;
           ;; We're looking at a "}" followed by something else.
           ;; Case #4:  It's part of an extended line.
           ;; {Note that `jpw-tcl-compute-brace-pair-indent' evals to nil if
@@ -840,7 +890,7 @@ after breaking the line.
         enhanced-indent
         );; end vars
 
-    (save-excursion 
+    (save-excursion
       (back-to-indentation)
       (setq indentp (point))
       (setq initial-char (following-char))
@@ -974,7 +1024,7 @@ position.
   )
 
 
-(defun tcl-enhance-indentation () 
+(defun tcl-enhance-indentation ()
   ;; Fix the binding of TAB to the normal, std. value, but only for the
   ;; current TCL-mode buffer.
   (local-set-key [tab] 'indent-for-tab-command)
@@ -985,10 +1035,10 @@ position.
   (local-set-key "[" 'jpw-tcl-electric-char)
   (local-set-key "]" 'jpw-tcl-electric-char)
   (local-set-key ";" 'jpw-tcl-electric-char)
-  (set (make-local-variable 'indent-line-function) 
+  (set (make-local-variable 'indent-line-function)
        'tcl-indent-command-toggler)
   (unless comment-end-skip
-    (set (make-local-variable 'comment-end-skip) 
+    (set (make-local-variable 'comment-end-skip)
          "[ 	]*\\(\\s>\\|\n\\)"))
 
   ;; Configure paragraph start/separate vars
@@ -1006,7 +1056,7 @@ position.
 ;;------------------------------------------------------------
 ;;
 ;; Font-Lock Support
-;; 
+;;
 
 
 (defvar tcl-font-lock-keywords-enhanced nil
@@ -1047,7 +1097,7 @@ position.
          ;;
          ;; Variables
          (list
-          "[$]\\(\\(::\\)?\\sw+\\)" 
+          "[$]\\(\\(::\\)?\\sw+\\)"
           '(1 'font-lock-variable-name-face prepend))
 
          ;;
@@ -1075,7 +1125,7 @@ position.
 
          ;;
          ;; Builtins with an extra arg.
-         (list (concat "\\<\\(" 
+         (list (concat "\\<\\("
                        tcl-builtins-with-arg-re
                        "\\)\\>[ \t]+\\(\\sw+\\)?")
                '(1 'tcl-builtin-face prepend)
@@ -1103,7 +1153,7 @@ position.
 
 ;; Right now, I'm trying to preserve the std. tcl-mode behavior, rather than
 ;; completely override the `tcl-font-lock-keywords' var.
-;; 
+;;
 ;; Unfortunately, we can't use a regexp with the existing tcl-mode code
 ;; because it expects the keyword to appear in a certain part of the regexp.
 ;; Which fails.

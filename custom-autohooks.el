@@ -64,7 +64,6 @@
 
 ;; Scripting languages
 (add-hook 'awk-mode-hook 'turn-on-auto-fill)
-(add-hook 'tcl-mode-hook 'use-jpw-style-tcl t)
 (add-hook 'perl-mode-hook 'turn-on-auto-fill)
 (add-hook 'perl-mode-hook 'use-jpw-perl-dabbrev-skip)
 (add-hook 'cperl-mode-hook 'use-jpw-style-cperl)
@@ -73,7 +72,6 @@
 ;; There is no longer an separate "shell-script-mode-hook"; the `sh-mode-hook'
 ;; serves both the programming mode and the Shell-in-a-Box mode.
 (add-hook 'sh-mode-hook 'turn-on-auto-fill)
-(add-hook 'sh-mode-hook 'jpw-flip-to-tcl-mode)
 (add-hook 'sh-mode-hook 'use-jpw-sh-dabbrev-skip)
 
 
