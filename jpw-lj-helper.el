@@ -880,6 +880,8 @@ Call this function after changing certain customization variables manually
 (if (null jpw-lj-mode-map)
     (progn
       (setq jpw-lj-mode-map (make-sparse-keymap))
+      (define-key jpw-lj-mode-map "\C-c\M-q" 'jpw-lj-unfill-paragraph)
+      (define-key jpw-lj-mode-map "\C-c\M-Q" 'jpw-lj-unfill-paragraph)
       (define-key jpw-lj-mode-map "\M-\"" 'jpw-lj-unfill-paragraph)
       (define-key jpw-lj-mode-map "\C-c\"" 'jpw-lj-unfill-buffer)
 
