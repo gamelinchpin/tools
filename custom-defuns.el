@@ -797,26 +797,33 @@ corresponding HTML entity.
 {jpw; 03/2006}")
 
 
-;; Redefine some of the tempo-template-* commands used by `html-helper-mode'
-;; so that they produce valid XML
-(tempo-define-template
- "html-line-break"
- '(& "<br/>" > n)
- nil
- "XHTML line break tag.
+(defun jpw-html-fix-tempo-templates ()
+"Redefine some of the tempo-template-* commands used by `html-helper-mode'
+so that they produce valid XML.
+{jpw: 08/2008}"
+  (interactive)
+
+  (tempo-define-template
+   "html-line-break"
+   '(& "<br/>" > n)
+   nil
+   "XHTML line break tag.
 This function has been redefined so that it produces a complete tag.
 {jpw: 08/2008}"
- )
+   )
 
 
-(tempo-define-template
- "html-horizontal-line"
- '(& "<hr/>" > n)
- nil
- "XHTML horizontal rule tag.
+  (tempo-define-template
+   "html-horizontal-line"
+   '(& "<hr/>" > n)
+   nil
+   "XHTML horizontal rule tag.
 This function has been redefined so that it produces a complete tag.
 {jpw: 08/2008}"
- )
+   )
+
+  )
+(jpw-html-fix-tempo-templates)
 
 
 (define-skeleton jpw-html-href-anchor
@@ -1309,6 +1316,7 @@ extended using an EOL-\"\\\"-char.  {jpw; 12/2004}"
   (local-set-key [?\C-c ?\C-'] 'jpw-html-entity-abbrev-expand)
 
   (font-lock-mode t)
+  (jpw-html-fix-tempo-templates)
   )
 
 
