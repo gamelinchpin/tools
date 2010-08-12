@@ -121,6 +121,7 @@
  '(archive-zip-use-pkzip nil)
  '(browse-url-browser-function (quote browse-url-w3))
  '(cygwin-mount-cygwin-bin-directory "c:\\cygwin\\bin")
+ '(ediff-window-setup-function (quote ediff-setup-windows-plain))
  '(jpw-lj-friend-groups (quote ("husband" "from way back" "Regularly Read")))
  '(jpw-lj-unfill-on-save t)
  '(jpw-lj-user-avatars (quote ("Babuuuuusha" "Dr._Alchemist" "Fiend::Kitty" "Frannie" "Gay::duo""Gay::rainbow_flag" "Gir::cheery""Gir::cheery" "Gir::piggy" "Gir::serious""Gir::waffles" "Ian""Ian::Bashful""Martin" "Me_1995" "MsBitters::doom""MsBitters::looming" "MsBitters::pensive""My_Icon" "fascists" "linux")))
