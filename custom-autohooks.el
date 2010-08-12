@@ -25,7 +25,9 @@
 
 
 (require 'custom-mode-styles)
-
+(eval-when-compile
+  (require 'custom-html_sgml_xml)
+  )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;

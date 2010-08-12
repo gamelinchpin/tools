@@ -66,7 +66,6 @@ You shouldn't change the value of this variable.
 ;; and set it to nil
 ;;
 (eval-and-compile
-;;  (if (not (or is-winblows
   (if (not (boundp 'running-xemacs))
       (defconst running-xemacs (string-match "XEmacs\\|Lucid" emacs-version)
         "Non-nil when the current emacs is XEmacs."
@@ -165,7 +164,7 @@ You shouldn't change the value of this variable.
          t)
          ;;(not is-version-twentytwo))
     (if (load "gnuserv" t)   ;; May not have gnuserv on cygwin
-        (progn
+        (with-no-warnings
           (setq gnuserv-frame (selected-frame))
           (gnuserv-start)
           )
@@ -296,16 +295,17 @@ You shouldn't change the value of this variable.
     (progn
       (require 'mwheel)
 
-      (setq abbrev-file-name "~/.xemacs/.abbrevs"
-            kill-ring-max 100
-            minibuffer-max-depth nil
-            mwheel-follow-mouse t
-            mwheel-scroll-amount (quote (6 . 1))
-            quickurl-url-file "~/.xemacs/.quickurls"
-            type-break-file-name "~/.xemacs/.type-break"
-            woman-cache-filename "~/.xemacs/.wmncache.el"
-            zmacs-regions t
-            )
+      (with-no-warnings
+        (setq abbrev-file-name "~/.xemacs/.abbrevs"
+              kill-ring-max 100
+              minibuffer-max-depth nil
+              mwheel-follow-mouse t
+              mwheel-scroll-amount (quote (6 . 1))
+              quickurl-url-file "~/.xemacs/.quickurls"
+              type-break-file-name "~/.xemacs/.type-break"
+              woman-cache-filename "~/.xemacs/.wmncache.el"
+              zmacs-regions t
+              ))
       )
   ;; else:
   ;; Some GNU-Emacs-specific settings.
@@ -404,7 +404,7 @@ You shouldn't change the value of this variable.
       ;; Force the colors to something reasonable
       (if window-system
           (if running-xemacs
-              (progn
+              (with-no-warnings
                 (setq font-lock-auto-fontify t
                       font-lock-maximum-size 256000
                       font-lock-mode-enable-list t
@@ -775,6 +775,16 @@ variable rather than hardcoded.
 (add-to-list 'auto-mode-alist '("\\.xml$" . jpw-xml-lite-mode) t)
 ;;(add-to-list 'auto-mode-alist '("\\.xml$" . xml-mode) t)
 
+(eval-after-load "sgml-mode"
+  '(lambda()
+     (require 'custom-html_sgml_xml)))
+(eval-after-load "xml"
+  '(lambda()
+     (require 'custom-html_sgml_xml)))
+(eval-after-load "xml-lite"
+  '(lambda()
+     (require 'custom-html_sgml_xml)))
+
 
 ;; Commented out
 ;;
@@ -786,6 +796,7 @@ variable rather than hardcoded.
   ;;
   (eval-after-load "psgml"
     '(lambda()
+       (require 'custom-html_sgml_xml)
        (setq sgml-set-face t
              sgml-ignore-undefined-elements t
              sgml-warn-about-undefined-elements nil
@@ -811,21 +822,6 @@ variable rather than hardcoded.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
-(jpw-custom-set-faces-nonsaved
- '(html-helper-bold-face ((t (:inherit bold))))
- '(html-helper-builtin-face ((t (:inherit font-lock-builtin-face))))
- '(html-helper-italic-face ((t (:inherit italic))))
- '(html-helper-underline-face ((t (:inherit underline))))
- '(html-tag-face ((t (:inherit font-lock-function-name-face))))
- )
-
-(if (not running-xemacs)
-    (jpw-custom-set-variables-nonsaved
-     ;; XEmacs barfs on this, for some reason.
-     '(html-helper-mode-uses-visual-basic t nil (html-helper-mode))
-     )
-  )
-
 (autoload 'html-helper-mode "html-helper-mode"
   "Major mode for editing HTML" t)
 (autoload 'asp-html-helper-mode "html-helper-mode"
@@ -834,19 +830,41 @@ variable rather than hardcoded.
   "Major mode for editing JSP" t)
 (autoload 'php-html-helper-mode "html-helper-mode"
   "Major mode for editing PHP" t)
+
 ;; Put this one to the front so that html-helper-mode is used instead of
 ;; any other modes.
-(dolist (mode-entry
-         '(("\\.html$" . html-helper-mode)
-           ("\\.eml$" . html-helper-mode)
-           ;;("\\.php$" . php-html-helper-mode)
-           ("\\.jsp$" . jsp-html-helper-mode)
-           ("\\.asp$" . asp-html-helper-mode))
-         )
-  (add-to-list 'auto-mode-alist mode-entry)
+(let (mode-entry)
+  (dolist (mode-entry
+           '(("\\.html$" . html-helper-mode)
+             ("\\.eml$" . html-helper-mode)
+             ;;("\\.php$" . php-html-helper-mode)
+             ("\\.jsp$" . jsp-html-helper-mode)
+             ("\\.asp$" . asp-html-helper-mode))
+           )
+    (add-to-list 'auto-mode-alist mode-entry)
+    )
   )
+
 (setq html-helper-do-write-file-hooks t)
 (setq html-helper-build-new-buffer t)
+
+(jpw-custom-set-faces-nonsaved
+ '(html-helper-bold-face ((t (:inherit bold))))
+ '(html-helper-builtin-face ((t (:inherit font-lock-builtin-face))))
+ '(html-helper-italic-face ((t (:inherit italic))))
+ '(html-helper-underline-face ((t (:inherit underline))))
+ '(html-tag-face ((t (:inherit font-lock-function-name-face))))
+ )
+(if (not running-xemacs)
+    (jpw-custom-set-variables-nonsaved
+     ;; XEmacs barfs on this, for some reason.
+     '(html-helper-mode-uses-visual-basic t nil (html-helper-mode))
+     )
+  )
+
+(eval-after-load "html-helper-mode"
+  '(lambda()
+     (require 'custom-html_sgml_xml)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

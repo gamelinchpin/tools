@@ -1,3 +1,4 @@
+;; -*-byte-compile-dynamic: t;-*-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;; Custom Functions
@@ -27,6 +28,7 @@
 
 (require 'custom-defuns)
 (eval-when-compile
+  (require 'custom-html_sgml_xml)
   (require 'cperl-mode)
   (require 'sgml-mode)
   ;; N.B. - This isn't defining `xml-lite-mode', so we're getting a
