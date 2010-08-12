@@ -16,7 +16,7 @@
 ;;  the License John Weiss originally placed this program under.
 ;;
 ;;
-;; Makes use of my mode-specific custom defuns.
+;; Makes use of my mode-specific custom defuns and autohooks.
 ;;
 ;;
 ;; RCS $Id$
@@ -24,7 +24,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
-(require 'custom-defuns)
+(require 'custom-mode-styles)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
