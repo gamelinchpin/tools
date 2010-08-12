@@ -65,12 +65,19 @@ You shouldn't change the value of this variable.
 ;; Special flag for XEmacs.  Doesn't exist in GNU Emacs, so we'll create it
 ;; and set it to nil
 ;;
-(eval-and-compile
+(eval-when-compile
   (if (not (boundp 'running-xemacs))
       (defconst running-xemacs (string-match "XEmacs\\|Lucid" emacs-version)
         "Non-nil when the current emacs is XEmacs."
         )
     )
+  )
+;; For some reason, eval-and-compile isn't capturing this expression and
+;; putting it into the '*.elc' file.  >:(
+(if (not (boundp 'running-xemacs))
+    (defconst running-xemacs (string-match "XEmacs\\|Lucid" emacs-version)
+      "Non-nil when the current emacs is XEmacs."
+      )
   )
 
 
