@@ -729,6 +729,11 @@ variable rather than hardcoded.
                                    :background "beige"))))
      )
   )
+(eval-after-load "sh-script"
+  '(lambda()
+     (jpw-sh-mode-font-lock-enhance)
+     )
+  )
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
