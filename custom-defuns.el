@@ -296,120 +296,6 @@ tags on either side of the region.
   )
 
 
-(defsubst jpw-unfill-paragraph-engine (remove-blank-lines
-                                       jpw-unfill-skip-line)
-  "Takes paragraphs separated by blank lines and merges the paragraph into a
-single line.  The inter-paragraph blank lines are preserved by default.
-
-Evaluates to `nil' if this is the current paragraph is the last paragraph in
-the buffer.  Evaluates to `t' otherwise.
-
-When `remove-blank-lines' is `t', all consecutive inter-paragraph blank lines
-{i.e. empty lines} will be removed.  If set to `collapse', the consecutive
-inter-paragraph blank lines will be collapsed into a single blank line.  If
-set to `first', the first inter-paragraph blank line will be removed.  The
-others will be left alone.
-
-`jpw-unfill-skip-line' should be either nil or the name of a function to
-call.  The function will take a single arg, the position of the first
-non-whitespace character on a line.  If that line should not be unfolded into
-the preceding one, the function specified in `jpw-unfill-skip-line' must eval
-to `nil'.
-{jpw: 03/2006}"
-  (save-excursion
-    ;; Position at 1st char of the paragraph proper.
-    (backward-paragraph)
-    (if (not (bobp))
-        (forward-char))
-    (end-of-line)
-    ;; Main Loop
-    (while (looking-at "\n\\([ \t]*\\)\\([^ \t\n]\\)")
-      (if (and (functionp jpw-unfill-skip-line)
-               (funcall jpw-unfill-skip-line (match-beginning 2)))
-          (forward-line)
-        ;; else:
-        ;; Merge the two lines.
-        (if (not (or (= (preceding-char) ?\ )
-                     (= (preceding-char) ?\t)))
-            ;; Insert two spaces after '.' or ':'.
-            (if (or (= (preceding-char) ?.)
-                    (= (preceding-char) ?:))
-                (replace-match "  \\2")
-              ;; else:
-              ;; Other non-whitespace char.  Only put in one space.
-              (replace-match " \\2")
-              ) ;; end punct-if
-          ;; else:
-          ;; Already contains a separating whitespace char.
-          (replace-match "\\2")
-          ) ;;end space-if
-        );; end skip-line-if
-      (end-of-line)
-      );;end Main Loop
-    (cond ((eq remove-blank-lines 'collapse)
-           (if (looking-at "\n\n\n+")
-               (replace-match "\n\n"))
-           )
-          ((eq remove-blank-lines 'first)
-           (if (looking-at "\n\n")
-               (replace-match "\n"))
-           )
-          (remove-blank-lines
-           (if (looking-at "\n\n+")
-               (replace-match "\n"))
-           )
-          );; end cond
-    );;end excursion
-  (not (eobp))
-  )
-
-
-(defsubst jpw-unfill-buffer-engine (remove-blank-lines jpw-unfill-skip-line)
-  "Calls `jpw-unfill-paragraph-engine' on every paragraph in the buffer (or
-the narrowed region).
-
-The optional `remove-blank-lines' will be passed to every underlying
-`jpw-unfill-paragraph-engine' call.
-{jpw: 09/2005}"
-  (save-excursion
-    (goto-char (point-min))
-    (while (jpw-unfill-paragraph-engine remove-blank-lines
-                                        jpw-unfill-skip-line)
-      (forward-word 1)
-      );; end while.
-    );; end excursion
-  )
-
-
-(defun jpw-unfill-paragraph (&optional remove-blank-lines)
-  "Takes paragraphs separated by blank lines and merges the paragraph into a
-single line.  The inter-paragraph blank lines are preserved by default.
-
-Evaluates to `nil' if this is the current paragraph is the last paragraph in
-the buffer.  Evaluates to `t' otherwise.
-
-If `remove-blank-lines' is non-nil, the inter-paragraph blank lines will
-be removed completely.  {See `jpw-unfill-paragraph-engine' for more possible
-values of `remove-blank-lines'.}
-{jpw: 03/2006}"
-  (interactive "P")
-  (jpw-unfill-paragraph-engine remove-blank-lines nil)
-  )
-
-
-(defsubst jpw-unfill-buffer (&optional remove-blank-lines)
-  "Calls `jpw-unfill-buffer-engine' on every paragraph in the buffer (or
-the narrowed region).
-
-The optional `remove-blank-lines' will be passed to
-`jpw-unfill-buffer-engine'.  See `jpw-unfill-paragraph-engine' for further
-details regarding this arg.
-{jpw: 09/2005}"
-  (interactive "P")
-  (jpw-unfill-buffer-engine remove-blank-lines nil)
-  )
-
-
 (defun reverse-indent-line ()
   "Remove a level of indentation from the current line.
 {jpw: 10/2001}"
@@ -590,94 +476,29 @@ whatever buffer is presently open.
   (set-buffer-file-coding-system 'raw-text-dos nil))
 
 
-(defun jpw-insert-doc-unitag (tagname)
-  "Insert an HTML tag that is self-closing.
-{jpw: 07/2004}"
-  (interactive "*sEnter HTML tag: ")
-  (insert "<" tagname "/>")
-  )
-
-
-(defun jpw-insert-doc-tag (tagname)
-  "Insert a doxygen/javadoc HTML style/font tag pair.
-{jpw: 07/2004}"
-  (interactive "*sEnter HTML tag: ")
-  (jpw-insert-xml-tag tagname)
-  )
-
-
-(defun jpw-insert-doc-tagblock (tagname)
-  "Insert a doxygen/javadoc HTML style/font tag pair block, with each tag on
-its own comment line.
-{jpw: 07/2004}"
-  (interactive "*sEnter HTML tag: ")
-  (if mark-active
-      ;; When the user marks a region, assume that they want to enclose it w/o
-      ;; inserting breaks anyplace.
-      ;; Note that `jpw-insert-xml-tag' unsets the mark.
-      (jpw-insert-xml-tag tagname)
-    ;; else
-    (do-comment-line-break)
-    (jpw-insert-xml-tag tagname)
-    (save-excursion
-      (end-of-line)
-      (do-comment-line-break)
-      )
-    )
-  )
-
-
-(defun jpw-insert-doc-nested-tagblock (outertagname innertagname)
-  "Insert two doxygen/javadoc HTML style/font tags, the second nested inside
-the first.  The first is inserted as a block.
-{jpw: 01/2009}"
+(defun jpw-session-reload ()
+  "Reload the files from a previous session.  Will invoke `session-initialize'
+if not done already.
+{jpw:  8/2010}"
   (interactive)
-  (jpw-insert-doc-tagblock outertagname)
-  (do-comment-line-break)
-  (insert-char ?. 1)
-  (save-excursion
-    (do-comment-line-break)
-    )
-  (delete-backward-char 1)
-  (jpw-insert-doc-tag innertagname)
-  )
-
-
-(defun jpw-insert-doxygen-cmdblock (cmdname)
-  "Insert a doxygen '\\command'...'\\endcommand' pair on separate lines.
-{jpw: 07/2004}"
-  (interactive "*sEnter doxygen command: ")
-  (do-comment-line-break)
-  (insert "\\" cmdname)
-  (do-comment-line-break)
-  (save-excursion
-    (do-comment-line-break)
-    (insert "\\end" cmdname)
-    (do-comment-line-break))
-  )
-
-
-(defun jpw-insert-javadoc-link ()
-  "Insert a javadoc '@link' field
-{jpw: 07/2004}"
-  (interactive)
-  (if mark-active
-      (save-excursion
-        (goto-char (region-beginning))
-        (if (search-forward "." (region-end) t)
-            (replace-match "#" nil t)
-          )
-        )
-    )
-  (jpw-insert-markup-tags "{@link " "}")
-  )
-
-
-(defun jpw-insert-javadoc-member-link ()
-  "Insert a javadoc '@link' field for a member
-{jpw: 01/2009}"
-  (interactive)
-  (jpw-insert-markup-tags "{@link #" "}")
+  (if (not (boundp 'session-file-alist))
+      ;; Ensure that we proceed only if we load and init the session pkg.
+      (and
+       (require 'session)
+       (session-initialize)
+       (let ((jpw-session-file))
+         (dolist (jpw-session-file session-file-alist)
+           (and
+            (find-file (car jpw-session-file))
+            (goto-char (cadr jpw-session-file))
+            (if (caddr jpw-session-file)
+                (push-mark (caddr jpw-session-file))
+              t);; ensure that the 'if' always evals to true
+            );; end inner-and
+           );; end dolist
+         );; end let
+       );; end outer-and
+    );; end if
   )
 
 
@@ -838,6 +659,223 @@ function definitions in bash and ksh.
       )
      (setq sh-font-lock-keywords-var modified-keywords-var)
     ) ;; end let
+  )
+
+
+;;----------------------------------------------------------------------
+;;
+;; Unfill Paragraph Functions
+;;
+
+
+(defsubst jpw-unfill-paragraph-engine (remove-blank-lines
+                                       jpw-unfill-skip-line)
+  "Takes paragraphs separated by blank lines and merges the paragraph into a
+single line.  The inter-paragraph blank lines are preserved by default.
+
+Evaluates to `nil' if this is the current paragraph is the last paragraph in
+the buffer.  Evaluates to `t' otherwise.
+
+When `remove-blank-lines' is `t', all consecutive inter-paragraph blank lines
+{i.e. empty lines} will be removed.  If set to `collapse', the consecutive
+inter-paragraph blank lines will be collapsed into a single blank line.  If
+set to `first', the first inter-paragraph blank line will be removed.  The
+others will be left alone.
+
+`jpw-unfill-skip-line' should be either nil or the name of a function to
+call.  The function will take a single arg, the position of the first
+non-whitespace character on a line.  If that line should not be unfolded into
+the preceding one, the function specified in `jpw-unfill-skip-line' must eval
+to `nil'.
+{jpw: 03/2006}"
+  (save-excursion
+    ;; Position at 1st char of the paragraph proper.
+    (backward-paragraph)
+    (if (not (bobp))
+        (forward-char))
+    (end-of-line)
+    ;; Main Loop
+    (while (looking-at "\n\\([ \t]*\\)\\([^ \t\n]\\)")
+      (if (and (functionp jpw-unfill-skip-line)
+               (funcall jpw-unfill-skip-line (match-beginning 2)))
+          (forward-line)
+        ;; else:
+        ;; Merge the two lines.
+        (if (not (or (= (preceding-char) ?\ )
+                     (= (preceding-char) ?\t)))
+            ;; Insert two spaces after '.' or ':'.
+            (if (or (= (preceding-char) ?.)
+                    (= (preceding-char) ?:))
+                (replace-match "  \\2")
+              ;; else:
+              ;; Other non-whitespace char.  Only put in one space.
+              (replace-match " \\2")
+              ) ;; end punct-if
+          ;; else:
+          ;; Already contains a separating whitespace char.
+          (replace-match "\\2")
+          ) ;;end space-if
+        );; end skip-line-if
+      (end-of-line)
+      );;end Main Loop
+    (cond ((eq remove-blank-lines 'collapse)
+           (if (looking-at "\n\n\n+")
+               (replace-match "\n\n"))
+           )
+          ((eq remove-blank-lines 'first)
+           (if (looking-at "\n\n")
+               (replace-match "\n"))
+           )
+          (remove-blank-lines
+           (if (looking-at "\n\n+")
+               (replace-match "\n"))
+           )
+          );; end cond
+    );;end excursion
+  (not (eobp))
+  )
+
+
+(defsubst jpw-unfill-buffer-engine (remove-blank-lines jpw-unfill-skip-line)
+  "Calls `jpw-unfill-paragraph-engine' on every paragraph in the buffer (or
+the narrowed region).
+
+The optional `remove-blank-lines' will be passed to every underlying
+`jpw-unfill-paragraph-engine' call.
+{jpw: 09/2005}"
+  (save-excursion
+    (goto-char (point-min))
+    (while (jpw-unfill-paragraph-engine remove-blank-lines
+                                        jpw-unfill-skip-line)
+      (forward-word 1)
+      );; end while.
+    );; end excursion
+  )
+
+
+(defun jpw-unfill-paragraph (&optional remove-blank-lines)
+  "Takes paragraphs separated by blank lines and merges the paragraph into a
+single line.  The inter-paragraph blank lines are preserved by default.
+
+Evaluates to `nil' if this is the current paragraph is the last paragraph in
+the buffer.  Evaluates to `t' otherwise.
+
+If `remove-blank-lines' is non-nil, the inter-paragraph blank lines will
+be removed completely.  {See `jpw-unfill-paragraph-engine' for more possible
+values of `remove-blank-lines'.}
+{jpw: 03/2006}"
+  (interactive "P")
+  (jpw-unfill-paragraph-engine remove-blank-lines nil)
+  )
+
+
+(defsubst jpw-unfill-buffer (&optional remove-blank-lines)
+  "Calls `jpw-unfill-buffer-engine' on every paragraph in the buffer (or
+the narrowed region).
+
+The optional `remove-blank-lines' will be passed to
+`jpw-unfill-buffer-engine'.  See `jpw-unfill-paragraph-engine' for further
+details regarding this arg.
+{jpw: 09/2005}"
+  (interactive "P")
+  (jpw-unfill-buffer-engine remove-blank-lines nil)
+  )
+
+
+;;----------------------------------------------------------------------
+;;
+;; Code-Doc defuns.
+;;
+
+
+(defun jpw-insert-doc-unitag (tagname)
+  "Insert an HTML tag that is self-closing.
+{jpw: 07/2004}"
+  (interactive "*sEnter HTML tag: ")
+  (insert "<" tagname "/>")
+  )
+
+
+(defun jpw-insert-doc-tag (tagname)
+  "Insert a doxygen/javadoc HTML style/font tag pair.
+{jpw: 07/2004}"
+  (interactive "*sEnter HTML tag: ")
+  (jpw-insert-xml-tag tagname)
+  )
+
+
+(defun jpw-insert-doc-tagblock (tagname)
+  "Insert a doxygen/javadoc HTML style/font tag pair block, with each tag on
+its own comment line.
+{jpw: 07/2004}"
+  (interactive "*sEnter HTML tag: ")
+  (if mark-active
+      ;; When the user marks a region, assume that they want to enclose it w/o
+      ;; inserting breaks anyplace.
+      ;; Note that `jpw-insert-xml-tag' unsets the mark.
+      (jpw-insert-xml-tag tagname)
+    ;; else
+    (do-comment-line-break)
+    (jpw-insert-xml-tag tagname)
+    (save-excursion
+      (end-of-line)
+      (do-comment-line-break)
+      )
+    )
+  )
+
+
+(defun jpw-insert-doc-nested-tagblock (outertagname innertagname)
+  "Insert two doxygen/javadoc HTML style/font tags, the second nested inside
+the first.  The first is inserted as a block.
+{jpw: 01/2009}"
+  (interactive)
+  (jpw-insert-doc-tagblock outertagname)
+  (do-comment-line-break)
+  (insert-char ?. 1)
+  (save-excursion
+    (do-comment-line-break)
+    )
+  (delete-backward-char 1)
+  (jpw-insert-doc-tag innertagname)
+  )
+
+
+(defun jpw-insert-doxygen-cmdblock (cmdname)
+  "Insert a doxygen '\\command'...'\\endcommand' pair on separate lines.
+{jpw: 07/2004}"
+  (interactive "*sEnter doxygen command: ")
+  (do-comment-line-break)
+  (insert "\\" cmdname)
+  (do-comment-line-break)
+  (save-excursion
+    (do-comment-line-break)
+    (insert "\\end" cmdname)
+    (do-comment-line-break))
+  )
+
+
+(defun jpw-insert-javadoc-link ()
+  "Insert a javadoc '@link' field
+{jpw: 07/2004}"
+  (interactive)
+  (if mark-active
+      (save-excursion
+        (goto-char (region-beginning))
+        (if (search-forward "." (region-end) t)
+            (replace-match "#" nil t)
+          )
+        )
+    )
+  (jpw-insert-markup-tags "{@link " "}")
+  )
+
+
+(defun jpw-insert-javadoc-member-link ()
+  "Insert a javadoc '@link' field for a member
+{jpw: 01/2009}"
+  (interactive)
+  (jpw-insert-markup-tags "{@link #" "}")
   )
 
 
