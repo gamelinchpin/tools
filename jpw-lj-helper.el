@@ -39,7 +39,7 @@
 
 
 (require 'sgml-mode)
-(require 'custom-defuns)
+(require 'custom-html_sgml_xml)
 (require 'lazy-lock)
 (eval-when-compile
   (require 'mule)
