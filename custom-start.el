@@ -33,10 +33,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
-;; Inhibit displaying the startup message -EWINK
-;; Put this in your own .emacs file
-;; (setq inhibit-startup-message t)
-
 (defconst term-lc (or (getenv "TERM")
                       (and (boundp 'term)
                            (setq term (downcase term))
@@ -321,6 +317,9 @@ You shouldn't change the value of this variable.
   (jpw-custom-set-variables-nonsaved
    '(colon-double-space t)
    '(global-font-lock-mode t nil (font-lock))
+   '(initial-buffer-choice t)
+   '(inhibit-startup-message t)
+   '(initial-scratch-message nil)
    '(kill-ring-max 100)
    '(longlines-show-effect "¶
 ")

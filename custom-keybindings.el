@@ -43,39 +43,58 @@
 
 
 
-;;Add any terminal-dependent bindings
-;(setq term (getenv "TERM"))
-;(if term
-;    (setq term (downcase term))
-;  )
+;;;Add any terminal-dependent bindings
+;;(setq term (getenv "TERM"))
+;;(if term
+;;    (setq term (downcase term))
+;;  )
 
+
+;;
+;; Emacs Translation Maps
+;;
+;; There are 3 of them.  Use each one for its indented purpose.
+;;
+;; `function-key-map':
+;;     - Contains "terminal-type-independent" definitions.
+;;     - Overridden by the other two.
+;;     - Put function key definitions that apply, regardless the terminal
+;;       type, in here.
+;;
+;; `local-function-key-map':
+;;     - Contains "terminal-type-specific" definitions.
+;;     - Here, "local" refers to the type of terminal device, not the buffer.
+;;     - Overrides `function-key-map'.
+;;     - Overridden by `key-translation-map'.
+;;     - Use this for function key definitions that are specific to a
+;;       particular type of terminal.
+;;
+;; `key-translation-map':
+;;     - Contains "terminal-type-independent" definitions.
+;;     - Applied last.  Overrides the other two.
+;;     - Use it to override keymaps and non-prefix bindings.
+;;
 
 ;;X-Windows specific stuff
 (if window-system
     (progn
-;;     (load-library "sun4-keys")
-     (define-key function-key-map [\S-f15] [front])
-     (define-key function-key-map [\S-f17] [open])
-     (define-key function-key-map [\C-f19] [C-find])
-     (define-key function-key-map [\M-f19] [M-find])
-     (define-key function-key-map [\A-f19] [A-find])
      ;; Tab Key
-     (define-key function-key-map [\S-iso-lefttab] [\S-tab])
-     (define-key function-key-map [\C-\S-iso-lefttab] [\C-\S-tab])
-     (define-key function-key-map [\M-\S-iso-lefttab] [\M-\S-tab])
-     (define-key function-key-map [\C-\M-\S-iso-lefttab] [\C-\M-\S-tab])
+     (define-key local-function-key-map [\S-iso-lefttab] [\S-tab])
+     (define-key local-function-key-map [\C-\S-iso-lefttab] [\C-\S-tab])
+     (define-key local-function-key-map [\M-\S-iso-lefttab] [\M-\S-tab])
+     (define-key local-function-key-map [\C-\M-\S-iso-lefttab] [\C-\M-\S-tab])
      ;; Backspace and delete
-     ;; There are certain mappings in `function-key-map' that are incorrect,
-     ;; as far as I'm concerned.  To make sure that "delete" does what every
-     ;; other modern editor does, I've created my own function key,
-     ;; `[deletekey]' which I map things to.  Then, I bind things to it
-     ;; instead of to [delete] (which emacs screws up from UI to UI.)
-     (define-key function-key-map [backspace] [8])
-     (define-key function-key-map [delete] [deletekey])
-     (define-key function-key-map [\M-delete] [\M-deletekey])
 
-     ;; No key translation map for Xwin mode.
-     ;;(setq key-translation-map nil)
+     ;; There are certain mappings in `function-key-map' and
+     ;;`local-function-key-map' that are incorrect, as far as I'm concerned.
+     ;;To make sure that "delete" does what every other modern editor does,
+     ;;I've created my own function key, `[deletekey]' which I map things to.
+     ;;Then, I bind things to it instead of to [delete] (which emacs screws up
+     ;;from UI to UI.)
+
+     (define-key local-function-key-map [backspace] [8])
+     (define-key local-function-key-map [delete] [deletekey])
+     (define-key local-function-key-map [\M-delete] [\M-deletekey])
 
      (global-set-key [find] 'find-file)   ;Find File
      (global-unset-key [S-find])
@@ -167,7 +186,7 @@
 ;;
 ;; Generic Logical defines
 ;;
-;; format: (define-key <map> <key> <newdefn>)
+;; format: (define-key <map> <keyseqence> <newdefn>)
 ;;
 
 
@@ -212,9 +231,7 @@
 
 ;; Ins and Del
 (global-set-key [insert] 'yank)       ;Same as S-insert under X
-;Default binding for insert is 'overwrite-mode'
-;(global-set-key [deletekey] 'backward-delete-char-untabify)
-;;my binding.
+;; Default binding for insert is 'overwrite-mode'
 (global-set-key [deletekey] 'delete-char)
 (global-set-key [\C-deletekey] 'delete-char)
 
