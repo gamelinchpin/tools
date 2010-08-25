@@ -481,24 +481,56 @@ whatever buffer is presently open.
 if not done already.
 {jpw:  8/2010}"
   (interactive)
-  (if (not (boundp 'session-file-alist))
-      ;; Ensure that we proceed only if we load and init the session pkg.
-      (and
-       (require 'session)
-       (session-initialize)
-       (let ((jpw-session-file))
-         (dolist (jpw-session-file session-file-alist)
-           (and
-            (find-file (car jpw-session-file))
-            (goto-char (cadr jpw-session-file))
-            (if (caddr jpw-session-file)
-                (push-mark (caddr jpw-session-file))
-              t);; ensure that the 'if' always evals to true
-            );; end inner-and
-           );; end dolist
-         );; end let
-       );; end outer-and
-    );; end if
+  (and
+
+   (if (not (boundp 'session-file-alist))
+       ;; Ensure that we proceed only if we load and init the session pkg.
+       (and
+        (require 'session)
+        (session-initialize)
+        );; end and
+     ;; else
+     t
+     );; end if
+
+   (let (jpw-session-filespec
+         jpw-session-filename)
+
+     (dolist (jpw-session-filespec session-file-alist)
+       (setq jpw-session-filename (car jpw-session-filespec))
+       (and
+        (file-exists-p jpw-session-filename)
+        (find-file-existing jpw-session-filename)
+        )
+       ;; No need to restore the point & mark; `session-find-file-hook' (which
+       ;; `session-initialize' adds to `find-file-hooks') will do this and
+       ;; more for us.
+
+       );; end dolist
+     );; end let
+
+   );; end outer-and
+  )
+
+
+(defun jpw-session-save ()
+  "Call `session-save-session' but store only the open buffers.  Any killed
+buffers previously stored in `session-file-alist' are not saved when you call
+this function.
+
+Use it to manually save a session.
+{jpw:  8/2010}"
+  (interactive)
+   (and
+    (boundp 'session-use-package)
+    (boundp 'session-file-alist)
+    (let ((old-sess-undo-chk session-undo-check))
+      (setq session-file-alist nil
+            session-undo-check -65536)
+      (session-save-session)
+      (setq session-undo-check old-sess-undo-chk)
+      )
+    )
   )
 
 
