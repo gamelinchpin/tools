@@ -113,6 +113,13 @@ You shouldn't change the value of this variable.
 
 {jpw 9/07}")
 
+(defconst is-version-twentythree (eq emacs-major-version '23)
+  "Set to true if this is emacs 22.*.*.  The default value is nil.
+
+You shouldn't change the value of this variable.
+
+{jpw 8/10}")
+
 
 ;;
 ;; Load Custom Functions
@@ -238,7 +245,7 @@ You shouldn't change the value of this variable.
 
  ;; Fontification-Related
  '(global-font-lock-mode t nil (font-lock))
- '(transient-mark-mode 1)
+ '(transient-mark-mode t)
  '(show-paren-delay 0.5)
  '(show-paren-style (quote mixed))
 
@@ -269,24 +276,32 @@ You shouldn't change the value of this variable.
  '(display-time-string-forms (quote ((format-time-string (or display-time-format (if display-time-24hr-format "%H:%M" "%-I:%M%p")) now))))
 
  ;; Org/Outline Mode
+ '(org-archive-tag ":ARCHIVE:")
  '(org-blank-before-new-entry (quote ((heading . t) (plain-list-item))))
+ '(org-comment-string ":COMMENT:")
  '(org-cycle-include-plain-lists t)
  '(org-ellipsis "···
 ")
+ '(org-export-headline-levels 6)
+ '(org-insert-heading-respect-content t) ;; Insert new heading after body.
  '(org-level-color-stars-only nil)
+ '(org-publish-timestamp-directory "~/.emacs.d/.org-timestamps/")
+ '(org-quote-string ":QUOTE:")
+ '(org-special-ctrl-a/e (quote reversed))
  '(org-startup-folded t) ;; Just top-level headings.
  '(org-startup-truncated nil)
  '(org-todo-keywords (quote ("TODO" "STARTED" "DONE")))
+ '(org-use-extra-keys t)
  '(outline-regexp "[*§¶­]+")
 
  ;; Speedbar
- '(speedbar-update-speed 300 t)
  '(speedbar-directory-unshown-regexp "^\\(CVS\\|RCS\\|SCCS\\|.svn\\)\\'")
+ '(speedbar-update-speed 300 t)
 
  ;; TRAMP Mode Settings
  '(password-cache-expiry 86400)
  '(tramp-auto-save-directory "/tmp/")
- '(tramp-default-method "ssh")
+ '(tramp-default-method "sftp")
 
  ;; WOMAN Settings
  '(woman-cache-filename "~/.emacs.d/.wmncache.el")
@@ -319,6 +334,7 @@ You shouldn't change the value of this variable.
    '(global-font-lock-mode t nil (font-lock))
    '(initial-buffer-choice t)
    '(inhibit-startup-message t)
+   '(inhibit-startup-screen t)
    '(initial-scratch-message nil)
    '(kill-ring-max 100)
    '(longlines-show-effect "¶
@@ -474,9 +490,22 @@ You shouldn't change the value of this variable.
          '(woman-italic-face
            ((t (:inherit italic :foreground "Purple4" :underline t))))
          )
-        (if is-version-twentytwo
+        (if (or is-version-twentytwo is-version-twentythree)
             (progn
               (jpw-custom-set-faces-nonsaved
+               '(develock-long-line-1 ((t (:foreground "DeepPink"))))
+               '(develock-long-line-2 ((t
+                                        (:inherit develock-long-line-1
+                                                  :background "#ffff7f"
+                                                  :foreground "DeepPink3"))))
+               '(develock-whitespace-1 ((t (:background "#ffdfdf"))))
+               '(develock-whitespace-2
+                 ((t
+                   (:background "#ffdfbf"
+                                :box (:line-width 1 :color "#ffcf9f")))))
+               '(develock-whitespace-3
+                 ((t (:background "#ffffbf"
+                                  :box (:line-width 1 :color "yellow3")))))
                '(diff-added ((t (:inherit diff-changed
                                           :foreground "SpringGreen2"
                                           :weight bold))))
@@ -540,6 +569,9 @@ You shouldn't change the value of this variable.
                                          (:background "yellow"))) t)
                '(show-paren-mismatch-face ((((class color))
                                             (:background "yellow3"))) t)
+               '(trailing-whitespace
+                 ((t (:background "#ffdfdf"
+                                  :box (:line-width 1 :color "#ff9fbf")))))
                )
               )
           );; end if GNU Emacs v22

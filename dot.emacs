@@ -3,7 +3,7 @@
 ;;  .emacs setup file
 ;;
 ;;
-;;  last modified 01/2010            (jpw)
+;;  last modified 09/2010            (jpw)
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -77,7 +77,7 @@
 
 ;; If we have the official version of Tramp installed (and not the one bundled
 ;; with GNU Emacs), uncomment this.
-;; ;(load "password.el")
+;; ;(load "password-cache.el")
 
 
 (if (not window-system)
@@ -94,10 +94,6 @@
 
 ;; Temp [TpX40 only]:  Map the [\C-menu] key to something.
 ;; ;(define-key function-key-map [print] [\C-menu])
-
-;; Todo:  Move to custom-keybindings.
-(global-set-key [?\C-c f7] 'compile)
-(global-set-key [?\C-c f8] 'recompile)
 
 
 ;; N.B. - In the current version of Emacs {1/07}, `type-break-mode' interferes
@@ -121,11 +117,21 @@
  '(archive-zip-use-pkzip nil)
  '(browse-url-browser-function (quote browse-url-w3))
  '(cygwin-mount-cygwin-bin-directory "c:\\cygwin\\bin")
- '(ediff-window-setup-function (quote ediff-setup-windows-plain))
+ '(desktop-path (quote ("~/.emacs.d" "." "~")))
  '(jpw-lj-friend-groups (quote ("husband" "from way back" "Regularly Read")))
  '(jpw-lj-unfill-on-save t)
- '(jpw-lj-user-avatars (quote ("Babuuuuusha" "Dr._Alchemist" "Fiend::Kitty" "Frannie" "Gay::duo""Gay::rainbow_flag" "Gir::cheery""Gir::cheery" "Gir::piggy" "Gir::serious""Gir::waffles" "Ian""Ian::Bashful""Martin" "Me_1995" "MsBitters::doom""MsBitters::looming" "MsBitters::pensive""My_Icon" "fascists" "linux")))
+ '(jpw-lj-user-avatars (quote ("Babuuuuusha" "Dr._Alchemist" "Fiend::Kitty" "Frannie" "Gay::duo" "Gay::rainbow_flag" "Gir::cheery" "Gir::cheery" "Gir::piggy" "Gir::serious" "Gir::waffles" "Ian" "Ian::Bashful" "Martin" "Me_1995" "MsBitters::doom" "MsBitters::looming" "MsBitters::pensive" "My_Icon" "fascists" "linux")))
  '(jpw-lj-xlate-entities-on-save t)
+ '(org-cycle-global-at-bob t)
+ '(org-enable-fixed-width-editor nil)
+ '(org-hide-emphasis-markers t)
+ '(org-imenu-depth 4)
+ '(org-insert-mode-line-in-empty-file t)
+ '(org-list-demote-modify-bullet (quote (("-" . "+") ("+" . "¤") ("¤" . "·") ("·" . "-") ("1." . "a) ") ("a) " . "b) ") ("a) " . "c) ") ("a) " . "(  i) "))))
+ '(org-modules nil)
+ '(session-initialize (quote (de-saveplace session places keys menus)) nil (session))
+ '(session-name-disable-regexp "\\`\\(/tmp\\|~/tmp/\\(itsalltext\\|mozex.wrk\\)\\)")
+ '(session-save-file "~/.emacs.d/.session")
  '(visual-basic-mode-indent 2 t))
 
 (custom-set-faces

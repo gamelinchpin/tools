@@ -54,8 +54,8 @@ Calls `custom-set-variables' on the list of arguments, then converts the
 \"saved value\" to the \"default value\".  This prevents localized
 customizations from being written to your \".emacs\" file.
 
-Note that this function may require modification whenever `cus-edit.el'
-changes.  {jpw: 9/2004}"
+Note that this function may require modification whenever
+`custom-declare-variable' changes.  {jpw: 9/2004}"
   (apply 'custom-set-variables args)
   (while args
     (let ((entry (car args)))
@@ -66,6 +66,7 @@ changes.  {jpw: 9/2004}"
             (if value
                 (progn
                  (put symbol 'standard-value value)
+                 (put symbol 'force-valuex nil)
                  (put symbol 'saved-value nil)
                  )) ;; end if
             );; end let*
@@ -82,8 +83,8 @@ Calls `custom-set-faces' on the list of arguments, then converts the
 \"saved value\" to the \"default value\".  This prevents localized
 customizations from being written to your \".emacs\" file.
 
-Note that this function may require modification whenever `cus-edit.el' and
-`cus-faces.el' changes.  {jpw: 9/2004}"
+Note that this function may require modification whenever
+`custom-declare-face' changes.  {jpw: 9/2004}"
   (apply 'custom-set-faces args)
   (while args
     (let ((entry (car args)))

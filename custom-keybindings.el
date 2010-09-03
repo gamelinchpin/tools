@@ -2,7 +2,7 @@
 ;;
 ;; Keyboard Bindings File
 ;;
-;;  Copyright © 1995-2008 John P. Weiss
+;;  Copyright © 1995-2010 John P. Weiss
 ;;
 ;;  This package is free software; you can redistribute it and/or modify
 ;;  it under the terms of the Artistic License, included as the file
@@ -51,7 +51,7 @@
 
 
 ;;
-;; Emacs Translation Maps
+;; Emacs Translation Maps (v23.*)
 ;;
 ;; There are 3 of them.  Use each one for its indented purpose.
 ;;
@@ -74,27 +74,49 @@
 ;;     - Applied last.  Overrides the other two.
 ;;     - Use it to override keymaps and non-prefix bindings.
 ;;
+(eval-when-compile
+  (if (not is-version-twentythree)
+      (defvar local-function-key-map 'nil))
+  )
+
 
 ;;X-Windows specific stuff
 (if window-system
     (progn
-     ;; Tab Key
-     (define-key local-function-key-map [\S-iso-lefttab] [\S-tab])
-     (define-key local-function-key-map [\C-\S-iso-lefttab] [\C-\S-tab])
-     (define-key local-function-key-map [\M-\S-iso-lefttab] [\M-\S-tab])
-     (define-key local-function-key-map [\C-\M-\S-iso-lefttab] [\C-\M-\S-tab])
-     ;; Backspace and delete
+      (if is-version-twentythree
+          (progn
+            ;; Tab Key
+            (define-key
+              local-function-key-map [\S-iso-lefttab] [\S-tab])
+            (define-key
+              local-function-key-map [\C-\S-iso-lefttab] [\C-\S-tab])
+            (define-key
+              local-function-key-map [\M-\S-iso-lefttab] [\M-\S-tab])
+            (define-key
+              local-function-key-map [\C-\M-\S-iso-lefttab] [\C-\M-\S-tab])
 
-     ;; There are certain mappings in `function-key-map' and
-     ;;`local-function-key-map' that are incorrect, as far as I'm concerned.
-     ;;To make sure that "delete" does what every other modern editor does,
-     ;;I've created my own function key, `[deletekey]' which I map things to.
-     ;;Then, I bind things to it instead of to [delete] (which emacs screws up
-     ;;from UI to UI.)
+            ;; There are certain mappings in `function-key-map' and
+            ;;`local-function-key-map' that are incorrect, as far as I'm
+            ;;concerned.  To make sure that "delete" does what every other
+            ;;modern editor does, I've created my own function key,
+            ;;`[deletekey]' which I map things to.  Then, I bind things to it
+            ;;instead of to [delete] (which emacs screws up from UI to UI.)
+            (define-key local-function-key-map [backspace] [8])
+            (define-key local-function-key-map [delete] [deletekey])
+            (define-key local-function-key-map [\M-delete] [\M-deletekey])
+            );;
 
-     (define-key local-function-key-map [backspace] [8])
-     (define-key local-function-key-map [delete] [deletekey])
-     (define-key local-function-key-map [\M-delete] [\M-deletekey])
+        ;; else:
+        ;; Version 23 created the `local-function-key-map' variable.  Fall
+        ;; back to `function-key.map'
+        (define-key function-key-map [\S-iso-lefttab] [\S-tab])
+        (define-key function-key-map [\C-\S-iso-lefttab] [\C-\S-tab])
+        (define-key function-key-map [\M-\S-iso-lefttab] [\M-\S-tab])
+        (define-key function-key-map [\C-\M-\S-iso-lefttab] [\C-\M-\S-tab])
+        (define-key function-key-map [backspace] [8])
+        (define-key function-key-map [delete] [deletekey])
+        (define-key function-key-map [\M-delete] [\M-deletekey])
+        );; end if is-version-twentythree
 
      (global-set-key [find] 'find-file)   ;Find File
      (global-unset-key [S-find])
@@ -340,6 +362,10 @@
 
 ;; CVS-mode bindings
 ;(global-set-key [\A-v] 'cvs-mode)
+
+;; Compile-mode bindings
+(global-set-key [?\C-c f7] 'compile)
+(global-set-key [?\C-c f8] 'recompile)
 
 
 ;; Bindings that autoload functions or keymaps
