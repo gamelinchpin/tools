@@ -25,6 +25,7 @@
 
 
 (require 'custom-defuns)
+(require 'custom-set-defaults)
 
 
 ;;;;;;;;;;;;;;;;;;;;

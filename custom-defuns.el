@@ -26,7 +26,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
+(require 'custom-vars)
 (eval-when-compile
+  (require 'custom-set-defaults)
   (require 'sh-script))
 
 
@@ -44,64 +46,6 @@
     ;; else
     unix-val
     )
-  )
-
-
-(defun jpw-custom-set-variables-nonsaved  (&rest args)
-  "Initializes the default value of a customization variable.
-
-Calls `custom-set-variables' on the list of arguments, then converts the
-\"saved value\" to the \"default value\".  This prevents localized
-customizations from being written to your \".emacs\" file.
-
-Note that this function may require modification whenever
-`custom-declare-variable' changes.  {jpw: 9/2004}"
-  (apply 'custom-set-variables args)
-  (while args
-    (let ((entry (car args)))
-      (if (listp entry)
-          (let* ((symbol (nth 0 entry))
-                 (value (get symbol 'saved-value))
-                 )
-            (if value
-                (progn
-                 (put symbol 'standard-value value)
-                 (put symbol 'force-valuex nil)
-                 (put symbol 'saved-value nil)
-                 )) ;; end if
-            );; end let*
-        ));; end (let ... (if ...
-    (setq args (cdr args))
-    );; end while
-  )
-
-
-(defun jpw-custom-set-faces-nonsaved  (&rest args)
-  "Initializes the default value of a customizable face.
-
-Calls `custom-set-faces' on the list of arguments, then converts the
-\"saved value\" to the \"default value\".  This prevents localized
-customizations from being written to your \".emacs\" file.
-
-Note that this function may require modification whenever
-`custom-declare-face' changes.  {jpw: 9/2004}"
-  (apply 'custom-set-faces args)
-  (while args
-    (let ((entry (car args)))
-      (if (listp entry)
-          (let* ((face (nth 0 entry))
-                 (spec (get face 'saved-face))
-                 )
-            (if spec
-                (progn
-                 (make-empty-face face)
-                 (face-spec-set face spec)
-                 (put face 'saved-face nil)
-                 )) ;; end if
-            );; end let*
-        ));; end (let ... (if ...
-    (setq args (cdr args))
-    );; end while
   )
 
 
@@ -139,6 +83,8 @@ Note that this fn. only sets a face bold.  It cannot unset it.
   ;; else
   (progn
     (defun jpw-cust-colorful-modeline ()
+      (require 'custom-set-defaults)
+
       (let ( (modeline-active-modeflags
               (if is-version-twentytwo
                   '((class color) (min-colors 88))
@@ -946,7 +892,6 @@ extended using an EOL-\"\\\"-char.
 
 
 (provide 'custom-defuns)
-
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;

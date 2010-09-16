@@ -33,105 +33,17 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
-(defconst term-lc (or (getenv "TERM")
-                      (and (boundp 'term)
-                           (setq term (downcase term))
-                           )
-                      )
-  "The value of the \"TERM\" environment variable lowercased.  Used by the
-startup files to shorten the elisp.
-
-You shouldn't change the value of this variable.
-
-{jpw 12/31}")
-
-;; Special flag for WinEmacs
-;;
-(defconst is-winblows (or (eq window-system 'win32)
-                          (eq window-system 'w32)
-                          )
-  "Set to true if this is a version of emacs for M$ WinBlows.  The
-default (and preferred) value is nil.
-
-You shouldn't change the value of this variable.
-
-{jpw 10/01}")
-
-
-;; Special flag for XEmacs.  Doesn't exist in GNU Emacs, so we'll create it
-;; and set it to nil
-;;
-(eval-when-compile
-  (if (not (boundp 'running-xemacs))
-      (defconst running-xemacs (string-match "XEmacs\\|Lucid" emacs-version)
-        "Non-nil when the current emacs is XEmacs."
-        )
-    )
-  )
-;; For some reason, eval-and-compile isn't capturing this expression and
-;; putting it into the '*.elc' file.  >:(
-(if (not (boundp 'running-xemacs))
-    (defconst running-xemacs (string-match "XEmacs\\|Lucid" emacs-version)
-      "Non-nil when the current emacs is XEmacs."
-      )
-  )
-
-
-;; Special flag for WinEmacs
-;;
-(defconst is-cygwin (or (string-match "cygwin"
-                                      (downcase
-                                       (or (getenv "OSTYPE") "")))
-
-                        (and (not is-winblows)
-                         (string-match "windows"
-                                       (downcase
-                                        (or (getenv "OS") ""))))
-                        (and (not window-system) is-winblows)
-                        )
-  "Set to true if this is a version of emacs build for Cygwin.  The
-default (and preferred) value is nil.
-
-You shouldn't change the value of this variable.
-
-{jpw 11/04}")
-
-;; Version 20 and above changes some old stuff.  To handle those changes, we
-;; define and set these variables.
-;;
-(defconst is-version-twenty (not (eq emacs-major-version '19))
-  "Set to true if this is emacs 20.*.*.  The default value is nil.
-
-You shouldn't change the value of this variable.
-
-{jpw 9/98}")
-
-(defconst is-version-twentytwo (eq emacs-major-version '22)
-  "Set to true if this is emacs 22.*.*.  The default value is nil.
-
-You shouldn't change the value of this variable.
-
-{jpw 9/07}")
-
-(defconst is-version-twentythree (eq emacs-major-version '23)
-  "Set to true if this is emacs 22.*.*.  The default value is nil.
-
-You shouldn't change the value of this variable.
-
-{jpw 8/10}")
-
-
 ;;
 ;; Load Custom Functions
 ;;
+(require 'custom-vars)
 (require 'custom-defuns)
+
+(require 'custom-set-defaults)
+
 (if is-winblows
     (load "custom-winemacs" t)
   )
-
-;;
-;; Some libraries to load on startup.
-;;
 
 ;; Stall loading of the keybindings until *after* the terminal or
 ;; windows setup files have been loaded
@@ -180,7 +92,7 @@ You shouldn't change the value of this variable.
           )
         )
   ;;else
-  (if (not running-xemacs)
+  (if running-gnu-emacs
       (progn
         (require 'server)
         (server-start)
@@ -189,125 +101,12 @@ You shouldn't change the value of this variable.
   )
 
 
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;; Common Behavioral Variables
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-
-;; Customization-Menu Variables.
-;; This block only changes what emacs thinks the default values of these
-;; defcustom vars are.  It will NOT change the user's .emacs file when they
-;; next save their customizations.
-;;
-(jpw-custom-set-variables-nonsaved
- ;; Misc Default Filenames
- '(abbrev-file-name "~/.emacs.d/.abbrevs" t)
- '(ps-printer-name "~/emacs-out.ps")
- '(quickurl-url-file "~/.emacs.d/.quickurls")
-
- ;; Frame Settings
- '(column-number-mode t)
- '(line-number-mode t)
- '(minibuffer-prompt-properties (quote (read-only t point-entered minibuffer-avoid-prompt face minibuffer-prompt)))
- '(scroll-bar-mode (quote right))
-
- ;; General Behavior
- '(case-fold-search t)
- '(confirm-kill-emacs (quote y-or-n-p))
- '(default-major-mode (quote text-mode))
- '(history-delete-duplicates t)
- '(revert-without-query (quote (".*")))
- '(safe-local-variable-values (quote ((coding-system . utf-8-unix) (coding-system . utf-8) (buffer-file-coding-system . utf-8) (buffer-file-coding-system-explicit . mule-utf-8-dos) (tab-stop-list 8 16 24 32 40 48 56 64 72))))
- '(save-abbrevs (quote silently))
-
- ;; Misc. Modes to Enable by Default
- '(abbrev-mode t)
- '(partial-completion-mode t)
-
- ;; Editing Behavior
- '(blink-matching-paren t)
- '(fill-column 78)  ;; For all but text mode.
- '(indent-tabs-mode 'nil) ;; Auto-convert Tabs to Spaces.
- '(next-line-add-newlines nil) ;; [Down] doesn't add \n at EOB
- '(require-final-newline nil)
- '(tab-width 4)  ;; Tab every 4 spaces.
- '(tab-stop-list (quote (4 8 12 16 20 24 28 32 36 40
-                           44 48 52 56 60 64 68 72 76)) )
-
- ;; Keep Running File Versions (swiped from Jerry Leichter)
- '(delete-old-versions nil)
- '(kept-new-versions 100)
- '(kept-old-versions 0)
- '(version-control t)
-
- ;; Fontification-Related
- '(global-font-lock-mode t nil (font-lock))
- '(transient-mark-mode t)
- '(show-paren-delay 0.5)
- '(show-paren-style (quote mixed))
-
- ;; Settings for Multiple Languages:  use Latin1
- '(current-language-environment "Latin-1")
- '(default-input-method "latin-1-prefix")
-
- ;; Programming-Related Settings
- '(align-c++-modes (quote (c++-mode c-mode java-mode javascript-generic-mode)))
- '(align-open-comment-modes (quote (vhdl-mode emacs-lisp-mode lisp-interaction-mode lisp-mode scheme-mode c++-mode c-mode java-mode perl-mode cperl-mode python-mode makefile-mode javascript-generic-mode)))
- '(c-doc-comment-style (quote ((c-mode . javadoc) (c++-mode . javadoc) (java-mode . javadoc) (pike-mode . autodoc))))
- '(c-echo-syntactic-information-p t)
- '(c-report-syntactic-errors t)
- '(compile-command "LC_CTYPE=ascii make -k ")
- '(cperl-font-lock t)
- '(cperl-highlight-variables-indiscriminately t)
- '(ediff-window-setup-function (quote ediff-setup-windows-plain))
- '(generic-define-mswindows-modes t)
- '(generic-define-unix-modes t)
- '(grep-command "grep --binary-files=without-match --exclude=\\*.svn\\* -n -r -P ")
- '(vc-handled-backends (quote (SVN RCS CVS SCCS)))
- '(which-function-mode nil nil (which-func))
-
- ;; Time Display Settings (only shown in TTYs)
- '(display-time-24hr-format t)
- '(display-time-mail-face (quote mode-line))
- '(display-time-mail-file (quote none))
- '(display-time-string-forms (quote ((format-time-string (or display-time-format (if display-time-24hr-format "%H:%M" "%-I:%M%p")) now))))
-
- ;; Org/Outline Mode
- '(org-archive-tag ":ARCHIVE:")
- '(org-blank-before-new-entry (quote ((heading . t) (plain-list-item))))
- '(org-comment-string ":COMMENT:")
- '(org-cycle-include-plain-lists t)
- '(org-ellipsis "···
-")
- '(org-export-headline-levels 6)
- '(org-insert-heading-respect-content t) ;; Insert new heading after body.
- '(org-level-color-stars-only nil)
- '(org-publish-timestamp-directory "~/.emacs.d/.org-timestamps/")
- '(org-quote-string ":QUOTE:")
- '(org-special-ctrl-a/e (quote reversed))
- '(org-startup-folded t) ;; Just top-level headings.
- '(org-startup-truncated nil)
- '(org-todo-keywords (quote ("TODO" "STARTED" "DONE")))
- '(org-use-extra-keys t)
- '(outline-regexp "[*§¶­]+")
-
- ;; Speedbar
- '(speedbar-directory-unshown-regexp "^\\(CVS\\|RCS\\|SCCS\\|.svn\\)\\'")
- '(speedbar-update-speed 300 t)
-
- ;; TRAMP Mode Settings
- '(password-cache-expiry 86400)
- '(tramp-auto-save-directory "/tmp/")
- '(tramp-default-method "sftp")
-
- ;; WOMAN Settings
- '(woman-cache-filename "~/.emacs.d/.wmncache.el")
- '(woman-cache-level 1)
- '(woman-use-own-frame nil)
- )
 
 (if running-xemacs
     (progn
@@ -328,29 +127,6 @@ You shouldn't change the value of this variable.
   ;; else:
   ;; Some GNU-Emacs-specific settings.
   ;;
-  ;; Customization-Menu Variables.
-  (jpw-custom-set-variables-nonsaved
-   '(colon-double-space t)
-   '(global-font-lock-mode t nil (font-lock))
-   '(initial-buffer-choice t)
-   '(inhibit-startup-message t)
-   '(inhibit-startup-screen t)
-   '(initial-scratch-message nil)
-   '(kill-ring-max 100)
-   '(longlines-show-effect "¶
-")
-   '(mouse-wheel-mode t nil (mwheel))
-   '(mouse-wheel-follow-mouse nil)
-   '(recentf-save-file "~/.emacs.d/.recentf")
-   '(type-break-mode-line-message-mode nil)
-   '(type-break-keystroke-threshold (quote (10000)))
-   '(type-break-interval 6000)
-   '(type-break-good-rest-interval 60)
-   '(type-break-query-interval 180)
-   '(type-break-file-name "~/.emacs.d/.type-break")
-   '(type-break-time-warning-intervals (quote (60 30)))
-   )
-
   ;; Shut off the stoopid toolbar in X.
   (tool-bar-mode -1)
 
@@ -417,12 +193,8 @@ You shouldn't change the value of this variable.
 
 ;; Only turn it on automatically if we have windows (X11) or are on a
 ;; supported terminal type
-(if (or window-system
-        (string= term-lc "xterm")
-        (string= term-lc "linux")
-        )
+(if is-fontifiable-term
     (progn
-
       ;; Force the colors to something reasonable
       (if window-system
           (if running-xemacs
@@ -475,106 +247,6 @@ You shouldn't change the value of this variable.
             (set-face-background 'zmacs-region "LightBlue")
             (set-face-background 'highlight "Gray")
             ) ;; end XEmacs
-        ;; else - GNU Emacs
-        (jpw-custom-set-faces-nonsaved
-         ;; General
-         '(italic ((t (:foreground "#544080" :slant italic))))
-         '(region ((t (:background "LightBlue"))))
-         '(highlight ((t (:background "Gray"))))
-         '(underline ((t (:underline "purple4"))))
-         ;; Faces that inherit from others.
-         '(font-lock-doc-face
-           ((t (:inherit font-lock-comment-face :background "azure"))))
-         '(bold-italic ((t (:inherit (bold italic)))))
-         '(woman-bold-face ((t (:inherit bold :foreground "blue"))))
-         '(woman-italic-face
-           ((t (:inherit italic :foreground "Purple4" :underline t))))
-         )
-        (if (or is-version-twentytwo is-version-twentythree)
-            (progn
-              (jpw-custom-set-faces-nonsaved
-               '(develock-long-line-1 ((t (:foreground "DeepPink"))))
-               '(develock-long-line-2 ((t
-                                        (:inherit develock-long-line-1
-                                                  :background "#ffff7f"
-                                                  :foreground "DeepPink3"))))
-               '(develock-whitespace-1 ((t (:background "#ffdfdf"))))
-               '(develock-whitespace-2
-                 ((t
-                   (:background "#ffdfbf"
-                                :box (:line-width 1 :color "#ffcf9f")))))
-               '(develock-whitespace-3
-                 ((t (:background "#ffffbf"
-                                  :box (:line-width 1 :color "yellow3")))))
-               '(diff-added ((t (:inherit diff-changed
-                                          :foreground "SpringGreen2"
-                                          :weight bold))))
-               '(diff-changed ((nil (:foreground "#8000FF" :weight bold))))
-               '(diff-removed ((t (:inherit diff-changed
-                                            :foreground "VioletRed4"))))
-               '(escape-glyph ((((class color) (background light))
-                                (:foreground "chartreuse"))))
-               '(font-wikipedia-bold-face ((((class color)
-                                             (background light))
-                                            (:inherit bold))))
-               '(font-wikipedia-italic-face ((((class color)
-                                               (background light))
-                                              (:inherit italic))))
-               '(font-wikipedia-math-face
-                 ((((class color) (background light))
-                   (:inherit font-lock-function-name-face))))
-               '(font-wikipedia-sedate-face
-                 ((((class color) (background light))
-                   (:inherit variable-pitch
-                             :foreground "SlateGray" :height 1.25))))
-               '(font-wikipedia-string-face
-                 ((((class color) (background light))
-                   (:inherit font-lock-string-face))))
-               '(font-wikipedia-verbatim-face
-                 ((((class color) (background light))
-                   (:inherit font-lock-constant-face))))
-               '(minibuffer-prompt ((((class color) (background light))
-                       (:foreground "blue"))))
-               '(mode-line
-                 ((t (:background "plum3" :foreground "black"
-                                  :box (:line-width -1
-                                        :style released-button))))
-                 nil
-                 "For when I'm in the mood for a more colorful modeline, use
-                  this instead of \"grey75\".")
-               '(mode-line-highlight
-                 ((t (:foreground "green4"
-                                  :box (:line-width 2 :color "grey40"
-                                        :style released-button))))
-                 nil
-                 "Just using a box with a darker gray is unsatisfying.
-                  Let's change the text color to something that will stand
-                  out (but not water our eyes).  Change the modeline
-                  color, and we may need to change this.")
-               '(mode-line-inactive
-                 ((t (:inherit mode-line
-                               :background "PaleGoldenrod"
-                               :foreground "grey35"
-                               :box (:line-width -1
-                                     :style released-button)
-                               :weight light)))
-                 nil
-                 "To accompany my more colorful modeline, I'll pick an
-                  off-white color for the inactive modeline instead of
-                  \"grey90\"")
-               '(sh-heredoc ((((class color) (background light))
-                              (:inherit font-lock-string-face
-                                        :background "beige"))))
-               '(show-paren-match-face ((((class color))
-                                         (:background "yellow"))) t)
-               '(show-paren-mismatch-face ((((class color))
-                                            (:background "yellow3"))) t)
-               '(trailing-whitespace
-                 ((t (:background "#ffdfdf"
-                                  :box (:line-width 1 :color "#ff9fbf")))))
-               )
-              )
-          );; end if GNU Emacs v22
         ) ;; end if XEmacs
 
       ;; In GNU Emacs, `modify-face' just does interactive calls to
@@ -588,19 +260,8 @@ You shouldn't change the value of this variable.
       (set-face-foreground 'font-lock-type-face "purple4")
       (set-face-foreground 'font-lock-variable-name-face "orange3")
       (set-face-bold-p     'font-lock-variable-name-face t)
-
-      (if (not window-system)
-          (progn
-            (jpw-custom-set-faces-nonsaved
-             '(region ((t (:background "cyan" :foreground "black"))))
-             '(secondary-selection
-               ((t (:background "blue" :foreground "white"))))
-             '(highlight ((t (:background "yellow")))))
-            )
-        ) ;; end if !window-system
-
       ) ;;end progn
-  );; end if-fontifiable-term-type
+  );; end if is-fontifiable-term-type
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -612,7 +273,7 @@ You shouldn't change the value of this variable.
 
 ;; Generic Modes (GNU Emacs only)
 ;;
-(if (not running-xemacs)
+(if running-gnu-emacs
     (progn
       (require 'generic)
       (require 'generic-x)
@@ -935,9 +596,6 @@ variable rather than hardcoded.
 (add-to-list 'auto-mode-alist '("\\.m$" . octave-mode) t)
 (add-to-list 'auto-mode-alist '("\\.octave$" . octave-mode) t)
 (add-to-list 'auto-mode-alist '("\\.oct$" . octave-mode) t)
-
-
-;;---------------------------------------------------------------------------
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;

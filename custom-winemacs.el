@@ -25,6 +25,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
+(require 'custom-set-defaults)
 (eval-when-compile
   (require 'source-safe))
 (message "loading WinBlows-specific crap.")
