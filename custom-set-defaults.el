@@ -181,8 +181,9 @@ Note that this function may require modification whenever
 (jpw-custom-set-variables-nonsaved
  '(global-font-lock-mode t nil (font-lock))
  '(transient-mark-mode t)
- '(show-paren-delay 0.5)
- '(show-paren-style (quote mixed))
+ '(show-paren-mode t nil (paren))
+ '(show-paren-delay 0.5 nil (paren))
+ '(show-paren-style (quote parenthesis) nil (paren))
  )
 
 
@@ -346,8 +347,8 @@ Note that this function may require modification whenever
            '(font-lock-doc-face
              ((t (:inherit font-lock-comment-face :background "azure"))))
            '(bold-italic ((t (:inherit (bold italic)))))
-           '(woman-bold-face ((t (:inherit bold :foreground "blue"))))
-           '(woman-italic-face
+           '(woman-bold ((t (:inherit bold :foreground "blue"))))
+           '(woman-italic
              ((t (:inherit italic :foreground "Purple4" :underline t))))
            )
 
@@ -429,10 +430,10 @@ Note that this function may require modification whenever
                  '(sh-heredoc ((((class color) (background light))
                                 (:inherit font-lock-string-face
                                           :background "beige"))))
-                 '(show-paren-match-face ((((class color))
-                                           (:background "yellow"))) t)
-                 '(show-paren-mismatch-face ((((class color))
-                                              (:background "yellow3"))) t)
+                 '(show-paren-match ((((class color))
+                                      (:background "yellow"))) t)
+                 '(show-paren-mismatch ((((class color))
+                                         (:background "DarkOrange"))) t)
                  '(trailing-whitespace
                    ((t (:background "#ffdfdf"
                                     :box (:line-width 1 :color "#ff9fbf")))))
