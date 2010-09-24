@@ -193,11 +193,12 @@ sub check_syscmd_status {
     my $noStacktrace = 0;
     my $whatHappened="Command failed";
 
-    # Return %Carp::CarpInternal to its original state if there's no error.
-    local %Carp::CarpInternal; ++$Carp::CarpInternal{jpwTools};
-    if (($Carp::Verbose != $_Verbose) || $_UnitTest) {
-        $Carp::Verbose = $_Verbose + $_UnitTest;
-    }
+    # Return %Carp::CarpInternal and $Carp::Verbose to their original states
+    # if there's no error.
+    local %Carp::CarpInternal;
+    local $Carp::Verbose;
+    ++$Carp::CarpInternal{jpwTools};
+    $Carp::Verbose = (($_Verbose > 3) || $_UnitTest);
 
     my $ref_ignoreList = undef;
     if (ref($_[0]) eq "ARRAY") {
