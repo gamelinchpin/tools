@@ -21,7 +21,7 @@
 ;; autohooks, or just basic building-block functions.
 ;;
 ;;
-;; RCS $Id$
+;; $Id$
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

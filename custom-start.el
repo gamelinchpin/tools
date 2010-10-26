@@ -28,7 +28,7 @@
 ;;   So do several other modes not loaded every startup.
 ;;
 ;;
-;; RCS $Id$
+;; $Id$
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

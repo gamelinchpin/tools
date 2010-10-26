@@ -19,7 +19,7 @@
 ;; Makes use of my mode-specific custom defuns and autohooks.
 ;;
 ;;
-;; RCS $Id$
+;; $Id$
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

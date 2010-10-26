@@ -34,7 +34,7 @@
 ;; defining function key translation, use the "M-" prefix instead.
 ;;
 ;;
-;; RCS $Id$
+;; $Id$
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

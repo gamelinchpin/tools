@@ -19,7 +19,7 @@
 ;; Binding conventions:  See the XEmacs manual, the help for
 ;; `define-key', or the sample "init.el" file.
 ;;
-;; RCS $Id$
+;; $Id$
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
