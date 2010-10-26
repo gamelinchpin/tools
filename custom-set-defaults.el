@@ -22,7 +22,7 @@
 ;; Load this file in your ".emacs", after the customization block.
 ;;
 ;;
-;; RCS $Id$
+;; $Id$
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -158,6 +158,7 @@ Note that this function may require modification whenever
 ;; Editing Behavior
 (jpw-custom-set-variables-nonsaved
  '(blink-matching-paren t)
+ '(blink-matching-paren-distance nil)
  '(fill-column 78)  ;; For all but text mode.
  '(indent-tabs-mode 'nil) ;; Auto-convert Tabs to Spaces.
  '(next-line-add-newlines nil) ;; [Down] doesn't add \n at EOB
@@ -181,7 +182,9 @@ Note that this function may require modification whenever
 (jpw-custom-set-variables-nonsaved
  '(global-font-lock-mode t nil (font-lock))
  '(transient-mark-mode t)
- '(show-paren-mode t nil (paren))
+ ;;'(show-paren-mode t nil (paren))
+ ;; `show-paren-mode' disables `blink-matching-paren' mode.  :P
+ '(show-paren-mode nil nil (paren))
  '(show-paren-delay 0.5 nil (paren))
  '(show-paren-style (quote parenthesis) nil (paren))
  )
