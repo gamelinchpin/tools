@@ -2,7 +2,7 @@
 ;;
 ;; Major and Minor modes for editing LiveJournal entries.
 ;;
-;;  Copyright © 2006-2010 John P. Weiss except as documented below
+;;  Copyright © 2006-2011 John P. Weiss except as documented below
 ;;
 ;;  This package is free software; you can redistribute it and/or modify
 ;;  it under the terms of the Artistic License, included as the file
@@ -464,27 +464,29 @@ and a few typography symbols.")
 
 (defconst jpw-lj-entity-shortcut-table
   '(
-    (":<=" . "&le;")
-    (":<" . "&lt;")
-    (":>=" . "&ge;")
-    (":>" . "&gt;")
-    (":===" . "&equiv;")
-    (":~=" . "&cong;")
-    (":~" . "&sim;")
-    (":~~" . "&asymp;")
-    (":<->" . "&darr;")
-    (":<-" . "&larr;")
-    (":->" . "&rarr;")
-    (":<==" . "&lArr;")
-    (":==>" . "&rArr;")
-    (":---" . "&mdash;")
-    (":--" . "&ndash;")
-    (":..." . "&hellip;")
-    ("<->" . "&darr;")
+    ("\\<=" . "&le;")
+    ("\\<" . "&lt;")
+    ("\\>=" . "&ge;")
+    ("\\>" . "&gt;")
+    (";===" . "&equiv;")
+    (";~=" . "&cong;")
+    (";~" . "&sim;")
+    (";~~" . "&asymp;")
+    (";<->" . "&harr;")
+    (";<-" . "&larr;")
+    (";->" . "&rarr;")
+    (";<==" . "&lArr;")
+    (";==>" . "&rArr;")
+    (";<==>" . "&hArr;")
+    (";---" . "&mdash;")
+    (";--" . "&ndash;")
+    (";..." . "&hellip;")
+    ("<->" . "&harr;")
     ("<-" . "&larr;")
     ("->" . "&rarr;")
     ("<==" . "&lArr;")
     ("==>" . "&rArr;")
+    ("<==>" . "&hArr;")
     ("---" . "&mdash;")
     ("--" . "&ndash;")
     ("..." . "&hellip;")
@@ -672,6 +674,14 @@ tags.
   "<code>" _ "</code>")
 
 
+(define-skeleton jpw-lj-html-footnote
+  "Insert HTML tags for 'xx-small' text, in parentheses.
+italics tags.
+{jpw: 03/2006}"
+  nil
+  "<spanstyle=\"font-size: xx-small\">(" _ ")</span>")
+
+
 (define-skeleton jpw-lj-user
   "A LiveJournal \"user\" tag."
   "Who? "
@@ -741,15 +751,13 @@ tags.
 (define-skeleton html-ordered-list
   "XHTML ordered list tags."
   nil
-  "<ol>" \n
-  "<li>" _ "</li>" \n
+  "<ol><li>" _ "</li>" \n
   "</ol>")
 
 (define-skeleton html-unordered-list
   "XHTML unordered list tags."
   nil
-  "<ul>" \n
-  "<li>" _ "</li>" \n
+  "<ul><li>" _ "</li>" \n
   "</ul>")
 
 (define-skeleton html-list-item
@@ -909,6 +917,7 @@ Call this function after changing certain customization variables manually
       (define-key jpw-lj-mode-map "\M-o\C-r" 'jpw-html-size-relative)
       (define-key jpw-lj-mode-map "\M-oz" 'jpw-lj-insert-size)
       (define-key jpw-lj-mode-map "\M-o\M-s" 'jpw-lj-insert-size)
+      (define-key jpw-lj-mode-map "\M-o." 'jpw-lj-html-footnote)
 
       (define-key jpw-lj-mode-map "\M-p\C-i" 'html-image)
 
@@ -1313,6 +1322,10 @@ Key bindings:
   (jpw-lj-mode-common)
   )
 
+
+;;; Associate this mode with certain filenames.
+(add-to-list 'auto-mode-alist '("\\.lj$" . jpw-lj-mode))
+(add-to-list 'auto-mode-alist '("\\.livejournal\\.com" . jpw-lj-mode))
 
 
 ;;;###autoload (jpw-lj-mode)
