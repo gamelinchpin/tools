@@ -571,25 +571,13 @@ variable rather than hardcoded.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
-;; Prefer CPerl mode to the std. Perl Mode
-(defun jpw-cperl-or-perl-mode ()
-  "Runs `cperl-mode' if that package is installed, or falls back to
-`perl-mode'.
-{jpw: 4/11}"
-  (if is-cperl-installed
-      (progn (require 'cperl)
-             (cperl-mode))
-    ;; else
-    (perl-mode))
-  )
-
-(autoload 'perl-mode "perl-mode")
-(autoload 'cperl-mode "cperl-mode")
 ;; The `is-cperl-installed' is defined in custom-vars.
 (if is-cperl-installed
     (progn
-      (add-to-list 'auto-mode-alist '("\\.pl$" . jpw-cperl-or-perl-mode))
-      (add-to-list 'auto-mode-alist '("\\.pm$" . jpw-cperl-or-perl-mode))
+      ;; Prefer CPerl mode to the std. Perl Mode
+      (defalias 'perl-mode-orig (symbol-function 'perl-mode))
+      (defalias 'perl-mode 'cperl-mode)
+      (autoload 'cperl-mode "cperl-mode")
 
       (if (not running-xemacs)
           (jpw-custom-set-faces-nonsaved
@@ -602,6 +590,8 @@ variable rather than hardcoded.
            )
         )
       );; end progn
+  ;; else
+  (autoload 'perl-mode "perl-mode")
   )
 
 
