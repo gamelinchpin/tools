@@ -3,7 +3,7 @@
 ;;  .emacs setup file
 ;;
 ;;
-;;  last modified 09/2010            (jpw)
+;;  last modified 02/2011            (jpw)
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -47,6 +47,24 @@
 ;; ;(load "psvn")
 ;; ;(load "custom-mutt_start")
 
+;; [jpw; 2010/10]  Start mic-paren.  Will probably move this into custom-start
+;; at some point.
+(require 'mic-paren)
+(paren-activate)
+
+;;
+;; Desktop-Only Setting
+;;
+
+;; [jpw; 2010/10]  Get the bell working again on my desktop machine.  :P
+;;;(setq ring-bell-function
+;;;      '(lambda ()
+;;;         (shell-command
+;;;          "~/bin/bgplay.sh ~/sounds/misc/boing.ogg >/dev/null 2>&1")))
+
+;; Open up the Speedbar
+;;;(if window-system (speedbar))
+
 ;; Read abbrevs.
 (read-abbrev-file "~/.emacs.d/.abbrevs")
 
@@ -77,7 +95,7 @@
 
 ;; If we have the official version of Tramp installed (and not the one bundled
 ;; with GNU Emacs), uncomment this.
-;; ;(load "password-cache.el")
+(load "password-cache.el")
 
 
 (if (not window-system)
@@ -107,6 +125,10 @@
 (jpw-cust-colorful-modeline)
 
 
+;; Reload the last session
+(if window-system (jpw-session-reload))
+
+
 ;; Local Customizations
 ;;
 (custom-set-variables
@@ -124,14 +146,16 @@
  '(jpw-lj-xlate-entities-on-save t)
  '(org-cycle-global-at-bob t)
  '(org-enable-fixed-width-editor nil)
+ '(org-export-headline-levels 6 nil (org))
  '(org-hide-emphasis-markers t)
  '(org-imenu-depth 4)
  '(org-insert-mode-line-in-empty-file t)
  '(org-list-demote-modify-bullet (quote (("-" . "+") ("+" . "¤") ("¤" . "·") ("·" . "-") ("1." . "a) ") ("a) " . "b) ") ("a) " . "c) ") ("a) " . "(  i) "))))
  '(org-modules nil)
+ '(paren-message-linefeed-display "¶")
  '(session-initialize (quote (de-saveplace session places keys menus)) nil (session))
  '(session-name-disable-regexp "\\`\\(/tmp\\|~/tmp/\\(itsalltext\\|mozex.wrk\\)\\)")
- '(session-save-file "~/.emacs.d/.session")
+ '(session-save-file "/home/candide/.emacs.d/.session")
  '(visual-basic-mode-indent 2 t))
 
 (custom-set-faces
@@ -139,7 +163,8 @@
   ;; If you edit it by hand, you could mess it up, so be careful.
   ;; Your init file should contain only one such instance.
   ;; If there is more than one, they won't work right.
- )
+ '(woman-bold ((t (:inherit bold :foreground "blue"))))
+ '(woman-italic ((t (:inherit italic :foreground "Purple4" :underline t)))))
 
 ;; Old type-break-mode settings
 ;; '(type-break-mode t nil (type-break))
@@ -170,6 +195,7 @@
 ;; [jpw] May Need to do this:
 ;;(recentf-update-menu-hook)
 (message "Your .emacs has loaded")
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;; Local Variables:

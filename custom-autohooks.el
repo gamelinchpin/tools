@@ -2,7 +2,7 @@
 ;;
 ;; Mode Hooks
 ;;
-;;  Copyright © 1995-2010 John P. Weiss
+;;  Copyright © 1995-2011 John P. Weiss
 ;;
 ;;  This package is free software; you can redistribute it and/or modify
 ;;  it under the terms of the Artistic License, included as the file
@@ -66,8 +66,7 @@
 
 ;; Scripting languages
 (add-hook 'awk-mode-hook 'turn-on-auto-fill)
-(add-hook 'perl-mode-hook 'turn-on-auto-fill)
-(add-hook 'perl-mode-hook 'use-jpw-perl-dabbrev-skip)
+(add-hook 'perl-mode-hook 'use-jpw-style-perl)
 (add-hook 'cperl-mode-hook 'use-jpw-style-cperl)
 (add-hook 'octave-mode-hook 'use-jpw-style-octave)
 

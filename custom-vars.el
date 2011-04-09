@@ -2,7 +2,7 @@
 ;;
 ;; Custom Variables and Constants
 ;;
-;;  Copyright © 1995-2010 John P. Weiss
+;;  Copyright © 1995-2011 John P. Weiss
 ;;
 ;;  This package is free software; you can redistribute it and/or modify
 ;;  it under the terms of the Artistic License, included as the file
@@ -35,7 +35,7 @@ startup files to shorten the elisp.
 
 You shouldn't change the value of this variable.
 
-{jpw 12/31}")
+{jpw: 12/31}")
 
 
 ;; Special flag for WinEmacs
@@ -48,7 +48,7 @@ default (and preferred) value is nil.
 
 You shouldn't change the value of this variable.
 
-{jpw 10/01}")
+{jpw: 10/01}")
 
 
 ;; Special flag for XEmacs.  Doesn't exist in GNU Emacs, so we'll create it
@@ -92,7 +92,7 @@ default (and preferred) value is nil.
 
 You shouldn't change the value of this variable.
 
-{jpw 11/04}")
+{jpw: 11/04}")
 
 
 ;; Version 20 and above changes some old stuff.  To handle those changes, we
@@ -103,21 +103,21 @@ You shouldn't change the value of this variable.
 
 You shouldn't change the value of this variable.
 
-{jpw 9/98}")
+{jpw: 9/98}")
 
 (defconst is-version-twentytwo (eq emacs-major-version '22)
   "Set to true if this is emacs 22.*.*.  The default value is nil.
 
 You shouldn't change the value of this variable.
 
-{jpw 9/07}")
+{jpw: 9/07}")
 
 (defconst is-version-twentythree (eq emacs-major-version '23)
   "Set to true if this is emacs 22.*.*.  The default value is nil.
 
 You shouldn't change the value of this variable.
 
-{jpw 8/10}")
+{jpw: 8/10}")
 
 
 (defconst is-fontifiable-term (or window-system
@@ -128,7 +128,18 @@ You shouldn't change the value of this variable.
 
 You shouldn't change the value of this variable.
 
-{jpw 9/10}")
+{jpw: 9/10}")
+
+
+(defconst is-cperl-installed (and (locate-file "cperl-mode"
+                                               load-path
+                                               (get-load-suffixes))
+                                  t)
+  "Set to true if CPerl is installed on this system.
+
+You shouldn't change the value of this variable.
+
+{jpw: 4/11}")
 
 
 

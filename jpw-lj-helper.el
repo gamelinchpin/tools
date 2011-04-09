@@ -679,7 +679,7 @@ tags.
 italics tags.
 {jpw: 03/2006}"
   nil
-  "<spanstyle=\"font-size: xx-small\">(" _ ")</span>")
+  "<span style=\"font-size: xx-small\">(" _ ")</span>")
 
 
 (define-skeleton jpw-lj-user

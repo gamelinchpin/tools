@@ -2,7 +2,7 @@
 ;;
 ;; Core Emacs Setup File
 ;;
-;;  Copyright © 1995-2010 John P. Weiss
+;;  Copyright © 1995-2011 John P. Weiss
 ;;
 ;;  This package is free software; you can redistribute it and/or modify
 ;;  it under the terms of the Artistic License, included as the file
@@ -571,19 +571,37 @@ variable rather than hardcoded.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
+;; Prefer CPerl mode to the std. Perl Mode
+(defun jpw-cperl-or-perl-mode ()
+  "Runs `cperl-mode' if that package is installed, or falls back to
+`perl-mode'.
+{jpw: 4/11}"
+  (if is-cperl-installed
+      (progn (require 'cperl)
+             (cperl-mode))
+    ;; else
+    (perl-mode))
+  )
+
 (autoload 'perl-mode "perl-mode")
 (autoload 'cperl-mode "cperl-mode")
-;;(add-to-list 'auto-mode-alist '("\\.pl$" . cperl-mode))
-;;(add-to-list 'auto-mode-alist '("\\.pm$" . cperl-mode))
-(if (not running-xemacs)
-    (jpw-custom-set-faces-nonsaved
-     '(cperl-array-face ((t (:inherit font-lock-variable-name-face
-                                      :underline t))))
-     '(cperl-hash-face ((t (:inherit (cperl-array-face italic)))))
-     '(cperl-nonoverridable-face
-       ((((class color) (background light))
-         (:inherit font-lock-constant-face))))
-     )
+;; The `is-cperl-installed' is defined in custom-vars.
+(if is-cperl-installed
+    (progn
+      (add-to-list 'auto-mode-alist '("\\.pl$" . jpw-cperl-or-perl-mode))
+      (add-to-list 'auto-mode-alist '("\\.pm$" . jpw-cperl-or-perl-mode))
+
+      (if (not running-xemacs)
+          (jpw-custom-set-faces-nonsaved
+           '(cperl-array-face ((t (:inherit font-lock-variable-name-face
+                                            :underline t))))
+           '(cperl-hash-face ((t (:inherit (cperl-array-face italic)))))
+           '(cperl-nonoverridable-face
+             ((((class color) (background light))
+               (:inherit font-lock-constant-face))))
+           )
+        )
+      );; end progn
   )
 
 

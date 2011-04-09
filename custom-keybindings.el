@@ -2,7 +2,7 @@
 ;;
 ;; Keyboard Bindings File
 ;;
-;;  Copyright © 1995-2010 John P. Weiss
+;;  Copyright © 1995-2011 John P. Weiss
 ;;
 ;;  This package is free software; you can redistribute it and/or modify
 ;;  it under the terms of the Artistic License, included as the file
@@ -136,6 +136,7 @@
           (define-key key-translation-map [8] [backspace])
           )
       ;;else
+      ;; Non-XTerm Remappings
       (progn
         (define-key key-translation-map [f1] [help])
         (define-key key-translation-map [8] [backspace])
@@ -176,7 +177,19 @@
           )
       );;end if
 
-    ;; Key remappings/translations when not running on X.
+    ;; Console-Only Bindings
+    (if (not (string= term-lc "xterm"))
+        (progn
+          (global-set-key "\e[1;5C" 'forward-word)
+          (global-set-key "\e[1;5D" 'backward-word)
+          ;; This messes up gpm pasting, so move it someplace else.
+          (global-unset-key [mouse-2])
+          (global-set-key [S-mouse-2] 'mouse-yank-at-click)
+          )
+      );;end if
+
+    ;; Key remappings/translations when running inside of some kind of
+    ;; terminal.
     (define-key function-key-map [f2] [menu])
 
     ;; Some emacs/terminals won't remap [find] or [select], so we

@@ -3,7 +3,7 @@
 ;;
 ;; Custom Functions
 ;;
-;;  Copyright © 1995-2010 John P. Weiss
+;;  Copyright © 1995-2011 John P. Weiss
 ;;
 ;;  This package is free software; you can redistribute it and/or modify
 ;;  it under the terms of the Artistic License, included as the file
@@ -29,7 +29,7 @@
 (require 'custom-defuns)
 (eval-when-compile
   (require 'custom-html_sgml_xml)
-  (require 'cperl-mode)
+  (require 'cperl-mode nil t)
   (require 'sgml-mode)
   ;; N.B. - This isn't defining `xml-lite-mode', so we're getting a
   ;;        compilation warning.
@@ -184,6 +184,7 @@
   (local-set-key [\M-right] 'outline-forward-same-level)
   (local-set-key [\M-left] 'outline-backward-same-level)
   (local-set-key [?\C-c \C-tab] 'jpw-outline-toggle-show-hide-all)
+  (local-set-key [?\C-c tab] 'jpw-outline-toggle-show-hide-all)
   (local-set-key [\C-\S-down] 'org-shiftmetadown)
   (local-set-key [\C-\S-up] 'org-shiftmetaup)
   (local-set-key [\C-\S-right] 'org-shiftmetaright)
@@ -468,6 +469,15 @@
   (turn-on-auto-fill)
   ;;(sql-highlight-oracle-keywords)
   (sql-highlight-sybase-keywords)
+  )
+
+
+(defun use-jpw-style-perl ()
+  (interactive)
+  (auto-fill-mode 1)
+  ;; Use a style equivalent to perl-mode indentation.
+  (setq perl-label-offset -2)
+  (use-jpw-perl-dabbrev-skip)
   )
 
 
