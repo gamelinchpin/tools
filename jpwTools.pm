@@ -1787,6 +1787,18 @@ If the value of this key evaluates to true, C<check_syscmd_status> will return
 the command's exit value instead of aborting the program.  Any value that
 evaluates to false is ignored.  Mutually-exclusive with C<abort>.
 
+I<NOTE:> When using this key, you should use a code pattern like the
+following:
+
+=over 4
+
+if (check_syscmd_status({'warn' => 1, I<...>}, I<cmd>)) {
+    # Do error handling here.
+}
+
+=back
+
+
 =item C<abort>
 
 The value of this flag directly controls whether or not C<check_syscmd_status>
