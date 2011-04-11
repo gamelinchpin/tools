@@ -428,11 +428,8 @@ variable rather than hardcoded.
                                    :background "beige"))))
      )
   )
-(eval-after-load "sh-script"
-  '(lambda()
-     (jpw-sh-mode-font-lock-enhance)
-     )
-  )
+(eval-after-load 'sh-script
+  '(jpw-sh-mode-font-lock-enhance))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -452,13 +449,13 @@ variable rather than hardcoded.
 
 
 (autoload 'sql-mode "trans-sql" "SQL mode with Transact/SQL keywords" t)
-(eval-after-load "sql-mode"
-  '(lambda()
-     (load "sql-indent")
-     (setq sql-mode-font-lock-keywords
-           sql-mode-oracle-font-lock-keywords)
-;;           sql-mode-trans-sql-font-lock-keywords)
-     )
+(eval-after-load 'sql-mode
+  '(load "sql-indent"))
+(eval-after-load 'sql-mode
+  '(setq sql-mode-font-lock-keywords
+         sql-mode-oracle-font-lock-keywords
+;;         sql-mode-trans-sql-font-lock-keywords
+         )
   )
 
 
@@ -474,15 +471,12 @@ variable rather than hardcoded.
 (add-to-list 'auto-mode-alist '("\\.xml$" . jpw-xml-lite-mode) t)
 ;;(add-to-list 'auto-mode-alist '("\\.xml$" . xml-mode) t)
 
-(eval-after-load "sgml-mode"
-  '(lambda()
-     (require 'custom-html_sgml_xml)))
-(eval-after-load "xml"
-  '(lambda()
-     (require 'custom-html_sgml_xml)))
-(eval-after-load "xml-lite"
-  '(lambda()
-     (require 'custom-html_sgml_xml)))
+(eval-after-load 'sgml-mode
+  '(require 'custom-html_sgml_xml))
+(eval-after-load 'xml
+  '(require 'custom-html_sgml_xml))
+(eval-after-load 'xml-lite
+  '(require 'custom-html_sgml_xml))
 
 
 ;; Commented out
@@ -493,25 +487,25 @@ variable rather than hardcoded.
 
   ;; Things to set once, for all files.
   ;;
-  (eval-after-load "psgml"
-    '(lambda()
-       (require 'custom-html_sgml_xml)
-       (setq sgml-set-face t
-             sgml-ignore-undefined-elements t
-             sgml-warn-about-undefined-elements nil
-             sgml-warn-about-undefined-entities nil
-             sgml-ignore-undefined-elements t
-             sgml-insert-end-tag-on-new-line t
-             )
-       (setq sgml-markup-faces '((start-tag . font-lock-function-name-face)
-                                 (end-tag . font-lock-function-name-face)
-                                 (comment . font-lock-comment-face)
-                                 (pi . font-lock-variable-name-face)
-                                 (sgml . font-lock-keyword-face)
-                                 (doctype . font-lock-type-face)
-                                 (entity . font-lock-constant-face)
-                                 (shortref . font-lock-constant-face)))
-       )
+  (eval-after-load 'psgml
+    '(require 'custom-html_sgml_xml))
+  (eval-after-load 'psgml
+    '(setq sgml-set-face t
+           sgml-ignore-undefined-elements t
+           sgml-warn-about-undefined-elements nil
+           sgml-warn-about-undefined-entities nil
+           sgml-ignore-undefined-elements t
+           sgml-insert-end-tag-on-new-line t)
+    )
+  (eval-after-load 'psgml
+    '(setq sgml-markup-faces '((start-tag . font-lock-function-name-face)
+                               (end-tag . font-lock-function-name-face)
+                               (comment . font-lock-comment-face)
+                               (pi . font-lock-variable-name-face)
+                               (sgml . font-lock-keyword-face)
+                               (doctype . font-lock-type-face)
+                               (entity . font-lock-constant-face)
+                               (shortref . font-lock-constant-face)))
     )
 ));;end (if nil (progn......
 
@@ -561,9 +555,8 @@ variable rather than hardcoded.
      )
   )
 
-(eval-after-load "html-helper-mode"
-  '(lambda()
-     (require 'custom-html_sgml_xml)))
+(eval-after-load 'html-helper-mode
+  '(require 'custom-html_sgml_xml))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -578,6 +571,22 @@ variable rather than hardcoded.
       (defalias 'perl-mode-orig (symbol-function 'perl-mode))
       (defalias 'perl-mode 'cperl-mode)
       (autoload 'cperl-mode "cperl-mode")
+
+      (eval-after-load 'cperl-mode
+        '(add-to-list
+          'cperl-style-alist
+          '("jpw-cperl-style"
+            (cperl-indent-level               .  4)
+            (cperl-brace-offset               .  0)
+            (cperl-continued-brace-offset     . -4)
+            (cperl-label-offset               . -4)
+            (cperl-continued-statement-offset .  4)
+            (cperl-extra-newline-before-brace .  nil)
+            ;; Multiline conditionals should force the '{' on its own line.
+            (cperl-extra-newline-before-brace-multiline .  t)
+            (cperl-merge-trailing-else        .  nil))
+          )
+        ) ;; end eval-after-load
 
       (if (not running-xemacs)
           (jpw-custom-set-faces-nonsaved

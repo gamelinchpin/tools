@@ -484,9 +484,18 @@
 (defun use-jpw-style-cperl ()
   (interactive)
   (auto-fill-mode 1)
-  ;; Use a style equivalent to perl-mode indentation.
-  (cperl-set-style "PerlStyle")
-  (setq cperl-label-offset -2)
+  ;; Set the indentation style to my personal one.
+  (cperl-set-style "jpw-cperl-style")
+  (setq cperl-font-lock t  ;; Always use font-lock-mode
+        cperl-highlight-variables-indiscriminately t
+        ;; Additional Indentation Customizations
+        cperl-break-one-line-blocks-when-indent nil
+        cperl-comment-column 52
+        ;; Disable a bunch of "electric" stuff.
+        cperl-electric-parens nil
+        cperl-electric-lbrace-space nil
+        cperl-electric-linefeed nil
+        )
   (use-jpw-perl-dabbrev-skip)
   )
 
