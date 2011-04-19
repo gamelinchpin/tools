@@ -2,7 +2,7 @@
 ;;
 ;; Core Emacs Setup File
 ;;
-;;  Copyright © 1995-2010 John P. Weiss
+;;  Copyright © 1995-2011 John P. Weiss
 ;;
 ;;  This package is free software; you can redistribute it and/or modify
 ;;  it under the terms of the Artistic License, included as the file
@@ -48,8 +48,19 @@ Calls `custom-set-variables' on the list of arguments, then converts the
 \"saved value\" to the \"default value\".  This prevents localized
 customizations from being written to your \".emacs\" file.
 
+`args' is a list of lists of the form:
+
+   (VARNAME VAL_EXPRESSION [MAKE_DEFAULT_AND_EVAL_NOW
+                               [REQUIRED_FEATURE_LIST [COMMENT]]])
+
+REQUIRED_FEATURE_LIST is a list of packages to load before setting VARNAME to
+the value of VAL_EXPRESSION.  Note that this function partially-overrides
+MAKE_DEFAULT_AND_EVAL_NOW (since it always maked the \"new\" value the
+default).
+
 Note that this function may require modification whenever
-`custom-declare-variable' changes.  {jpw: 9/2004}"
+`custom-declare-variable' changes.
+{jpw: 9/2004}"
   (apply 'custom-set-variables args)
   (while args
     (let ((entry (car args)))
@@ -113,8 +124,8 @@ Note that this function may require modification whenever
 ;; Misc Default Filenames
 (jpw-custom-set-variables-nonsaved
  '(abbrev-file-name "~/.emacs.d/.abbrevs" t)
- '(ps-printer-name "~/emacs-out.ps")
- '(quickurl-url-file "~/.emacs.d/.quickurls")
+ '(ps-printer-name "~/emacs-out.ps")  ;; No longer a variable?
+ '(quickurl-url-file "~/.emacs.d/.quickurls")  ;; No longer a variable?
  )
 
 
@@ -141,8 +152,12 @@ Note that this function may require modification whenever
  '(safe-local-variable-values
    (quote ((coding-system . utf-8-unix)
            (coding-system . utf-8)
+           (coding-system . utf-16-unix)
+           (coding-system . utf-16)
            (buffer-file-coding-system . utf-8)
            (buffer-file-coding-system-explicit . mule-utf-8-dos)
+           (buffer-file-coding-system . utf-16)
+           (buffer-file-coding-system-explicit . mule-utf-16-dos)
            (tab-stop-list 8 16 24 32 40 48 56 64 72))))
  '(save-abbrevs (quote silently))
  )
@@ -157,8 +172,8 @@ Note that this function may require modification whenever
 
 ;; Editing Behavior
 (jpw-custom-set-variables-nonsaved
- '(blink-matching-paren t)
- '(blink-matching-paren-distance nil)
+ '(blink-matching-paren t) ;; FIXME:  Not being set.
+ '(blink-matching-paren-distance nil) ;; FIXME:  Not being set?
  '(fill-column 78)  ;; For all but text mode.
  '(indent-tabs-mode 'nil) ;; Auto-convert Tabs to Spaces.
  '(next-line-add-newlines nil) ;; [Down] doesn't add \n at EOB
@@ -199,8 +214,10 @@ Note that this function may require modification whenever
 
 ;; Programming-Related Settings
 (jpw-custom-set-variables-nonsaved
+ ;; No longer a variable?
  '(align-c++-modes (quote (c++-mode c-mode
                                     java-mode javascript-generic-mode)))
+ ;; No longer a variable?
  '(align-open-comment-modes (quote (vhdl-mode
                                     emacs-lisp-mode
                                     lisp-interaction-mode
@@ -211,23 +228,53 @@ Note that this function may require modification whenever
                                     python-mode
                                     makefile-mode
                                     javascript-generic-mode)))
+ ;; FIXME:  Not being set.
  '(c-doc-comment-style (quote ((c-mode . javadoc)
                                (c++-mode . javadoc)
                                (java-mode . javadoc)
                                (pike-mode . autodoc))))
- '(c-echo-syntactic-information-p t)
- '(c-report-syntactic-errors t)
+ '(c-echo-syntactic-information-p t)   ;; FIXME:  Not being set.
+ '(c-report-syntactic-errors t)  ;; FIXME:  Not being set.
+ ;; No longer a variable?
  '(compile-command "LC_CTYPE=ascii make -k ")
  '(cperl-font-lock t)
  '(cperl-highlight-variables-indiscriminately t)
  '(ediff-window-setup-function (quote ediff-setup-windows-plain)
                                 nil (ediff-wind))
- '(generic-define-mswindows-modes t)
- '(generic-define-unix-modes t)
+ ;; `generic-define-*-modes is now obsolete, replaced by
+ ;;`generic-extras-enable-list'
+ ;;'(generic-define-mswindows-modes t)
+ ;;'(generic-define-unix-modes t)
+ '(generic-extras-enable-list (quote (alias-generic-mode
+                                      apache-conf-generic-mode
+                                      apache-log-generic-mode
+                                      bat-generic-mode
+                                      etc-fstab-generic-mode
+                                      etc-modules-conf-generic-mode
+                                      etc-passwd-generic-mode
+                                      etc-services-generic-mode
+                                      etc-sudoers-generic-mode
+                                      hosts-generic-mode
+                                      inf-generic-mode
+                                      ini-generic-mode
+                                      java-manifest-generic-mode
+                                      java-properties-generic-mode
+                                      javascript-generic-mode
+                                      mailagent-rules-generic-mode
+                                      mailrc-generic-mode
+                                      prototype-generic-mode
+                                      rc-generic-mode
+                                      reg-generic-mode
+                                      resolve-conf-generic-mode
+                                      rul-generic-mode
+                                      samba-generic-mode
+                                      show-tabs-generic-mode
+                                      x-resource-generic-mode))
+                              nil (generic-x))
  '(grep-command
    "grep --binary-files=without-match --exclude=\\*.svn\\* -n -r -P ")
  '(vc-handled-backends (quote (SVN RCS CVS SCCS)))
- '(which-function-mode nil nil (which-func))
+ '(which-function-mode nil nil (which-func))  ;; FIXME:  Not being set?
  )
 
 
@@ -254,10 +301,11 @@ Note that this function may require modification whenever
  '(org-ellipsis "···
 "
                 nil (org))
- '(org-export-headline-levels 6 nil (org))
+ '(org-export-headline-levels 6 nil (org))  ;; No longer a variable?
  '(org-insert-heading-respect-content
    t nil (org)) ;; Insert heading after body.
  '(org-level-color-stars-only nil nil (org))
+ ;; No longer a variable?
  '(org-publish-timestamp-directory "~/.emacs.d/.org-timestamps/" nil (org))
  '(org-quote-string ":QUOTE:" nil (org))
  '(org-special-ctrl-a/e (quote reversed) nil (org))
@@ -277,6 +325,8 @@ Note that this function may require modification whenever
 
 
 ;; TRAMP Mode Settings
+;; FIXME:  Not being set.
+;;Possibly being overwritten by the pkg. itself when loaded?
 (jpw-custom-set-variables-nonsaved
  '(password-cache-expiry 86400)
  '(tramp-auto-save-directory "/tmp/")
@@ -308,8 +358,8 @@ Note that this function may require modification whenever
        '(longlines-show-effect "¶
 ")
        '(mouse-wheel-mode t nil (mwheel))
-       '(mouse-wheel-follow-mouse nil)
-       '(recentf-save-file "~/.emacs.d/.recentf")
+       '(mouse-wheel-follow-mouse nil nil (mwheel))
+       '(recentf-save-file "~/.emacs.d/.recentf") ;; FIXME:  Not being set.
        )
 
       (jpw-custom-set-variables-nonsaved

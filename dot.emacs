@@ -137,7 +137,15 @@
   ;; Your init file should contain only one such instance.
   ;; If there is more than one, they won't work right.
  '(archive-zip-use-pkzip nil)
+ '(blink-matching-paren t)
+ '(blink-matching-paren-distance nil)
  '(browse-url-browser-function (quote browse-url-w3))
+ '(c-doc-comment-style (quote ((c-mode . javadoc)
+                               (c++-mode . javadoc)
+                               (java-mode . javadoc)
+                               (pike-mode . autodoc))))
+ '(c-echo-syntactic-information-p t)
+ '(c-report-syntactic-errors t)
  '(cygwin-mount-cygwin-bin-directory "c:\\cygwin\\bin")
  '(desktop-path (quote ("~/.emacs.d" "." "~")))
  '(jpw-lj-friend-groups (quote ("husband" "from way back" "Regularly Read")))
@@ -153,18 +161,23 @@
  '(org-list-demote-modify-bullet (quote (("-" . "+") ("+" . "¤") ("¤" . "·") ("·" . "-") ("1." . "a) ") ("a) " . "b) ") ("a) " . "c) ") ("a) " . "(  i) "))))
  '(org-modules nil)
  '(paren-message-linefeed-display "¶")
+ '(password-cache-expiry 86400)
+ '(recentf-save-file "~/.emacs.d/.recentf")
+ '(safe-local-eval-forms (quote ((add-hook (quote write-file-hooks) (quote time-stamp) (quote sh-set-shell)))))
  '(session-initialize (quote (de-saveplace session places keys menus)) nil (session))
  '(session-name-disable-regexp "\\`\\(/tmp\\|~/tmp/\\(itsalltext\\|mozex.wrk\\)\\)")
  '(session-save-file "/home/candide/.emacs.d/.session")
- '(visual-basic-mode-indent 2 t))
+ '(tramp-auto-save-directory "/tmp/")
+ '(tramp-default-method "sftp")
+ '(visual-basic-mode-indent 2 t)
+ '(woman-manpath (quote ("/opt/kde3/share/man/" "/usr/share/man" "/usr/local/share/man" ("/bin" . "/usr/share/man") ("/usr/bin" . "/usr/share/man") ("/sbin" . "/usr/share/man") ("/usr/sbin" . "/usr/share/man") ("/usr/local/bin" . "/usr/local/man") ("/usr/local/bin" . "/usr/local/share/man") ("/usr/local/sbin" . "/usr/local/man") ("/usr/local/sbin" . "/usr/local/share/man") ("/usr/X11R6/bin" . "/usr/X11R6/man") ("/usr/bin/X11" . "/usr/X11R6/man") ("/usr/games" . "/usr/share/man") ("/opt/bin" . "/opt/man") ("/opt/sbin" . "/opt/man") ("/opt/kde3/bin" . "/opt/kde3/share/man")))))
 
 (custom-set-faces
   ;; custom-set-faces was added by Custom.
   ;; If you edit it by hand, you could mess it up, so be careful.
   ;; Your init file should contain only one such instance.
   ;; If there is more than one, they won't work right.
- '(woman-bold ((t (:inherit bold :foreground "blue"))))
- '(woman-italic ((t (:inherit italic :foreground "Purple4" :underline t)))))
+ )
 
 ;; Old type-break-mode settings
 ;; '(type-break-mode t nil (type-break))
