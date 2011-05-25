@@ -26,7 +26,7 @@
 
 
 (require 'custom-defuns)
-(require 'lazy-lock)
+(require 'jit-lock)
 
 
 ;;------------------------------------------------------------
@@ -1359,35 +1359,29 @@ Key bindings:
   (make-local-variable 'font-lock-defaults)
   (make-local-variable 'font-lock-multiline)
   (make-local-variable 'font-lock-support-mode)
-  (make-local-variable 'lazy-lock-minimum-size)
-  (make-local-variable 'lazy-lock-defer-on-the-fly)
-  (make-local-variable 'lazy-lock-defer-on-scrolling)
-  (make-local-variable 'lazy-lock-defer-contextually)
-  (make-local-variable 'lazy-lock-stealth-time)
-  (make-local-variable 'lazy-lock-stealth-load)
-  (make-local-variable 'lazy-lock-stealth-nice)
-  (make-local-variable 'lazy-lock-stealth-verbose)
+  (make-local-variable 'jit-lock-contextually)
+  (make-local-variable 'jit-lock-stealth-time)
+  (make-local-variable 'jit-lock-stealth-load)
+  (make-local-variable 'jit-lock-stealth-nice)
+  (make-local-variable 'jit-lock-stealth-verbose)
   (setq font-lock-defaults phpBB-font-lock-defaults
         font-lock-multiline t
         ;; `jit-lock-mode' doesn't correctly fontify everything we want it to.
         ;;
-        ;; `fast-lock-mode' and `lazy-lock-mode' require you to
+        ;; `fast-lock-mode' and `jit-lock-mode' require you to
         ;; manually-refontify when editing text in some of the more complex
         ;; multiline expressions.  `fast-lock-mode' works by keeping a cache
         ;; of fontifications.  Great for programming modes.  Bad for modes
         ;; operating on temporary buffers.
         ;;
-        ;; So, we'll use `lazy-lock-mode', suitably tuned to behave as
+        ;; So, we'll use `jit-lock-mode', suitably tuned to behave as
         ;; desired.
-        font-lock-support-mode 'lazy-lock-mode
-        lazy-lock-minimum-size nil
-        lazy-lock-stealth-verbose t
-        lazy-lock-defer-on-the-fly t
-        lazy-lock-defer-on-scrolling nil
-        lazy-lock-defer-contextually nil
-        lazy-lock-stealth-time 3
-        lazy-lock-stealth-nice 0.1
-        lazy-lock-stealth-load nil)
+        font-lock-support-mode 'jit-lock-mode
+        jit-lock-stealth-verbose t
+        jit-lock-contextually nil
+        jit-lock-stealth-time 3
+        jit-lock-stealth-nice 0.1
+        jit-lock-stealth-load nil)
   ;; TODO:
   ;; Eventually, this will be moved into an if-statement controlled by a
   ;; customization flag.  That flag will also need to perform an unfill-buffer
