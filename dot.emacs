@@ -3,7 +3,7 @@
 ;;  .emacs setup file
 ;;
 ;;
-;;  last modified 02/2011            (jpw)
+;;  last modified 06/2011            (jpw)
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -43,7 +43,6 @@
 ;; ;(load "cedet-setup")
 ;; ;(load "phpBB-helper")
 ;; ;(load "jpw-lj-helper")
-;; ;(load "vc-svn-wrapper")  ;; Calls: (load "vc-svn")
 ;; ;(load "psvn")
 ;; ;(load "custom-mutt_start")
 
