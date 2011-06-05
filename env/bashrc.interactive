@@ -3,7 +3,7 @@
 l_ps1='\h:\w\$ '
 l_ps2='> '
 case "$TERM" in
-  xterm|linux|ansi|[Cc]ygwin|rxvt*)
+  xterm|linux|ansi|screen|[Cc]ygwin|rxvt*)
      l_ps1='\033[01;35m\h:\w/\033[0m\n\$ '
      l_ps2='\033[01;34m>\033[0m '
      ;;
@@ -45,10 +45,10 @@ if [ \! -f $BASH_INPUTRC ]; then
     BASH_INPUTRC="/etc/bashrc.emacs-inputrc"
 fi
 
-# bash-specific stuff
+# terminal-specific stuff
 umask 022
 case $TERM in
-  xterm|linux|ansi|[Cc]ygwin|rxvt*)
+  xterm|linux|ansi|screen|[Cc]ygwin|rxvt*)
     stty erase '^h' kill '^u' intr '^c' susp '^z'
     ;;
   *)
@@ -64,11 +64,11 @@ esac
 ########################
 
 MORE=-f
-LESS=-MiX
+LESS=-MiXF
 MANOPT="--sections=3:1:8:6:2:4:5:7 --all"
-LESSBIN="/usr/bin/less"
+[ -x /usr/bin/less ] && LESSBIN="/usr/bin/less"
 MOREBIN="/bin/more"
-PAGER="${LESSBIN:-${MOREBIN}} ${LESSBIN:+ -s}"
+PAGER="${LESSBIN:-${MOREBIN}}"
 export MORE LESS MANOPT PAGER
 
 # Note:  Prompt set at top of this file.
@@ -112,17 +112,26 @@ fi
 # Create a function to page a command with additional options
 pagecommand() {
     local cmdname
+    local po=""
+    local foldIt=""
 
     if [ "$1" = "-o" ]; then
        shift
        po="$1"
        shift
-    else
-       po=""
     fi
+    if [ "$1" = "-f" ]; then
+        foldIt='y'
+        shift
+    fi
+
     cmdname=${1}
     shift
-    ${cmdname} "$@" 2>&1 | ${PAGER:-more} ${po}
+    if [ -z "$foldIt" ]; then
+        ${cmdname} "$@" 2>&1 | ${PAGER:-more} ${po}
+    else
+        ${cmdname} "$@" 2>&1 | fold -s | ${PAGER:-more} ${po}
+    fi
 }
 
 # The classic tar-based recursive copy
@@ -441,10 +450,10 @@ alias jpwcpio='do__cpio__engine --name "jpwcpio"'
 # custom form of ps
 ps_grep() {
     if [ "x${1}" = "x" ]; then
-           ps -e${PSGREP_OPTS} | ${LESSBIN:-more} ${LESSBIN:+-E}
+           ps -e${PSGREP_OPTS} | ${PAGER} ${LESSBIN:+-E}
     else
            ps -e${PSGREP_OPTS} | grep "PID\|$1" | grep -v "grep" | \
-               ${LESSBIN:-more} ${LESSBIN:+-E}
+               ${PAGER} ${LESSBIN:+-E}
     fi
 }
 
@@ -458,11 +467,16 @@ fix_xterm_title() {
 runx() {
     local runlog use_sudo xtoolwaitOpts toDesk
 
+    if [ -z "$*" ]; then
+        set -- --help
+    fi
     case "$*" in
         -h|--help)
-            echo "runx [-s] [xtoolwait-ops [--]] command [cmd-opts]"
+            echo -n "runx [-s] [--desk <n>] [xtoolwait-ops [--]]"
+            echo " command [cmd-opts]"
             echo ""
             echo "-s:  Run using 'sudo'"
+            echo "--desk <n>:  Open program on desktop '<n>"
             echo ""
             echo "N.B. - Some xtoolwait options are ignored."
             return 0
@@ -522,18 +536,18 @@ runx() {
     runlog="/tmp/runx-${USER}.log"
     if type -t xtoolwait >/dev/null; then
         if [ -n "$use_sudo" ]; then
-            sudo xtoolwait $xtoolwaitOpts "$@" 2>&1 >>$runlog
+            sudo xtoolwait $xtoolwaitOpts "$@" >>$runlog 2>&1
         else
-            xtoolwait $xtoolwaitOpts "$@" 2>&1 >>$runlog
+            xtoolwait $xtoolwaitOpts "$@" >>$runlog 2>&1
         fi
     else
         echo "Error\!  xtoolwait isn't installed\!"
         echo "Running as a background job and disowning..."
         echo ""
         if [ -n "$use_sudo" ]; then
-            sudo "$@" 2>&1 >>$runlog &
+            sudo "$@" >>$runlog 2>&1 &
         else
-            "$@" 2>&1 >>$runlog &
+            "$@" >>$runlog 2>&1 &
         fi
         disown -h
     fi
@@ -564,13 +578,17 @@ if type -t where >/dev/null; then
     alias where='which -a'
 fi
 
-alias v="${LESSBIN:-more} ${LESSBIN:+-r}"
-alias fv='LESSOPEN="| fold %s" ${LESSBIN} -r'
+alias v="${PAGER} ${LESSBIN:+-r}"
+alias fv="pagecommand ${LESSBIN:+ -o -r} fold -s"
 if type zless >/dev/null; then
-    alias zv='LESSOPEN="| fold %s" zless -r'
+    alias zv="pagecommand -f zless -R"
+else
+    alias zv="pagecommand -f zcat"
 fi
 if type bzless >/dev/null; then
-    alias bv='LESSOPEN="| fold %s" bzless -r'
+    alias bv="pagecommand -f bzless -R"
+else
+    alias bv="pagecommand -f bzcat"
 fi
 
 
@@ -584,13 +602,14 @@ o_gnu_ls="${GNU_LS_COLOR}" # ${GNU_LS_COLOR:+-h}"
 o_gnu_dir="${o_gnu_ls} ${GNU_LS_COLOR:+-h}"
 o_ls="-F -C ${o_gnu_ls}"
 o_dir="-F -l ${o_gnu_dir}"
-alias ls="pagecommand ${LESSBIN:+ -o '-rE'} ls ${o_ls}"
-alias lsa="pagecommand ${LESSBIN:+ -o '-rE'} ls ${o_ls} -a"
-alias dira="pagecommand ${LESSBIN:+ -o '-rE'} ls ${o_dir} -a"
-alias dir="pagecommand ${LESSBIN:+ -o '-rE'} ls ${o_dir}"
-alias ll="pagecommand ${LESSBIN:+ -o '-rE'} ls -l ${o_ls/-C/}"
-alias vdir="pagecommand ${LESSBIN:+ -o '-rE'} vdir -F ${o_gnu_ls}"
-unset o_dir o_ls o_gnu_ls o_gnu_dir
+o_less_ls="${LESSBIN:+ -o '-ReF'}"
+alias ls="pagecommand $o_less_ls ls ${o_ls}"
+alias lsa="pagecommand $o_less_ls ls ${o_ls} -a"
+alias dira="pagecommand $o_less_ls ls ${o_dir} -a"
+alias dir="pagecommand $o_less_ls ls ${o_dir}"
+alias ll="pagecommand $o_less_ls ls -l ${o_ls/-C/}"
+alias vdir="pagecommand $o_less_ls vdir -F ${o_gnu_ls}"
+unset o_dir o_ls o_gnu_ls o_gnu_dir o_less_ls
 
 #unalias rm
 #unalias mv
@@ -606,21 +625,21 @@ alias myjobs="ps_grep ${USER}"
 
 
 #
-# *Tape Backups*  [tar/cpio]
+# *Archivers*  [tar/cpio]
 #
 
 r_tls="tar -tvf"
 r_tzv="${r_tls/-t/-zt}"
 r_tbv="${r_tzv/-z/-j}"
-alias tls="PAGER=${LESSBIN:-more} pagecommand ${r_tls}"
-alias tzv="PAGER=${LESSBIN:-more} pagecommand ${r_tzv}"
-alias tbv="PAGER=${LESSBIN:-more} pagecommand ${r_tbv}"
+alias tls="pagecommand ${r_tls}"
+alias tzv="pagecommand ${r_tzv}"
+alias tbv="pagecommand ${r_tbv}"
 unset r_tls r_tzv r_tbv
 
 alias tarzf='tar -zcvf'
 alias tarbf='tar -jcvf'
 
-alias zipv="PAGER=${LESSBIN:-more} pagecommand unzip -l"
+alias zipv="pagecommand unzip -l"
 
 alias czv="cpiov -z"
 alias cbv="cpiov -b"
@@ -633,15 +652,15 @@ alias cpiobf='mkcpio --bzip2'
 
 alias gz="gzip -9v"
 
-alias edit="${EDITOR}"
 #if type emacs >/dev/null; then
 #    alias emacs="$(type -p emacs) --custom-options-here"
 #fi
 
-alias locn="PAGER=${LESSBIN:-more} pagecommand locate"
-alias manfile="PAGER=${LESSBIN:-more} pagecommand nroff -man"
+alias locn="pagecommand locate"
+alias manfile="pagecommand nroff -man"
 
-alias clean="purge-files.sh"
+# Not needed if using the 'clean.sh' symlink to this script.
+#alias clean="file-purger.sh"
 
 
 #

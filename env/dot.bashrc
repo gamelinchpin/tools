@@ -174,9 +174,7 @@ fi
 STTYPE="${MACHTYPE}-${OSTYPE}"
 
 
-alias edit="runemacs.sh"
-
-alias veryclean="(cd ; clean -r)"
+alias veryclean="(cd ; clean.sh -r)"
 
 alias repath="export PATH=${PATH}"
 alias resharc='source ~/.bashrc'
@@ -219,7 +217,6 @@ export PRINTER="ps"
 #export BIBINPUTS="${HOME}/docs/refs:"
 #export BSTINPUTS="${BIBINPUTS}:"
 #export TEXINPUTS=".//:${HOME}/docs/tex.sty//:"
-export BROWSER_REMOTE_CTRL=/usr/lib/firefox-2.0.*/mozilla-xremote-client
 
 alias mail='mutt'
 alias oldmail="mutt -f =received"
@@ -292,8 +289,6 @@ alias konq='runx konqueror --profile webbrowsing'
 alias kcalc='runx kcalc'
 alias uqbarmon='runx gkrellm -s uqbar'
 
-alias xanim='xanim +f +Zr +Av70 +Gd1.5'
-alias mplayer='artsdsp mplayer'
 alias trayclose='eject -t'
 
 # Local networking stuff
@@ -306,8 +301,8 @@ alias ssh='ssh -4'
 alias smacs="sudo emacs"
 alias svi="sudo vim"
 alias sv="sudo folded-less.sh"
-alias sudoclean="sudo purge-files.sh"
-alias uqbarcon='runx xterm -e sudo minicom -l -w --color=on consoleS0'
+alias sudoclean="sudo clean.sh"
+alias sudorm="sudo safe-rm.sh"
 
 
 ########################################
@@ -318,6 +313,10 @@ alias uqbarcon='runx xterm -e sudo minicom -l -w --color=on consoleS0'
 
 
 ddate
+# When run via sudo or su, cd to $HOME
+if [ "$PWD" != "$HOME" ]; then
+    pushd -n ~ >/dev/null 2>&1
+fi
 
 
 
