@@ -66,8 +66,12 @@ esac
 MORE=-f
 LESS=-MiXF
 MANOPT="--sections=3:1:8:6:2:4:5:7 --all"
-[ -x /usr/bin/less ] && LESSBIN="/usr/bin/less"
 MOREBIN="/bin/more"
+if [ -x /usr/bin/less ]; then
+    LESSBIN="/usr/bin/less"
+elif [ -x /bin/less ]; then
+    LESSBIN="/bin/less"
+ fi
 PAGER="${LESSBIN:-${MOREBIN}}"
 export MORE LESS MANOPT PAGER
 
@@ -129,6 +133,9 @@ pagecommand() {
     shift
     if [ -z "$foldIt" ]; then
         ${cmdname} "$@" 2>&1 | ${PAGER:-more} ${po}
+    elif [ -n "$LESSBIN" ]; then
+        ${cmdname} "$@" 2>&1 | \
+            env LESSOPEN='| fold %s -s' ${LESSBIN} ${po}
     else
         ${cmdname} "$@" 2>&1 | fold -s | ${PAGER:-more} ${po}
     fi
@@ -579,17 +586,21 @@ if type -t where >/dev/null; then
 fi
 
 alias v="${PAGER} ${LESSBIN:+-r}"
-alias fv="pagecommand ${LESSBIN:+ -o -r} fold -s"
-if type zless >/dev/null; then
-    alias zv="pagecommand -f zless -R"
-else
-    alias zv="pagecommand -f zcat"
-fi
-if type bzless >/dev/null; then
-    alias bv="pagecommand -f bzless -R"
-else
-    alias bv="pagecommand -f bzcat"
-fi
+alias fv="pagecommand fold -s"
+# At this point, we have several special cases:
+l_fc="env LESSOPEN='| fold %s'"
+l_acmd=([0]=fv "${LESSBIN}" "-r" "" \
+    [4]=zv zless "-R" zcat \
+    [8]=bv bzless "-R" bzcat \
+    [12]=lzv lzmaless_does_not_exist "-R" lzcat)
+for l_aci in 0 4 8 12; do
+    if type -t ${l_acmd[1+$l_aci]} >/dev/null; then
+        alias ${l_acmd[$l_aci]}="$l_fc ${l_acmd[1+$l_aci]} ${l_acmd[2+$l_aci]}"
+    elif [ -n "${l_acmd[3+$l_aci]}" ]; then
+        alias ${l_acmd[$l_aci]}="pagecommand -f ${l_acmd[3+$l_aci]}"
+    fi
+done
+unset l_fc l_acmd l_aci
 
 
 #
@@ -598,7 +609,7 @@ fi
 
 alias man='LESS=${LESS}r man'
 
-o_gnu_ls="${GNU_LS_COLOR}" # ${GNU_LS_COLOR:+-h}"
+o_gnu_ls="${GNU_LS_COLOR}"
 o_gnu_dir="${o_gnu_ls} ${GNU_LS_COLOR:+-h}"
 o_ls="-F -C ${o_gnu_ls}"
 o_dir="-F -l ${o_gnu_dir}"
@@ -628,9 +639,16 @@ alias myjobs="ps_grep ${USER}"
 # *Archivers*  [tar/cpio]
 #
 
-r_tls="tar -tvf"
-r_tzv="${r_tls/-t/-zt}"
+
+r_tzv="tar -ztvf"
 r_tbv="${r_tzv/-z/-j}"
+r_tls="${r_tls/-zt/-t}"
+if tar --help | grep -c -- '--auto-compress' >/dev/null 2>&1; then
+    # Modern versions of 'tar' support an '-a' option for automatic
+    # decomression.
+    r_tls="${r_tls/-t/-at}"
+    export TAR_AUTOCOMPRESS_OPT="-a"
+fi
 alias tls="pagecommand ${r_tls}"
 alias tzv="pagecommand ${r_tzv}"
 alias tbv="pagecommand ${r_tbv}"
@@ -638,6 +656,8 @@ unset r_tls r_tzv r_tbv
 
 alias tarzf='tar -zcvf'
 alias tarbf='tar -jcvf'
+[ -n "$TAR_AUTOCOMPRESS_OPT" ] && alias taraf='tar -acvf'
+
 
 alias zipv="pagecommand unzip -l"
 
@@ -652,7 +672,7 @@ alias cpiobf='mkcpio --bzip2'
 
 alias gz="gzip -9v"
 
-#if type emacs >/dev/null; then
+#if type -t emacs >/dev/null; then
 #    alias emacs="$(type -p emacs) --custom-options-here"
 #fi
 

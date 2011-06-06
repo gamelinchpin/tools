@@ -180,7 +180,11 @@ alias repath="export PATH=${PATH}"
 alias resharc='source ~/.bashrc'
 alias resharc_all='INTERACTIVE="y" source ~/.bashrc'
 
-alias untar='tar -zxvf'
+
+if [ -n "$TAR_AUTOCOMPRESS_OPT" ]; then
+    alias untar='tar -axvf'
+fi
+alias untarz='tar -zxvf'
 alias untarb='tar -jxvf'
 alias uncpioz='uncpio --gzip'
 alias uncpiob='uncpio --bzip2'
