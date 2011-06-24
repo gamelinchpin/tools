@@ -642,12 +642,12 @@ alias myjobs="ps_grep ${USER}"
 
 r_tzv="tar -ztvf"
 r_tbv="${r_tzv/-z/-j}"
-r_tls="${r_tls/-zt/-t}"
+r_tls="${r_tzv/-zt/-t}"
 if tar --help | grep -c -- '--auto-compress' >/dev/null 2>&1; then
     # Modern versions of 'tar' support an '-a' option for automatic
     # decomression.
     r_tls="${r_tls/-t/-at}"
-    export TAR_AUTOCOMPRESS_OPT="-a"
+    r_tar_autocompress_opt="-a"
 fi
 alias tls="pagecommand ${r_tls}"
 alias tzv="pagecommand ${r_tzv}"
@@ -656,8 +656,8 @@ unset r_tls r_tzv r_tbv
 
 alias tarzf='tar -zcvf'
 alias tarbf='tar -jcvf'
-[ -n "$TAR_AUTOCOMPRESS_OPT" ] && alias taraf='tar -acvf'
-
+[ -n "$r_tar_autocompress_opt" ] && alias taraf='tar -acvf'
+unset r_tar_autocompress_opt
 
 alias zipv="pagecommand unzip -l"
 
@@ -676,7 +676,7 @@ alias gz="gzip -9v"
 #    alias emacs="$(type -p emacs) --custom-options-here"
 #fi
 
-alias locn="pagecommand locate"
+alias locn="pagecommand locate -e"
 alias manfile="pagecommand nroff -man"
 
 # Not needed if using the 'clean.sh' symlink to this script.
