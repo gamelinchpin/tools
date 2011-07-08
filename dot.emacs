@@ -167,7 +167,7 @@
  '(session-name-disable-regexp "\\`\\(/tmp\\|~/tmp/\\(itsalltext\\|mozex.wrk\\)\\)")
  '(session-save-file "/home/candide/.emacs.d/.session")
  '(tramp-auto-save-directory "/tmp/")
- '(tramp-default-method "sftp")
+ '(tramp-default-method "scp")
  '(visual-basic-mode-indent 2 t)
  '(woman-manpath (quote ("/opt/kde3/share/man/" "/usr/share/man" "/usr/local/share/man" ("/bin" . "/usr/share/man") ("/usr/bin" . "/usr/share/man") ("/sbin" . "/usr/share/man") ("/usr/sbin" . "/usr/share/man") ("/usr/local/bin" . "/usr/local/man") ("/usr/local/bin" . "/usr/local/share/man") ("/usr/local/sbin" . "/usr/local/man") ("/usr/local/sbin" . "/usr/local/share/man") ("/usr/X11R6/bin" . "/usr/X11R6/man") ("/usr/bin/X11" . "/usr/X11R6/man") ("/usr/games" . "/usr/share/man") ("/opt/bin" . "/opt/man") ("/opt/sbin" . "/opt/man") ("/opt/kde3/bin" . "/opt/kde3/share/man")))))
 

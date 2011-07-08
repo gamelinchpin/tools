@@ -330,7 +330,7 @@ Note that this function may require modification whenever
 (jpw-custom-set-variables-nonsaved
  '(password-cache-expiry 86400)
  '(tramp-auto-save-directory "/tmp/")
- '(tramp-default-method "sftp")
+ '(tramp-default-method "scp")
  )
 
 
@@ -480,6 +480,50 @@ Note that this function may require modification whenever
                    "To accompany my more colorful modeline, I'll pick an
                     off-white color for the inactive modeline instead of
                     \"grey90\"")
+                 '(org-agenda-done
+                   ((((class color) (min-colors 16) (background light))
+                     (:inherit org-done :weight normal))))
+                 '(org-block ((t (:inherit font-lock-comment-face))))
+                 '(org-code ((t (:inherit font-lock-constant-face))))
+                 '(org-document-info
+                   ((((class color) (background light))
+                     (:inherit font-lock-doc-face))))
+                 '(org-document-info-keyword
+                   ((t (:inherit font-lock-builtin-face))))
+                 '(org-done ((t (:background "#e0ffe0"
+                                             :foreground "midnight blue"
+                                             :weight bold))))
+                 '(org-formula
+                   ((((class color) (min-colors 88) (background light))
+                     (:inherit font-lock-type-face))))
+                 '(org-level-1
+                   ((t (:inherit outline-1 :overline t :underline t))))
+                 '(org-level-2
+                   ((t (:inherit outline-2 :overline t :underline t))))
+                 '(org-level-3
+                   ((t (:inherit outline-3 :overline t :underline t))))
+                 '(org-level-4
+                   ((t (:inherit outline-4 :overline t :underline t))))
+                 '(org-level-5
+                   ((t (:inherit outline-5 :overline t :underline t))))
+                 '(org-level-6
+                   ((t (:inherit outline-6 :overline t :underline t))))
+                 '(org-level-7
+                   ((t (:inherit outline-7 :overline t :underline t))))
+                 '(org-level-8
+                   ((t (:inherit outline-8 :overline t :underline t))))
+                 '(org-scheduled
+                   ((((class color) (min-colors 88) (background light))
+                     (:foreground "SeaGreen2"))))
+                 '(org-scheduled-today
+                   ((t (:inherit org-scheduled :weight bold))))
+                 '(org-special-keyword
+                   ((((class color) (min-colors 16) (background light))
+                     (:inherit font-lock-keyword-face))))
+                 '(org-todo ((t (:background "LemonChiffon"
+                                             :foreground "DeepPink2"
+                                             :weight bold))))
+                 '(org-verbatim ((t (:inherit font-lock-constant-face))))
                  '(sh-heredoc ((((class color) (background light))
                                 (:inherit font-lock-string-face
                                           :background "beige"))))
