@@ -461,11 +461,17 @@ if not done already.
 
 
 (defun jpw-session-save ()
-  "Call `session-save-session' but store only the open buffers.  Any killed
-buffers previously stored in `session-file-alist' are not saved when you call
-this function.
+  "Call `session-save-session' with completely \"fresh state\".  The old
+`session-save-file' is deleted and the variable `session-file-alist' erased.
 
-Use it to manually save a session.
+{Note:  Previously-killed buffers are all stored in `session-file-alist'.
+        Erasing it first ensures that only the open buffers are stored.}
+{Note2:  `session-save-session' appears to delete any existing
+         `session-save-file'.  Well, the present version of \"session.el\"
+         appears to.  But this defun also deletes `session-save-file', just to
+         be on the safe side.}
+
+Use it to save a clean session.
 {jpw:  8/2010}"
   (interactive)
    (and
@@ -474,11 +480,27 @@ Use it to manually save a session.
     (let ((old-sess-undo-chk session-undo-check))
       (setq session-file-alist nil
             session-undo-check -65536)
+      (delete-file session-save-file)
       (session-save-session)
       (setq session-undo-check old-sess-undo-chk)
       )
     )
   )
+
+
+(defun jpw-init-session-mgmt ()
+  "Load the \"session\" package and set up use of my `jpw-session-save' and
+'jpw-session-load' defuns for saving and loading session.
+{jpw:  7/2011}"
+  (interactive)
+
+  (require 'session)
+  (remove-hook 'kill-emacs-hook 'session-save-session)
+  (add-hook 'kill-emacs-hook 'jpw-session-save)
+  (add-hook 'emacs-startup-hook 'jpw-session-reload)
+  (global-set-key [?\C-c \S-f9] 'jpw-session-save)
+  (global-set-key [?\C-c \M-f10] 'jpw-session-reload)
+)
 
 
 ;;----------------------------------------------------------------------

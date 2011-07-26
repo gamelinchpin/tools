@@ -3,7 +3,7 @@
 ;;  .emacs setup file
 ;;
 ;;
-;;  last modified 06/2011            (jpw)
+;;  last modified 07/2011            (jpw)
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -124,8 +124,8 @@
 (jpw-cust-colorful-modeline)
 
 
-;; Reload the last session
-(if window-system (jpw-session-reload))
+;; Use my customized session-management
+(if window-system (jpw-init-session-mgmt))
 
 
 ;; Local Customizations
