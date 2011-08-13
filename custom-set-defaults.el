@@ -243,8 +243,8 @@ Note that this function may require modification whenever
                                 nil (ediff-wind))
  ;; `generic-define-*-modes is now obsolete, replaced by
  ;;`generic-extras-enable-list'
- ;;'(generic-define-mswindows-modes t)
- ;;'(generic-define-unix-modes t)
+ '(generic-define-mswindows-modes t)
+ '(generic-define-unix-modes t)
  '(generic-extras-enable-list (quote (alias-generic-mode
                                       apache-conf-generic-mode
                                       apache-log-generic-mode
