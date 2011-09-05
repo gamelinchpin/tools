@@ -697,6 +697,11 @@ case ${OSTYPE} in
         ;;
 
     *linux*)
+        # Enable commandline completion for certain functions & aliases.
+        #
+        complete -c command runx
+
+        #
         # *NetStuff*
         #
         alias ftp='ncftp'
@@ -707,6 +712,7 @@ case ${OSTYPE} in
         alias eject_cdrw="eject scd0"
         alias run_synaptic='runx -s synaptic'
         alias odx='od -A x -t x1z'
+        alias datestamp='echo -`date +%Y%m%d`'
         ;;
 esac
 
