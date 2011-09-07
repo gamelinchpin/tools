@@ -568,8 +568,13 @@ variable rather than hardcoded.
 (if is-cperl-installed
     (progn
       ;; Prefer CPerl mode to the std. Perl Mode
+      (defun jpw-prefer-cperl-mode ()
+        "Use CPerl-Mode instead of Perl-Mode.        {jpw; 09/2011}"
+        (interactive)
+        (defalias 'perl-mode 'cperl-mode)
+        )
       (defalias 'perl-mode-orig (symbol-function 'perl-mode))
-      (defalias 'perl-mode 'cperl-mode)
+      (jpw-prefer-cperl-mode)
       (autoload 'cperl-mode "cperl-mode")
 
       (eval-after-load 'cperl-mode
