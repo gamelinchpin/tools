@@ -596,11 +596,12 @@ variable rather than hardcoded.
       (if (not running-xemacs)
           (jpw-custom-set-faces-nonsaved
            '(cperl-array-face ((t (:inherit font-lock-variable-name-face
+                                            :foreground "#df6f00"
                                             :underline t))))
-           '(cperl-hash-face ((t (:inherit (cperl-array-face italic)))))
+           '(cperl-hash-face ((t (:inherit (cperl-array-face italic)
+                                           :foreground "DarkOrange4"))))
            '(cperl-nonoverridable-face
-             ((((class color) (background light))
-               (:inherit font-lock-constant-face))))
+             ((t (:inherit font-lock-constant-face))))
            )
         )
       );; end progn
