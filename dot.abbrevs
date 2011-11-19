@@ -1,26 +1,25 @@
-;;-*-coding: emacs-mule;-*-
-(define-abbrev-table 'antlr-mode-abbrev-table '(
-    ))
+;;-*- mode: Emacs-Lisp; coding: emacs-mule; -*-
+(define-abbrev-table 'Buffer-menu-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'apropos-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'Custom-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'asm-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'antlr-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'awk-mode-abbrev-table '(
-    ("else" "else" c-electric-continued-statement 0)
+(define-abbrev-table 'apropos-mode-abbrev-table '(    ))
+
+(define-abbrev-table 'asm-mode-abbrev-table '(    ))
+
+(define-abbrev-table 'awk-mode-abbrev-table '(    ("else" "else" c-electric-continued-statement 0)
     ("while" "while" c-electric-continued-statement 0)
     ))
 
-(define-abbrev-table 'bib-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'bib-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'bsh-script-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'bsh-script-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'c++-mode-abbrev-table '(
-    ("catch" "catch" c-electric-continued-statement 0)
+(define-abbrev-table 'bsh-script-mode-abbrev-table '(    ))
+
+(define-abbrev-table 'c++-mode-abbrev-table '(    ("catch" "catch" c-electric-continued-statement 0)
     ("doxb" "<b></b>" (lambda nil nil (backward-char 4)) 0)
     ("doxem" "<em></em>" (lambda nil nil (backward-char 5)) 0)
     ("doxtt" "<tt></tt>" (lambda nil nil (backward-char 5)) 2)
@@ -32,85 +31,66 @@
   */" nil 0)
     ("doxyl" "     /**
       *
-      */" nil 0)
+      */" nil 1)
     ("doxym" "     /// Short
      /**
       * Long
-      */" nil 4)
-    ("else" "else" c-electric-continued-statement 6)
+      */" nil 5)
+    ("else" "else" c-electric-continued-statement 4)
     ("while" "while" c-electric-continued-statement 0)
     ))
 
-(define-abbrev-table 'c-mode-abbrev-table '(
-    ("else" "else" c-electric-continued-statement 1)
+(define-abbrev-table 'c-mode-abbrev-table '(    ("else" "else" c-electric-continued-statement 0)
     ("while" "while" c-electric-continued-statement 0)
     ))
 
-(define-abbrev-table 'cfengine-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'calendar-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'change-log-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'cfengine-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'checkdoc-output-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'change-log-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'comint-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'checkdoc-output-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'conf-colon-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'comint-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'conf-javaprop-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'completion-list-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'conf-ppd-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'conf-colon-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'conf-space-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'conf-javaprop-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'conf-unix-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'conf-ppd-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'conf-windows-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'conf-space-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'conf-xdefaults-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'conf-unix-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'cvs-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'conf-windows-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'cvs-status-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'conf-xdefaults-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'delphi-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'cvs-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'diff-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'cvs-status-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'dsssl-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'delphi-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'edebug-eval-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'diff-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'ee-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'dsssl-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'emacs-lisp-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'edebug-eval-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'erc-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'ee-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'eshell-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'emacs-lisp-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'f90-mode-abbrev-table '(
-    ("`ab" "allocatable" nil 0)
+(define-abbrev-table 'erc-mode-abbrev-table '(    ))
+
+(define-abbrev-table 'eshell-mode-abbrev-table '(    ))
+
+(define-abbrev-table 'f90-mode-abbrev-table '(    ("`ab" "allocatable" nil 0)
     ("`al" "allocate" nil 0)
     ("`as" "assignment" nil 0)
     ("`ba" "backspace" nil 0)
@@ -165,8 +145,7 @@
     ("`wr" "write" nil 0)
     ))
 
-(define-abbrev-table 'fortran-mode-abbrev-table '(
-    (";au" "automatic" nil 0)
+(define-abbrev-table 'fortran-mode-abbrev-table '(    (";au" "automatic" nil 0)
     (";b" "byte" nil 0)
     (";bd" "block data" nil 0)
     (";c" "continue" nil 0)
@@ -226,38 +205,27 @@
     (";wh" "where" nil 0)
     ))
 
-(define-abbrev-table 'fundamental-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'fundamental-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'gdb-script-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'gdb-script-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'global-abbrev-table '(
-    ))
+(define-abbrev-table 'global-abbrev-table '(    ))
 
-(define-abbrev-table 'gnus-article-edit-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'gnus-article-edit-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'grep-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'grep-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'gud-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'gud-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'html-helper-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'html-helper-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'html-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'html-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'icon-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'icon-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'idl-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'idl-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'idlwave-mode-abbrev-table '(
-    ("\\b" "begin" (lambda nil (idlwave-check-abbrev 0 t)) 0)
+(define-abbrev-table 'idlwave-mode-abbrev-table '(    ("\\b" "begin" (lambda nil (idlwave-check-abbrev 0 t)) 0)
     ("\\c" "" (lambda nil "(idlwave-case)" (if (idlwave-quoted) (progn (unexpand-abbrev) nil) (idlwave-case))) 0)
     ("\\cb" "byte()" (lambda nil (idlwave-check-abbrev 1)) 0)
     ("\\cc" "complex()" (lambda nil (idlwave-check-abbrev 1)) 0)
@@ -358,39 +326,36 @@
     ("xor" "xor" (lambda nil (idlwave-check-abbrev 0 t)) 0)
     ))
 
-(define-abbrev-table 'image-dired-display-image-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'image-dired-display-image-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'image-dired-thumbnail-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'image-dired-thumbnail-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'inferior-python-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'inferior-python-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'inferior-scheme-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'inferior-scheme-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'inferior-tcl-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'inferior-tcl-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'java-mode-abbrev-table '(
-    ("catch" "catch" c-electric-continued-statement 2)
+(define-abbrev-table 'java-mode-abbrev-table '(    ("catch" "catch" c-electric-continued-statement 2)
     ("else" "else" c-electric-continued-statement 3)
     ("finally" "finally" c-electric-continued-statement 0)
     ("jdb" "<b></b>" (lambda nil nil (backward-char 4)) 0)
     ("jdblk" "    /**
      *
      */" nil 0)
-    ("jdbr" "<br/>" (lambda nil nil (backward-char 3) (do-comment-line-break) (backward-char -3) (do-comment-line-break)) 0)
+    ("jdbr" "<br/>")
     ("jdc" "<code></code>" (lambda nil nil (backward-char 7)) 0)
     ("jdem" "<em></em>" (lambda nil nil (backward-char 5)) 0)
     ("jdf" "<tt>false</tt>" nil 0)
     ("jdl" "{@link }" (lambda nil nil (backward-char)) 0)
     ("jdm" "/**
      * Short
-     * 
-     * <p>Long</p>
+     *
+     * <p>
+     * Long
+     * </p>
      */" nil 2)
+    ("jdpar" "<p></p>" (lambda nil nil (backward-char 4) (do-comment-line-break) (do-comment-line-break) (end-of-line) (previous-line 1) (end-of-line)) 0)
     ("jdn" "<tt>null</tt>" nil 0)
     ("jdp" "@param" nil 0)
     ("jdpre" "<pre></pre>" (lambda nil nil (backward-char 6) (do-comment-line-break) (do-comment-line-break) (end-of-line) (previous-line 1)) 0)
@@ -401,26 +366,28 @@
     ("while" "while" c-electric-continued-statement 0)
     ))
 
-(define-abbrev-table 'jde-mode-abbrev-table '(
-    ("catch" "catch" c-electric-continued-statement 1)
+(define-abbrev-table 'jde-mode-abbrev-table '(    ("catch" "catch" c-electric-continued-statement 1)
     ("else" "else" c-electric-continued-statement 1)
     ("finally" "finally" c-electric-continued-statement 0)
     ("jdb" "<b></b>" (lambda nil nil (backward-char 4)) 0)
     ("jdblk" "    /**
      *
      */" nil 0)
-    ("jdbr" "<br/>" (lambda nil nil (backward-char 3) (do-comment-line-break) (backward-char -3) (do-comment-line-break)) 0)
+    ("jdbr" "<br/>")
     ("jdc" "<code></code>" (lambda nil nil (backward-char 7)) 0)
     ("jdem" "<em></em>" (lambda nil nil (backward-char 5)) 0)
     ("jdf" "<tt>false</tt>" nil 0)
     ("jdl" "{@link }" (lambda nil nil (backward-char)) 0)
     ("jdm" "/**
      * Short
-     * 
-     * <p>Long</p>
+     *
+     * <p>
+     * Long
+     * </p>
      */" nil 3)
     ("jdn" "<tt>null</tt>" nil 0)
     ("jdp" "@param" nil 0)
+    ("jdpar" "<p></p>" (lambda nil nil (backward-char 4) (do-comment-line-break) (do-comment-line-break) (end-of-line) (previous-line 1) (end-of-line)) 0)
     ("jdpre" "<pre></pre>" (lambda nil nil (backward-char 6) (do-comment-line-break) (do-comment-line-break) (end-of-line) (previous-line 1)) 0)
     ("jdr" "@return" nil 0)
     ("jds" "@see" nil 0)
@@ -429,70 +396,52 @@
     ("while" "while" c-electric-continued-statement 1)
     ))
 
-(define-abbrev-table 'jde-run-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'jde-run-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'jpw-lj-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'jpw-lj-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'jython-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'jython-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'ld-script-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'ld-script-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'lisp-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'lisp-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'log-edit-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'log-edit-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'log-view-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'log-view-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'm4-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'm4-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'makefile-automake-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'makefile-automake-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'makefile-bsdmake-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'makefile-bsdmake-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'makefile-gmake-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'makefile-gmake-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'makefile-imake-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'makefile-imake-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'makefile-makepp-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'makefile-makepp-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'makefile-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'makefile-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'message-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'message-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'meta-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'meta-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'newsticker-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'mutt-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'nroff-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'newsticker-mode-abbrev-table '(    ))
+
+(define-abbrev-table 'nroff-mode-abbrev-table '(    ))
 
 (define-abbrev-table 'objc-mode-abbrev-table '(
     ("else" "else" c-electric-continued-statement 0)
     ("while" "while" c-electric-continued-statement 0)
     ))
 
-(define-abbrev-table 'occur-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'occur-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'octave-abbrev-table '(
-    ("`a" "all_va_args" nil 0)
+(define-abbrev-table 'octave-abbrev-table '(    ("`a" "all_va_args" nil 0)
     ("`b" "break" nil 0)
     ("`c" "continue" nil 0)
     ("`ca" "catch" nil 0)
@@ -522,222 +471,85 @@
     ("`w" "while ()" nil 0)
     ))
 
-(define-abbrev-table 'org-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'org-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'outline-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'outline-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'pascal-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'pascal-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'perl-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'perl-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'phpBB-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'phpBB-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'pike-mode-abbrev-table '(
-    ("else" "else" c-electric-continued-statement 0)
+(define-abbrev-table 'pike-mode-abbrev-table '(    ("else" "else" c-electric-continued-statement 0)
     ("while" "while" c-electric-continued-statement 0)
     ))
 
-(define-abbrev-table 'prolog-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'prolog-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'ps-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'ps-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'ps-run-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'ps-run-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'python-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'python-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'reb-lisp-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'reb-lisp-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'rlogin-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'rlogin-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'rpm-spec-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'rpm-spec-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'scheme-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'scheme-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'select-tags-table-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'select-tags-table-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'sgml-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'sgml-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'sh-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'sh-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'shell-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'shell-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'sieve-manage-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'sieve-manage-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'sieve-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'sieve-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'simula-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'simula-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'sql-mode-abbrev-table '(
-    ("del" "delete" nil 0)
+(define-abbrev-table 'special-mode-abbrev-table '(    ))
+
+(define-abbrev-table 'sql-mode-abbrev-table '(    ("del" "delete" nil 0)
     ("ins" "insert" nil 0)
     ("sel" "select" nil 0)
     ("upd" "update" nil 0)
     ))
 
-(define-abbrev-table 'svn-log-view-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'svn-log-edit-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'tcl-mode-abbrev-table '(
-    ("''" "<tt></tt>" (lambda nil nil (backward-char 5)) 2)
+(define-abbrev-table 'svn-log-view-mode-abbrev-table '(    ))
+
+(define-abbrev-table 'svn-status-diff-mode-abbrev-table '(    ))
+
+(define-abbrev-table 'tcl-mode-abbrev-table '(    ("''" "<tt></tt>" (lambda nil nil (backward-char 5)) 2)
     ("**" "<b></b>" (lambda nil nil (backward-char 4)) 0)
     ("//" "<em></em>" (lambda nil nil (backward-char 5)) 0)
     ("__" "<u></u>" (lambda nil nil (backward-char 4)) 0)
     ))
 
-(define-abbrev-table 'text-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'text-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'thumbs-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'thumbs-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'thumbs-view-image-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'thumbs-view-image-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'vc-annotate-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'vc-annotate-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'vc-dired-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'vc-dired-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'vc-log-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'vc-log-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'vhdl-mode-abbrev-table '(
-    ("--" "" vhdl-template-display-comment-hook 0)
-    ("abs" "" vhdl-template-default-hook 0)
-    ("access" "" vhdl-template-default-hook 0)
-    ("after" "" vhdl-template-default-hook 0)
-    ("alias" "" vhdl-template-alias-hook 0)
-    ("all" "" vhdl-template-default-hook 0)
-    ("and" "" vhdl-template-default-hook 0)
-    ("arch" "" vhdl-template-architecture-hook 0)
-    ("architecture" "" vhdl-template-architecture-hook 0)
-    ("array" "" vhdl-template-default-hook 0)
-    ("assert" "" vhdl-template-assert-hook 0)
-    ("attr" "" vhdl-template-attribute-hook 0)
-    ("attribute" "" vhdl-template-attribute-hook 0)
-    ("begin" "" vhdl-template-default-indent-hook 0)
-    ("block" "" vhdl-template-block-hook 0)
-    ("body" "" vhdl-template-default-hook 0)
-    ("buffer" "" vhdl-template-default-hook 0)
-    ("bus" "" vhdl-template-default-hook 0)
-    ("case" "" vhdl-template-case-hook 0)
-    ("comp" "" vhdl-template-component-hook 0)
-    ("component" "" vhdl-template-component-hook 0)
-    ("cond" "" vhdl-template-conditional-signal-asst-hook 0)
-    ("conditional" "" vhdl-template-conditional-signal-asst-hook 0)
-    ("conf" "" vhdl-template-configuration-hook 0)
-    ("configuration" "" vhdl-template-configuration-hook 0)
-    ("cons" "" vhdl-template-constant-hook 0)
-    ("constant" "" vhdl-template-constant-hook 0)
-    ("disconnect" "" vhdl-template-disconnect-hook 0)
-    ("downto" "" vhdl-template-default-hook 0)
-    ("else" "" vhdl-template-else-hook 0)
-    ("elseif" "" vhdl-template-elsif-hook 0)
-    ("elsif" "" vhdl-template-elsif-hook 0)
-    ("end" "" vhdl-template-default-indent-hook 0)
-    ("entity" "" vhdl-template-entity-hook 0)
-    ("exit" "" vhdl-template-exit-hook 0)
-    ("file" "" vhdl-template-file-hook 0)
-    ("for" "" vhdl-template-for-hook 0)
-    ("func" "" vhdl-template-function-hook 0)
-    ("function" "" vhdl-template-function-hook 0)
-    ("generic" "" vhdl-template-generic-hook 0)
-    ("group" "" vhdl-template-group-hook 0)
-    ("guarded" "" vhdl-template-default-hook 0)
-    ("if" "" vhdl-template-if-hook 0)
-    ("impure" "" vhdl-template-default-hook 0)
-    ("in" "" vhdl-template-default-hook 0)
-    ("inertial" "" vhdl-template-default-hook 0)
-    ("inout" "" vhdl-template-default-hook 0)
-    ("inst" "" vhdl-template-instance-hook 0)
-    ("instance" "" vhdl-template-instance-hook 0)
-    ("is" "" vhdl-template-default-hook 0)
-    ("label" "" vhdl-template-default-hook 0)
-    ("library" "" vhdl-template-library-hook 0)
-    ("linkage" "" vhdl-template-default-hook 0)
-    ("literal" "" vhdl-template-default-hook 0)
-    ("loop" "" vhdl-template-bare-loop-hook 0)
-    ("map" "" vhdl-template-map-hook 0)
-    ("mod" "" vhdl-template-default-hook 0)
-    ("nand" "" vhdl-template-default-hook 0)
-    ("new" "" vhdl-template-default-hook 0)
-    ("next" "" vhdl-template-next-hook 0)
-    ("nor" "" vhdl-template-default-hook 0)
-    ("not" "" vhdl-template-default-hook 0)
-    ("null" "" vhdl-template-default-hook 0)
-    ("of" "" vhdl-template-default-hook 0)
-    ("on" "" vhdl-template-default-hook 0)
-    ("open" "" vhdl-template-default-hook 0)
-    ("or" "" vhdl-template-default-hook 0)
-    ("others" "" vhdl-template-others-hook 0)
-    ("out" "" vhdl-template-default-hook 0)
-    ("pack" "" vhdl-template-package-hook 0)
-    ("package" "" vhdl-template-package-hook 0)
-    ("port" "" vhdl-template-port-hook 0)
-    ("postponed" "" vhdl-template-default-hook 0)
-    ("procedure" "" vhdl-template-procedure-hook 0)
-    ("process" "" vhdl-template-process-hook 0)
-    ("pure" "" vhdl-template-default-hook 0)
-    ("range" "" vhdl-template-default-hook 0)
-    ("record" "" vhdl-template-default-hook 0)
-    ("register" "" vhdl-template-default-hook 0)
-    ("reject" "" vhdl-template-default-hook 0)
-    ("rem" "" vhdl-template-default-hook 0)
-    ("report" "" vhdl-template-report-hook 0)
-    ("return" "" vhdl-template-return-hook 0)
-    ("rol" "" vhdl-template-default-hook 0)
-    ("ror" "" vhdl-template-default-hook 0)
-    ("select" "" vhdl-template-selected-signal-asst-hook 0)
-    ("severity" "" vhdl-template-default-hook 0)
-    ("shared" "" vhdl-template-default-hook 0)
-    ("sig" "" vhdl-template-signal-hook 0)
-    ("signal" "" vhdl-template-signal-hook 0)
-    ("sla" "" vhdl-template-default-hook 0)
-    ("sll" "" vhdl-template-default-hook 0)
-    ("sra" "" vhdl-template-default-hook 0)
-    ("srl" "" vhdl-template-default-hook 0)
-    ("subtype" "" vhdl-template-subtype-hook 0)
-    ("then" "" vhdl-template-default-hook 0)
-    ("to" "" vhdl-template-default-hook 0)
-    ("transport" "" vhdl-template-default-hook 0)
-    ("type" "" vhdl-template-type-hook 0)
-    ("unaffected" "" vhdl-template-default-hook 0)
-    ("units" "" vhdl-template-default-hook 0)
-    ("until" "" vhdl-template-default-hook 0)
-    ("use" "" vhdl-template-use-hook 0)
-    ("var" "" vhdl-template-variable-hook 0)
-    ("variable" "" vhdl-template-variable-hook 0)
-    ("wait" "" vhdl-template-wait-hook 0)
-    ("when" "" vhdl-template-when-hook 0)
-    ("while" "" vhdl-template-while-loop-hook 0)
-    ("with" "" vhdl-template-with-hook 0)
-    ("xnor" "" vhdl-template-default-hook 0)
-    ("xor" "" vhdl-template-default-hook 0)
-    ))
+(define-abbrev-table 'vc-svn-log-view-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'visual-basic-mode-abbrev-table '(
-    ("add" "Add" nil 0)
+(define-abbrev-table 'visual-basic-mode-abbrev-table '(    ("add" "Add" nil 0)
     ("aggregate" "Aggregate" nil 0)
     ("and" "And" nil 0)
     ("app" "App" nil 0)
@@ -1032,6 +844,5 @@
     ("year" "Year" nil 0)
     ))
 
-(define-abbrev-table 'wikipedia-mode-abbrev-table '(
-    ))
+(define-abbrev-table 'wikipedia-mode-abbrev-table '(    ))
 
