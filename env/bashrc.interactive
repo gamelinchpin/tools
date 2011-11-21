@@ -80,7 +80,13 @@ export MORE LESS MANOPT PAGER
 
 # Color-LS support
 if [ -n "${GNU_LS_COLOR}" -a -z "${LS_COLORS}" ]; then
-    eval `dircolors --sh /etc/DIR_COLORS`
+    if [ -r $HOME/.dir_colors ]; then
+        eval `dircolors --sh $HOME/.dir_colors`
+    elif [ -r /etc/DIR_COLORS ]; then
+        eval `dircolors --sh /etc/DIR_COLORS`
+    else
+        eval `dircolors --sh`
+    fi
     export LS_COLORS
 fi
 
@@ -560,6 +566,41 @@ runx() {
     fi
 }
 
+# Bash completion support for the 'runx' function.
+complete__runx() {
+    # Use the fn. '_command_offset()' if provided by the local bash-completion
+    # package (if any).
+    if type _command_offset &>/dev/null; then
+        _command_offset 0
+        return;
+    fi
+    # else:  Do it by hand.
+
+    # Pull out the first arg to 'runx'
+    local cmd0=""
+    if [ $COMP_CWORD -gt 0 ]; then
+        cmd0=${COMP_WORDS[1]}
+    fi
+    local cmd=${cmd0##*/}
+
+    # Two cases:  completing the cmd passed to runx, or completing anything
+    # else on the cmdline.
+    if [ $COMP_CWORD -gt 1 ]; then
+        # Complete to whatever the first arg normally does.
+        local last="${COMP_WORDS[$COMP_CWORD]}"
+        local completer0=$(complete -p "$cmd" &>/dev/null)
+        local completer=${completer0#complete}
+        completer=${completer%%${cmd}}
+        if [ -z "$completer" ]; then
+            completer="-f"
+        fi
+        COMPREPLY=( $(compgen $completer -- "$last") )
+    else
+        # Complete to a command name.
+        COMPREPLY=( $(compgen -c -- "$cmd") )
+    fi
+}
+
 
 #################################################################
 #
@@ -699,7 +740,8 @@ case ${OSTYPE} in
     *linux*)
         # Enable commandline completion for certain functions & aliases.
         #
-        complete -c command runx
+        complete -F complete__runx runx
+        
 
         #
         # *NetStuff*
