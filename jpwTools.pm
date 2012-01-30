@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 #
-# Copyright (C) 2002-2011 by John P. Weiss
+# Copyright (C) 2002-2012 by John P. Weiss
 #
 # This package is free software; you can redistribute it and/or modify
 # it under the terms of the Artistic License, included as the file
@@ -42,6 +42,7 @@ BEGIN {
                  openPipeDie closePipeDie failedOpenDie
                  datestamp datetime_now
                  const_array uniq select_sample
+                 key_not_set push_subarray
                  invert_hash pivot_hash
                  rename_keys transform_keys lc_keys uc_keys
                  asymm_diff circular_shift circular_pop
@@ -102,7 +103,7 @@ $Data::Dumper::Indent = 1;
 ############
 
 
-sub dbgprint($@_) {
+sub dbgprint($@) {
     my $lvl = shift();
 
     # No more args?  Nothing to do.
@@ -210,6 +211,17 @@ sub dbgprint($@_) {
 }
 
 
+## This fails at compile time if 'use constant DEBUG' doesn't precede the
+## 'use'-statement for this package.  So, we disable this.
+##
+#sub ifdbgprint($@) {
+#    if (::DEBUG) {
+#        my $lvl = shift();
+#        dbgprint($lvl, @_);
+#    }
+#}
+
+
 sub check_syscmd_status {
     my $laststat=$?;
     my $lastErrmsg="$!";
@@ -239,7 +251,12 @@ sub check_syscmd_status {
             $laststat = $flags{"laststat"};
             $exitVal = ($laststat >> 8);
             $signal = ($laststat & 0x7F);
+        } elsif (defined($flags{"exitval"})) {
+            $exitVal = $flags{"exitval"};
+            $laststat = $exitVal;
+            $signal = 0;
         }
+
 
         if (defined($flags{"no_stacktrace"})) {
             $noStacktrace = $flags{"no_stacktrace"};
@@ -284,8 +301,11 @@ sub check_syscmd_status {
         my @ones = (1) x scalar(@$ref_ignoreList);
         @ignore{ @$ref_ignoreList } = @ones;
         $ignore{0} = 1;
+        return 0 if (exists($ignore{$exitVal}) && $ignore{$exitVal});
+
+        # FIXME:  This may no longer be needed.
         my $errMsg="";
-        unless ( !($ignore{$exitVal}) ) {
+        if (0) {
             $errMsg .=
                 "WARNING: Command \"@_\" exited with status $exitVal.\n";
             unless ($lastErrmsg eq '') {
@@ -435,6 +455,27 @@ sub uniq {
     # This is also fast AND preserves the original list's order, but is a bit
     # harder to read.
     return grep({ !$seen{$_}++ } @_);
+}
+
+
+sub key_not_set(\%$) {
+    my $ref_hash = shift();
+    my $key = shift();
+
+    return (!exists($ref_hash->{$key}) || !defined($ref_hash->{$key}));
+}
+
+
+sub push_subarray(\%$;@) {
+    my $ref_hash = shift();
+    my $key = shift();
+
+    if (key_not_set(%$ref_hash, $key)) {
+        my @valArray = @_;
+        $ref_hash->{$key} = \@valArray;
+    } elsif (scalar(@_) && (ref($ref_hash->{$key}) eq "ARRAY")) {
+        push(@{$ref_hash->{$key}}, @_);
+    }
 }
 
 
@@ -692,7 +733,6 @@ sub not_empty($) {
              ||
              0);
 }
-
 
 sub set_scalar_if_nonempty(\$\%$) {
     my ($svar_ref,
@@ -969,11 +1009,14 @@ sub get_files_from_dirs(\%$@) {
                 $k = File::Spec->catfile($dir, $f);
             }
             # Format:
+
             # [basename, dirname, extension, basename_stem, type, orig_dir]
+
             # 'basename_stem' is 'basename' with 'extension' removed.  'type'
-            # is 0 for regular files, 1 for dirs.  'orig_dir' is the name of
-            # the original directory passed to this function.
-            $ref_fileMap->{$k} = [$f, $dir, '', $f, 0, $orig_dir];
+            # is "" for regular files, 'd' for dirs, 'L' for symlinks, and
+            # another char for other types (see the POD).  'orig_dir' is the
+            # name of the original directory passed to this function.
+            $ref_fileMap->{$k} = [$f, $dir, '', $f, '', $orig_dir];
 
             # Crude filename decomposition:  recognizes only '.' as the
             # extension separator.
@@ -981,8 +1024,23 @@ sub get_files_from_dirs(\%$@) {
                 $ref_fileMap->{$k}[2] = $2;
                 $ref_fileMap->{$k}[3] = $1;
             }
-            if (-d $f) {
-                $ref_fileMap->{$k}[4] = 1;
+            # Stat once & reuse result via '_' in the file tests.  Note that
+            # we use 'lstat' in case we're looking at a broken symlink.
+            lstat($k);
+            if (-d _) {
+                $ref_fileMap->{$k}[4] = 'd';
+            } elsif (-l _) {
+                $ref_fileMap->{$k}[4] = 'L';
+            } elsif (-b _) {
+                $ref_fileMap->{$k}[4] = 'b';
+            } elsif (-c _) {
+                $ref_fileMap->{$k}[4] = 'c';
+            } elsif (-p _) {
+                $ref_fileMap->{$k}[4] = 'p';
+            } elsif (-S _) {
+                $ref_fileMap->{$k}[4] = 's';
+            } elsif (! -f _) {
+                $ref_fileMap->{$k}[4] = '?';
             }
         }
         closedir DH;
@@ -1572,9 +1630,9 @@ jpwTools - Package containing John's Perl Tools.
 
 =item not_empty(I<var>)
 
-=item set_array_if_nonempty(I<$scalarvar>, I<%map>, I<key>)
+=item set_array_if_nonempty(I<@listvar>, I<%map>, I<key>)
 
-=item set_scalar_if_nonempty(I<@listvar>, I<%map>, I<key>)
+=item set_scalar_if_nonempty(I<$scalarvar>, I<%map>, I<key>)
 
 =item create_regexp_group(I<@words>)
 
@@ -1589,6 +1647,8 @@ jpwTools - Package containing John's Perl Tools.
 =over 4
 
 =item dbgprint(I<lvl>, I<stringsOrArrayref>...)
+
+=item ifdbgprint(I<lvl>, I<stringsOrArrayref>...)
 
 =item check_syscmd_status([I<ctrlRef>, ] I<cmd>...)
 
@@ -1619,6 +1679,10 @@ jpwTools - Package containing John's Perl Tools.
 =head2 B<Hashes>
 
 =over 4
+
+=item key_not_set(I<%hash>, I<key2check>)
+
+=item push_subarray(I<%hash>, I<$targKey> [, I<$val> [I<$val> ...]])
 
 =item invert_hash(I<%hash> [, I<%invHash_out>])
 
@@ -1740,17 +1804,17 @@ For any other type of variable or reference, returns C<false>.
 
 =item -
 
-set_array_if_nonempty(I<@array>, I<%map>, I<key>)
+set_array_if_nonempty(I<@listvar>, I<%map>, I<key>)
 
 If C<$I<map>{I<key>}> is non-empty (as determined by C<not_empty()>),
-sets I<@array> to C<@{I<$map>{I<key>}}>.
+sets I<@listvar> to C<@{I<$map>{I<key>}}>.
 
 (Thus, the value of I<%map> corresponding to I<key> had better be an array
 reference, or this function will return an error.)
 
 =item -
 
-set_scalar_if_nonempty(I<@listvar>, I<%map>, I<key>)
+set_scalar_if_nonempty(I<$scalarvar>, I<%map>, I<key>)
 
 If C<$%I<map>{I<key>}> is non-empty (as determined by C<not_empty()>),
 sets I<$scalarvar> to its value.
@@ -1796,16 +1860,27 @@ absolute path.  Each value is an array reference containing the following:
  I<fileDirnameAbspath>,
  I<fileExtension>,
  I<fileBasenameStem>,
- I<isDirectory>,
+ I<fileType>,
  I<originalDirectory>]
 
 =back
 
-The names for each element are fairly self-explanatory.  I<isDirectory> is a
-boolean flag.  I<fileBasenameStem> is basically I<fileBasename> with
-I<fileExtension> removed.  I<originalDirectory> contains one of the I<dir>
-strings passed as an argument, specifically the one that resolves to the
-file's parent.
+The names for each element are fairly self-explanatory.  I<fileBasenameStem>
+is basically I<fileBasename> with I<fileExtension> removed.
+I<originalDirectory> contains one of the I<dir> strings passed as an argument,
+specifically the one that resolves to the file's parent.
+
+I<fileType> is a single character string indicating the type of file.  It can
+have any of the following values:
+
+    ''  :== A regular file
+    'd' :== A directory
+    'L' :== A symlink (may or may not be valid)
+    'b' :== A block device file
+    'c' :== A character device file
+    'p' :== A named pipe
+    's' :== A named socket
+    '?' :== An unknown type of file
 
 =back
 
@@ -1859,15 +1934,49 @@ the last "prefix-only line".
 
 =item -
 
+ifdbgprint(I<lvl>, I<stringsOrArrayref>...)
+
+This really isn't a function, but documentation for an optimized code-pattern
+that lets you leave C<dbgprint> in the source.
+
+Here's the code pattern:
+
+    use constant
+        DEBUG => 0 # or 1, depending on what you want to do.
+    ;
+
+    sub ifdbgprint($@) {
+        if (DEBUG) {
+            my $lvl = shift();
+            dbgprint($lvl, @_);
+        }
+    }
+
+Defining the compile-time constant, C<DEBUG>, to '0' not only disables the
+debug printout, the perl compiler will completely optimized away the code
+inside of C<ifdbgprint>.  See L<constant> (using C<perldoc>) for details.
+
+Unfortunately, this pattern can't be defined in this module.  You would have
+to always define C<DEBUG> in the main namespace anytime you wanted to use this
+package.  Otherwise, this package would fail to compile.  Making C<DEBUG> a
+mackage-member constant obviously won't work (you can't redefine a constant).
+Lastly, Perl will not optimize away the call if you don't use a constant in
+the guard-C<if> block.
+
+You can't use an C<if>-statement to check if a constant has been defined,
+either, since an C<if>-statement is only evaluated at runtime.
+
+=item -
+
 check_syscmd_status([I<ctrlRef>, ] I<cmd>...)
 
 Checks $?, the status of the last system command run.  If the status is
 nonzero, it prints out the specified args as part of an error message, then
 aborts the program.
 
-You should call this function immediately after your call to C<system>.  You
-can also use it when opening a file or pipe, and when closing a pipe (see
-below).
+You should call this function immediately after your call to C<system> (or to
+the `` operator.  You can also use it when opening a file or pipe, and when
+closing a pipe (see below).
 
 I<cmd> is one or more strings containing the command you executed with the
 C<system> call.  It will usually be the same args you just passed to
@@ -1889,7 +1998,7 @@ If I<ctrlRef> is a hash, it may contain one of the following keys:
 
 This option lets you specify the list of exit values to ignore when you also
 need to use one of the other options listed below.  The value of this key
-should be an array reference.  Any other value will be silently ignored..
+should be an array reference.  Any other value will be silently ignored.
 
 =item C<laststat>
 
@@ -1898,6 +2007,16 @@ directly.  That doesn't work if you need to call some other function before
 C<check_syscmd_status>, or if you call C<check_syscmd_status> from a
 wrapper-function.  This option solves that problem.  Set its value to your
 previously saved $? value.
+
+Note that the C<system> function returns $?.  So, you can use that return
+value with C<laststat>, too.
+
+=item C<exitval>
+
+An alternative to using C<laststat>, when you don't have access to $? but do
+have the exit value of the subprocess.  Using C<laststat> (or neither of
+these) is preferable, since the $? variable contains both exit status and
+signal information.
 
 =item C<no_stacktrace>
 
@@ -2108,6 +2227,26 @@ array may contain (I<nSelected>+1) elements ... or not.
 =head2 B<Hashes>
 
 =over 2
+
+=item -
+
+key_not_set(I<%hash>, I<key2check>)
+
+Returns true if I<key2check> doesn't exists in I<%hash> or if it exists but
+isn't defined.  Performs this check w/o autovivifying the element
+C<$hash{key2check}>.
+
+=item -
+
+push_subarray(I<$subelement>, I<$val> [, I<$val> ...]])
+
+Pushes the specified values onto the arrayref specified in the first arg.  If
+C<$hash{$targKey}> ...  B<if> the latter is an arrayref.  If it's some other
+type of value, C<push_subarray> does nothing.
+
+If C<$hash{$targKey}> doesn't exist yet, it will be set to an arrayref
+containing the specified values (or an empty arrayref if only 2 args were
+passed to C<push_subarray>).
 
 =item -
 
