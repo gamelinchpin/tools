@@ -28,14 +28,14 @@
   * Short Descr.
   *
   * Long Descr.
-  */" nil 0)
+  */" jpw-abbrev-indent-doc-block 0)
     ("doxyl" "     /**
       *
-      */" nil 1)
+      */" jpw-abbrev-indent-doc-block 1)
     ("doxym" "     /// Short
      /**
       * Long
-      */" nil 5)
+      */" jpw-abbrev-indent-doc-block 5)
     ("else" "else" c-electric-continued-statement 4)
     ("while" "while" c-electric-continued-statement 0)
     ))
@@ -339,26 +339,27 @@
 (define-abbrev-table 'java-mode-abbrev-table '(    ("catch" "catch" c-electric-continued-statement 2)
     ("else" "else" c-electric-continued-statement 3)
     ("finally" "finally" c-electric-continued-statement 0)
+    ("jdarg" "<code><em></em></code>" (lambda nil nil (backward-char 12)) 0)
     ("jdb" "<b></b>" (lambda nil nil (backward-char 4)) 0)
-    ("jdblk" "    /**
-     *
-     */" nil 0)
     ("jdbr" "<br/>")
     ("jdc" "<code></code>" (lambda nil nil (backward-char 7)) 0)
     ("jdem" "<em></em>" (lambda nil nil (backward-char 5)) 0)
     ("jdf" "<tt>false</tt>" nil 0)
-    ("jdl" "{@link }" (lambda nil nil (backward-char)) 0)
+    ("jdl" "{@link}" (lambda nil nil (backward-char)) 0)
     ("jdm" "/**
      * Short
      *
      * <p>
      * Long
      * </p>
-     */" nil 2)
-    ("jdpar" "<p></p>" (lambda nil nil (backward-char 4) (do-comment-line-break) (do-comment-line-break) (end-of-line) (previous-line 1) (end-of-line)) 0)
+     */" jpw-abbrev-indent-doc-block 2)
+    ("jdpar" "" jpw-abbrev-insert-doc-par 0)
     ("jdn" "<tt>null</tt>" nil 0)
+    ("jdoc" "/**
+     *
+     */" jpw-abbrev-indent-doc-block 0)
     ("jdp" "@param" nil 0)
-    ("jdpre" "<pre></pre>" (lambda nil nil (backward-char 6) (do-comment-line-break) (do-comment-line-break) (end-of-line) (previous-line 1)) 0)
+    ("jdpre" "" jpw-abbrev-insert-doc-pre 0)
     ("jdr" "@return" nil 0)
     ("jds" "@see" nil 0)
     ("jdt" "<tt>true</tt>" nil 0)
@@ -366,35 +367,8 @@
     ("while" "while" c-electric-continued-statement 0)
     ))
 
-(define-abbrev-table 'jde-mode-abbrev-table '(    ("catch" "catch" c-electric-continued-statement 1)
-    ("else" "else" c-electric-continued-statement 1)
-    ("finally" "finally" c-electric-continued-statement 0)
-    ("jdb" "<b></b>" (lambda nil nil (backward-char 4)) 0)
-    ("jdblk" "    /**
-     *
-     */" nil 0)
-    ("jdbr" "<br/>")
-    ("jdc" "<code></code>" (lambda nil nil (backward-char 7)) 0)
-    ("jdem" "<em></em>" (lambda nil nil (backward-char 5)) 0)
-    ("jdf" "<tt>false</tt>" nil 0)
-    ("jdl" "{@link }" (lambda nil nil (backward-char)) 0)
-    ("jdm" "/**
-     * Short
-     *
-     * <p>
-     * Long
-     * </p>
-     */" nil 3)
-    ("jdn" "<tt>null</tt>" nil 0)
-    ("jdp" "@param" nil 0)
-    ("jdpar" "<p></p>" (lambda nil nil (backward-char 4) (do-comment-line-break) (do-comment-line-break) (end-of-line) (previous-line 1) (end-of-line)) 0)
-    ("jdpre" "<pre></pre>" (lambda nil nil (backward-char 6) (do-comment-line-break) (do-comment-line-break) (end-of-line) (previous-line 1)) 0)
-    ("jdr" "@return" nil 0)
-    ("jds" "@see" nil 0)
-    ("jdt" "<tt>true</tt>" nil 0)
-    ("jdth" "@throws" nil 0)
-    ("while" "while" c-electric-continued-statement 1)
-    ))
+;; If you need this, make it a copy of the java-mode-abbrev-table's value.
+;;(define-abbrev-table 'jde-mode-abbrev-table java-mode-abbrev-table)
 
 (define-abbrev-table 'jde-run-mode-abbrev-table '(    ))
 

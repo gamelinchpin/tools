@@ -53,7 +53,7 @@
 ;;
 ;; Emacs Translation Maps (v23.*)
 ;;
-;; There are 3 of them.  Use each one for its indented purpose.
+;; There are 3 of them.  Use each one for its intended purpose.
 ;;
 ;; `function-key-map':
 ;;     - Contains "terminal-type-independent" definitions.
@@ -75,62 +75,58 @@
 ;;     - Use it to override keymaps and non-prefix bindings.
 ;;
 (eval-when-compile
-  (if (not is-version-twentythree)
-      (defvar local-function-key-map 'nil))
+  (if (not (and (boundp 'local-function-key-map)
+                (keymapp local-function-key-map)))
+      (defvaralias local-function-key-map 'function-key-map
+        "Alias with the name of a v23 key map variable.")
+    )
+  (if (not (and (boundp 'input-decode-map)
+                (keymapp input-decode-map)))
+      (defvaralias input-decode-map 'function-key-map
+        "Alias for a missing key map variable.")
+    )
+  (if (not (and (boundp 'key-translation-map)
+                (keymapp key-translation-map)))
+      (defvaralias key-translation-map 'function-key-map
+        "Alias for a missing key map variable.")
+    )
   )
 
 
 ;;X-Windows specific stuff
 (if window-system
     (progn
-      (if is-version-twentythree
-          (progn
-            ;; Tab Key
-            (define-key
-              local-function-key-map [\S-iso-lefttab] [\S-tab])
-            (define-key
-              local-function-key-map [\C-\S-iso-lefttab] [\C-\S-tab])
-            (define-key
-              local-function-key-map [\M-\S-iso-lefttab] [\M-\S-tab])
-            (define-key
-              local-function-key-map [\C-\M-\S-iso-lefttab] [\C-\M-\S-tab])
+      ;; Tab Key
+      (define-key local-function-key-map [\S-iso-lefttab] [\S-tab])
+      (define-key local-function-key-map [\C-\S-iso-lefttab] [\C-\S-tab])
+      (define-key local-function-key-map [\M-\S-iso-lefttab] [\M-\S-tab])
+      (define-key local-function-key-map [\C-\M-\S-iso-lefttab] [\C-\M-\S-tab])
 
-            ;; There are certain mappings in `function-key-map' and
-            ;;`local-function-key-map' that are incorrect, as far as I'm
-            ;;concerned.  To make sure that "delete" does what every other
-            ;;modern editor does, I've created my own function key,
-            ;;`[deletekey]' which I map things to.  Then, I bind things to it
-            ;;instead of to [delete] (which emacs screws up from UI to UI.)
-            (define-key local-function-key-map [backspace] [8])
-            (define-key local-function-key-map [delete] [deletekey])
-            (define-key local-function-key-map [\M-delete] [\M-deletekey])
-            );;
+      ;; There are certain mappings in `function-key-map' and
+      ;;`local-function-key-map' that are incorrect, as far as I'm
+      ;;concerned.  To make sure that "delete" does what every other
+      ;;modern editor does, I've created my own function key,
+      ;;`[deletekey]' which I map things to.  Then, I bind things to it
+      ;;instead of to [delete] (which emacs screws up from UI to UI.)
+      (define-key local-function-key-map [backspace] [8])
+      (define-key local-function-key-map [delete] [deletekey])
+      (define-key local-function-key-map [\M-delete] [\M-deletekey])
 
-        ;; else:
-        ;; Version 23 created the `local-function-key-map' variable.  Fall
-        ;; back to `function-key.map'
-        (define-key function-key-map [\S-iso-lefttab] [\S-tab])
-        (define-key function-key-map [\C-\S-iso-lefttab] [\C-\S-tab])
-        (define-key function-key-map [\M-\S-iso-lefttab] [\M-\S-tab])
-        (define-key function-key-map [\C-\M-\S-iso-lefttab] [\C-\M-\S-tab])
-        (define-key function-key-map [backspace] [8])
-        (define-key function-key-map [delete] [deletekey])
-        (define-key function-key-map [\M-delete] [\M-deletekey])
-        );; end if is-version-twentythree
-
-     (global-set-key [find] 'find-file)   ;Find File
-     (global-unset-key [S-find])
-     (global-set-key [equals] "-")
-     (global-set-key [f12] 'repeat-complex-command)
-     ;;
-     ;; End of window-mode setup
-     )
+      (global-set-key [find] 'find-file)   ;Find File
+      (global-unset-key [S-find])
+      (global-set-key [equals] "-")
+      (global-set-key [f12] 'repeat-complex-command)
+      ;;
+      ;; End of window-mode setup
+      )
 
   ;;else
   ;;Terminal-specific stuff
   (progn
     ;; Do some additional remappings....
     (if (string= term-lc "xterm")
+        ;; FIXME:  These should all be `local-function-key-map' not
+        ;;`key-translation-map':
         (progn
           (define-key key-translation-map [f1] [help])
           (define-key key-translation-map [8] [backspace])
@@ -157,22 +153,25 @@
             (string= (substring term-lc 0 5) "linux")
             )
         (progn
-          (define-key function-key-map "\eOP" [help])
-          (define-key function-key-map "\eOQ" [f2])
-          (define-key function-key-map "\eOR" [f3])
-          (define-key function-key-map "\eOS" [f4])
-          (define-key function-key-map "\e[3~" [deletekey])
-          (define-key function-key-map "\e[2~" [insert])
-          (define-key function-key-map "\e[1~" [home])
-          (define-key function-key-map "\e[H" [home])
-          (define-key function-key-map "\e[F" [end])
-          (define-key function-key-map "\eOH" [home])
-          (define-key function-key-map "\eOF" [end])
-          (define-key function-key-map "\e[p" [pause])
+          ;; FIXME:  Change to `local-function-key-map', once we have a
+          ;; version-blind alias to `local-function-key-map'.  Or change to
+          ;;'input-decode-map'
+          (define-key input-decode-map "\eOP" [help])
+          (define-key input-decode-map "\eOQ" [f2])
+          (define-key input-decode-map "\eOR" [f3])
+          (define-key input-decode-map "\eOS" [f4])
+          (define-key input-decode-map "\e[3~" [deletekey])
+          (define-key input-decode-map "\e[2~" [insert])
+          (define-key input-decode-map "\e[1~" [home])
+          (define-key input-decode-map "\e[H" [home])
+          (define-key input-decode-map "\e[F" [end])
+          (define-key input-decode-map "\eOH" [home])
+          (define-key input-decode-map "\eOF" [end])
+          (define-key input-decode-map "\e[p" [pause])
           ;; These next two are for Cygwin's rxvt (may go away in the
           ;; future).
-          (define-key function-key-map "\e[7~" [home])
-          (define-key function-key-map "\e[8~" [end])
+          (define-key input-decode-map "\e[7~" [home])
+          (define-key input-decode-map "\e[8~" [end])
           (global-set-key [copy] 'kill-ring-save)
           )
       );;end if
@@ -225,19 +224,21 @@
 ;;
 
 
-(define-key function-key-map [f1] [help])
-(define-key function-key-map [f4] [undo])
-(define-key function-key-map [find] [home])
-(define-key function-key-map [select] [end])
+(define-key key-translation-map [f1] [help])
+(define-key key-translation-map [f4] [undo])
+(define-key key-translation-map [find] [home])
+(define-key key-translation-map [select] [end])
+;; Special mapping for C-linefeed
+(define-key key-translation-map [\C-linefeed] [?\M-j])
 ;; Fix the mapping for "M-" + certain function keys
-(define-key function-key-map [?\e deletekey] [\M-deletekey])
-(define-key function-key-map [?\e backspace] [\M-backspace])
-(define-key function-key-map [?\e f6] [\M-f6])
-(define-key function-key-map [?\e f7] [\M-f7])
-(define-key function-key-map [?\e f8] [\M-f8])
-(define-key function-key-map [?\e f9] [\M-f9])
-(define-key function-key-map [?\e f10] [\M-f10])
-(define-key function-key-map [?\e pause] [\M-pause])
+(define-key key-translation-map [?\e deletekey] [\M-deletekey])
+(define-key key-translation-map [?\e backspace] [\M-backspace])
+(define-key key-translation-map [?\e f6] [\M-f6])
+(define-key key-translation-map [?\e f7] [\M-f7])
+(define-key key-translation-map [?\e f8] [\M-f8])
+(define-key key-translation-map [?\e f9] [\M-f9])
+(define-key key-translation-map [?\e f10] [\M-f10])
+(define-key key-translation-map [?\e pause] [\M-pause])
 
 
 ;;
@@ -250,9 +251,10 @@
 (global-set-key [backspace] 'delete-backward-char)
 
 ;Set up Help
-(global-set-key [help] 'help-for-help)
+(global-set-key [?\C-x help] 'help-for-help)
+(global-set-key [?\C-x f1] 'help-for-help)
 (global-set-key "\C-x?" 'help-for-help)
-(global-set-key [f1] 'help-command)
+(global-set-key [help] 'help-command)
 (global-set-key "\C-xh" 'help-command)        ;; overrides mark whole buffer
 
 ;; Home and End keys

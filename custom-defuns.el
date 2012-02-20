@@ -3,7 +3,7 @@
 ;;
 ;; Custom Functions
 ;;
-;;  Copyright © 1995-2010 John P. Weiss
+;;  Copyright © 1995-2012 John P. Weiss
 ;;
 ;;  This package is free software; you can redistribute it and/or modify
 ;;  it under the terms of the Artistic License, included as the file
@@ -105,12 +105,12 @@ Note that this fn. only sets a face bold.  It cannot unset it.
          (list 'mode-line
                (list (list modeline-active-modeflags
                            '(:background "plum3"
-                             :foreground "black"
-                             :box (:line-width -1
-                                   :style released-button)))
+                                         :foreground "black"
+                                         :box (:line-width -1
+                                                           :style released-button)))
                      (list modeline-lowcolor-modeflags
                            '(:background "magenta"
-                             :foreground "black"))
+                                         :foreground "black"))
                      )
                nil
                "For when I'm in the mood for a more colorful modeline, use
@@ -118,7 +118,7 @@ Note that this fn. only sets a face bold.  It cannot unset it.
                )
          '(mode-line-highlight
            ((t (:foreground "green4"
-                :box (:line-width 2 :color "grey40" :style released-button))))
+                            :box (:line-width 2 :color "grey40" :style released-button))))
            nil
            "Just using a box with a darker gray is unsatisfying.  Let's
             change the text color to something that will stand out (but not
@@ -128,18 +128,18 @@ Note that this fn. only sets a face bold.  It cannot unset it.
          (list 'mode-line-inactive
                (list (list modeline-active-modeflags
                            '(:inherit mode-line
-                             :background "LemonChiffon3"
-                             :foreground "grey20"
-                             :box (:line-width -1 :style released-button)
-                             :weight light))
+                                      :background "LemonChiffon3"
+                                      :foreground "grey20"
+                                      :box (:line-width -1 :style released-button)
+                                      :weight light))
                      (list modeline-lowcolor-modeflags
                            '(:inherit mode-line
-                             :background "gray"))
+                                      :background "gray"))
                      )
-           nil
-           "To accompany my more colorful modeline, I'll pick an off-white
+               nil
+               "To accompany my more colorful modeline, I'll pick an off-white
             color for the inactive modeline."
-           )
+               )
          )
         );; end let
       )
@@ -474,17 +474,17 @@ if not done already.
 Use it to save a clean session.
 {jpw:  8/2010}"
   (interactive)
-   (and
-    (boundp 'session-use-package)
-    (boundp 'session-file-alist)
-    (let ((old-sess-undo-chk session-undo-check))
-      (setq session-file-alist nil
-            session-undo-check -65536)
-      (delete-file session-save-file)
-      (session-save-session)
-      (setq session-undo-check old-sess-undo-chk)
-      )
-    )
+  (and
+   (boundp 'session-use-package)
+   (boundp 'session-file-alist)
+   (let ((old-sess-undo-chk session-undo-check))
+     (setq session-file-alist nil
+           session-undo-check -65536)
+     (delete-file session-save-file)
+     (session-save-session)
+     (setq session-undo-check old-sess-undo-chk)
+     )
+   )
   )
 
 
@@ -500,7 +500,7 @@ Use it to save a clean session.
   (add-hook 'emacs-startup-hook 'jpw-session-reload)
   (global-set-key [?\C-c \S-f9] 'jpw-session-save)
   (global-set-key [?\C-c \M-f10] 'jpw-session-reload)
-)
+  )
 
 
 ;;----------------------------------------------------------------------
@@ -539,9 +539,9 @@ top-level directory file."
 (defun c-no-comment-stars ()
   (interactive)
   ;; For Emacs 20.* or earlier
-;  (setq c-comment-continuation-stars "")
+  ;  (setq c-comment-continuation-stars "")
   (setq c-block-comment-prefix "")
-)
+  )
 
 
 (defun do-comment-line-break ()
@@ -565,7 +565,7 @@ is set to
         ;; Taken from `loadup.el'
         (load "international/mule")
         (load "international/mule-conf.el") ; Don't get confused if someone
-                                            ; compiled this by mistake.
+        ; compiled this by mistake.
         (load "international/mule-cmds")
         (load "case-table")
         (load "international/utf-8")
@@ -658,7 +658,7 @@ function definitions in bash and ksh.
         ) ;;end if
       (add-to-list 'modified-keywords-var shell-specific-keywords 't)
       )
-     (setq sh-font-lock-keywords-var modified-keywords-var)
+    (setq sh-font-lock-keywords-var modified-keywords-var)
     ) ;; end let
   )
 
@@ -785,8 +785,82 @@ details regarding this arg.
 
 ;;----------------------------------------------------------------------
 ;;
-;; Code-Doc defuns.
+;; Code-Doc defuns. & consts.
 ;;
+
+
+(defconst jpw-doxy-cxx-start-re "^ *///"
+  "Regular expression matching the start of a Doxygen or Javadoc-style comment
+line.
+{jpw: 12/2011}"
+  )
+
+
+(defconst jpw-doxy-block-start-re "^ */\\(\*\*\\|//\\)"
+  "Regular expression matching the start of a Doxygen or Javadoc-style comment
+line.
+{jpw: 12/2011}"
+  )
+
+
+(defconst jpw-doxy-line-start-re "^ *\\(\*+\\|///\\)\\( *\\)"
+  "Regular expression matching the start of a Doxygen or Javadoc-style comment
+line.
+{jpw: 12/2011}"
+  )
+
+
+(defconst jpw-doxy-empty-line-re (concat jpw-doxy-line-start-re "$")
+  "Regular expression for an empty (except for whitespace)
+Doxygen or Javadoc-style comment line.
+{jpw: 12/2011}"
+  )
+
+
+(defconst jpw-javadoc-invalid-chars-table
+  '(
+    ("<" . "&lt;")
+    (">" . "&gt;")
+    ("&" . "&amp;")
+    ("@" . "&#064;")
+    )
+  "Table of characters that can't be used in Javadoc comments, mapped to their
+replacements.
+{jpw; 02/2012}")
+
+
+(defconst jpw-javadoc-invalid-chars-re  "[<>&@]"
+  "Regexp of characters that can't be used in Javadoc comments.
+{jpw; 02/2012}")
+
+
+(defconst jpw-javadoc-invalid-nontag-chars-re  "[&@]"
+  "Regexp of characters that can't be used in Javadoc comments, minus '<' and
+'>'
+{jpw; 02/2012}")
+
+
+(defconst jpw-javadoc-chk-invalid-start-re
+  (concat "\\({@link\\|"
+          jpw-javadoc-invalid-nontag-chars-re
+          "\\|<\\(?:code\\|pre\\)>\\)")
+  "Regexp for text that marks the beginning of a block of Javadoc which
+might contain invalid characters.
+{jpw; 02/2012}")
+
+
+(defconst jpw-javadoc-chk-invalid-end-re
+  "\\(?:}\\|</\\(?:code\\|pre\\)>\\)"
+  "Regexp for text that marks the end of a block of Javadoc which
+might contain invalid characters.
+{jpw; 02/2012}")
+
+
+(defconst jpw-javadoc-replacement-entity-re
+  "&\\(?:lt\\|gt\\|amp\\|#[0-9]+\\);"
+  "Regexp matching any of the HTML entities from
+`jpw-javadoc-invalid-chars-table'.  Also matches any numeric HTML entities.
+{jpw; 02/2012}")
 
 
 (defun jpw-insert-doc-unitag (tagname)
@@ -807,7 +881,8 @@ details regarding this arg.
 
 (defun jpw-insert-doc-tagblock (tagname)
   "Insert a doxygen/javadoc HTML style/font tag pair block, with each tag on
-its own comment line.
+its own comment line.  Opens a new comment line if the current one contains
+anything.
 {jpw: 07/2004}"
   (interactive "*sEnter HTML tag: ")
   (if mark-active
@@ -815,15 +890,38 @@ its own comment line.
       ;; inserting breaks anyplace.
       ;; Note that `jpw-insert-xml-tag' unsets the mark.
       (jpw-insert-xml-tag tagname)
+
     ;; else
-    (do-comment-line-break)
+    (let* ((on-blank-line (save-excursion
+                            (beginning-of-line)
+                            (looking-at jpw-doxy-empty-line-re))
+                          )
+           (needs-a-space (and on-blank-line
+                               (not (= (preceding-char) ?\ )))
+                          )
+           (has-text-following (not (looking-at "$"))
+                               )
+           );; end varbindings
+      ;; Body
+      (if needs-a-space
+          (insert " ")
+        ;; else
+        (if (not on-blank-line)
+            (do-comment-line-break))
+        )
+      (if has-text-following
+          (save-excursion (do-comment-line-break)))
+      );;end let*
+
     (jpw-insert-xml-tag tagname)
-    (save-excursion
-      (end-of-line)
-      (do-comment-line-break)
-      )
-    )
-  )
+
+    (do-comment-line-break)
+    (do-comment-line-break)
+    (forward-line -1)
+    (end-of-line)
+    (insert " ")
+    );;end if
+  );;end defun
 
 
 (defun jpw-insert-doc-nested-tagblock (outertagname innertagname)
@@ -877,6 +975,204 @@ the first.  The first is inserted as a block.
 {jpw: 01/2009}"
   (interactive)
   (jpw-insert-markup-tags "{@link #" "}")
+  )
+
+
+(defsubst jpw-cleanup-javadoc-do-replace ()
+  (let ((entity (cdr (assoc (match-string 0)
+                            jpw-javadoc-invalid-chars-table)))
+        );;end bindings
+        (if (looking-at jpw-javadoc-replacement-entity-re)
+            (goto-char (match-end 0))
+          ;; else
+          (replace-match entity t t))
+        );;end let
+  )
+
+
+(defun jpw-cleanup-javadoc-region (start-mark end-mark)
+  "Replace the following characters between the markers `start-mark' and
+`end-mark':
+    '<' with '&gt;'
+    '>' with '&lt;'
+    '&' with '&amp;'
+    '@' with '&#064;'
+{jpw: 02/2012}"
+
+  (if (< end-mark start-mark)
+      ;; Exchange marks that are out of order.
+      (let ((swap-mark end-mark))
+        (setq end-mark start-mark
+              start-mark swap-mark)
+      )
+    )
+
+  (save-excursion
+    (goto-char (marker-position start-mark))
+      (while (re-search-forward jpw-javadoc-invalid-chars-re
+                                (marker-position end-mark)
+                                t)
+        (goto-char (match-beginning 0))
+        (jpw-cleanup-javadoc-do-replace)
+        );;end while
+      );;end excursion
+  )
+
+
+(defun jpw-cleanup-javadoc-block ()
+  "Replace the following characters in code samples in the current region:
+    '<' with '&gt;'
+    '>' with '&lt;'
+    '&' with '&amp;'
+    '@' with '&#064;'
+
+Anything inside of '<code> ... </code>', '<pre> ... </pre>',
+or '{@link ... }' is considered a code sample.  Text outside of these blocks
+is ignored.
+
+{jpw: 02/2012}"
+
+  (interactive)
+  (if mark-active
+      (let ((jdb-start (region-beginning))
+            (jdb-end (region-end))
+            (subblock-start-mark (make-marker))
+            (subblock-end-mark (make-marker))
+            match-end-start-re);;end bindings
+        (save-excursion
+          (goto-char jdb-start)
+          (while (re-search-forward jpw-javadoc-chk-invalid-start-re
+                                    jdb-end
+                                    t)
+            (setq match-end-start-re (match-end 0))
+            (goto-char (match-beginning 0))
+            (if (looking-at jpw-javadoc-invalid-nontag-chars-re)
+                (jpw-cleanup-javadoc-do-replace)
+              ;; else
+              (goto-char match-end-start-re)
+              (set-marker subblock-start-mark match-end-start-re)
+              (set-marker subblock-end-mark
+                          (if (re-search-forward
+                               jpw-javadoc-chk-invalid-end-re
+                               jdb-end
+                               t)
+                              (match-beginning 0)
+                            ;; else
+                            jdb-end)
+                          )
+              (jpw-cleanup-javadoc-region subblock-start-mark
+                                          subblock-end-mark)
+              );;end if
+            );;end while
+
+          ;; If 'match-end-start-re' was never set, try cleaning up the region
+          ;; itself.
+          (if (not match-end-start-re)
+              (progn
+                (set-marker subblock-start-mark jdb-start)
+                (set-marker subblock-end-mark jdb-end)
+                (jpw-cleanup-javadoc-region subblock-start-mark
+                                            subblock-end-mark)
+                );;end progn
+            )
+          );;end excursion
+        );;end let
+    )
+  )
+
+
+(defun jpw-c-fill-paragraph (&optional start-at end-at arg)
+  "Nearly-identical to `c-fill-paragraph', but recognizes an active region and
+restricts the fill to it.
+
+ARG is passed directly to `c-fill-paragraph'.
+
+START-AT and END-AT are optional points to restrict `c-fill-paragraph' to, in
+lieu of creating an active region.  If a region is active and both START-AT
+and END-AT are non-`null', they override the region.
+
+{jpw: 02/2012}"
+  (interactive)
+
+  ;; Clear `start-at' if there's no `end-at'.
+  (if (not end-at) (setq start-at nil))
+
+  ;; Use the mark if bounds aren't specified.
+  (if (and mark-active
+           (not start-at))
+      (setq start-at (region-beginning)
+            end-at (region-end))
+    )
+
+  (if start-at
+      (save-excursion
+        (save-restriction
+          (narrow-to-region start-at end-at)
+          (goto-char start-at)
+          (c-fill-paragraph arg)
+          )
+        )
+    ;; else
+    ;; Just call it directly.
+    (c-fill-paragraph arg)
+    )
+  )
+
+
+(defun jpw-abbrev-indent-doc-block ()
+  "Used by abbrev-tables to correctly indent a recently-added comment block.
+`point' should be immediately after the comment-ending \"*/\".
+{jpw: 12/2011}"
+  (interactive)
+  (let* ((doxy-region-end (point))
+         (comment-block-start-line (save-excursion
+                                     (beginning-of-line)
+                                     (while (not (looking-at
+                                                  jpw-doxy-block-start-re))
+                                       (forward-line -1)
+                                       (beginning-of-line)
+                                       )
+                                     (point)
+                                     );;end excursion
+                                   )
+         (initial-cxx-comment-pos (save-excursion
+                                    (goto-char comment-block-start-line)
+                                    (forward-line -1)
+                                    (beginning-of-line)
+                                    (if (looking-at jpw-doxy-cxx-start-re)
+                                        (point))
+                                    );;end excursion
+                                  )
+         (doxy-region-start (or initial-cxx-comment-pos
+                                comment-block-start-line)
+                            )
+         );;end varbindings
+
+    ;; Body
+    (indent-region doxy-region-start doxy-region-end nil)
+    );;end let*
+
+  ;; Lastly, delete any space char left on the last line by the abbrev-mode
+  ;;mechanism.
+  (if (= (preceding-char) ?\ )
+      (delete-backward-char 1)
+    )
+  );;end defun
+
+
+(defun jpw-abbrev-insert-doc-par ()
+  "Used by abbrev-tables to insert a \"<p>...</p>\" block.
+{jpw: 12/2011}"
+  (jpw-insert-doc-tagblock "p")
+  (delete-backward-char 1)
+  )
+
+
+(defun jpw-abbrev-insert-doc-pre ()
+  "Used by abbrev-tables to insert a \"<pre>...</pre>\" block.
+{jpw: 12/2011}"
+  (jpw-insert-doc-tagblock "pre")
+  (delete-backward-char 1)
   )
 
 

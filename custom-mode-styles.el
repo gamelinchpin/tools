@@ -3,7 +3,7 @@
 ;;
 ;; Custom Functions
 ;;
-;;  Copyright © 1995-2011 John P. Weiss
+;;  Copyright © 1995-2012 John P. Weiss
 ;;
 ;;  This package is free software; you can redistribute it and/or modify
 ;;  it under the terms of the Artistic License, included as the file
@@ -57,6 +57,8 @@
 
 (defun bind-jpw-doc-comment ()
   (interactive)
+  ;; Fix 'M-q' so that it works with regions.
+  (local-set-key "\M-q" 'jpw-c-fill-paragraph)
   ;; Universal doc-comment keybindings
   (local-set-key "\M-oe" (lambda() (interactive)
                                    (jpw-insert-doc-tag "em")))
@@ -117,6 +119,7 @@
   (local-set-key "\M-pr" 'jpw-insert-javadoc-link)
   (local-set-key "\M-pl" 'jpw-insert-javadoc-link)
   (local-set-key "\M-pm" 'jpw-insert-javadoc-member-link)
+  (local-set-key "\M-p\'" 'jpw-cleanup-javadoc-block)
   (local-set-key "\M-p\M-l" (lambda() (interactive)
                               (if (null current-prefix-arg)
                                   (jpw-insert-doc-nested-tagblock "ul" "li")
@@ -394,9 +397,11 @@
   ;; Leave it here, too, just for documentation clarity.
   (local-unset-key [f4])
   ;; Force use of correct comment-break-fn.
-  (local-set-key "\M-j" 'do-comment-line-break)
   (local-set-key [?\C-c f7] 'compile)
   (local-set-key [?\C-c f8] 'recompile)
+  (local-set-key "\M-j" 'do-comment-line-break)
+  (local-set-key [\C-linefeed] 'do-comment-line-break)
+  (local-set-key [\C-return] 'do-comment-line-break)
   (bind-jpw-c-mode-doxy)
   )
 
@@ -505,6 +510,7 @@
   (turn-on-auto-fill)
   (font-lock-mode)
   (local-set-key "\M-j" 'octave-indent-new-comment-line)
+  (local-set-key [\C-linefeed] 'octave-indent-new-comment-line)
   )
 
 
