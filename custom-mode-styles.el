@@ -408,6 +408,7 @@
 
 (defun use-jpw-style-cxx ()
   (interactive)
+  (use-jpw-style-c-common)
   ;; Use the value of the `jpw-c-style' variable, for that added level of
   ;; indirection. ;)
   (c-set-style jpw-c-style)
@@ -425,6 +426,7 @@
   )
 (defun use-jpw-style-c ()
   (interactive)
+  (use-jpw-style-c-common)
   (if (and (string-match "\\.h$" (buffer-file-name (current-buffer)))
            (save-excursion
              (goto-char (point-min))
@@ -452,6 +454,7 @@
 
 (defun use-jpw-style-java ()
   (interactive)
+  (use-jpw-style-c-common)
   (c-set-style "jpw-java")
   (setq fill-column 78)
   (bind-jpw-javadoc)
