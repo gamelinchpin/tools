@@ -344,7 +344,7 @@
     ("jdbr" "<br/>")
     ("jdc" "<code></code>" (lambda nil nil (backward-char 7)) 0)
     ("jdem" "<em></em>" (lambda nil nil (backward-char 5)) 0)
-    ("jdf" "<tt>false</tt>" nil 0)
+    ("jdf" "<code>false</code>" nil 0)
     ("jdl" "{@link}" (lambda nil nil (backward-char)) 0)
     ("jdm" "/**
      * Short
@@ -354,7 +354,7 @@
      * </p>
      */" jpw-abbrev-indent-doc-block 2)
     ("jdpar" "" jpw-abbrev-insert-doc-par 0)
-    ("jdn" "<tt>null</tt>" nil 0)
+    ("jdn" "<code>null</code>" nil 0)
     ("jdoc" "/**
      *
      */" jpw-abbrev-indent-doc-block 0)
@@ -362,7 +362,7 @@
     ("jdpre" "" jpw-abbrev-insert-doc-pre 0)
     ("jdr" "@return" nil 0)
     ("jds" "@see" nil 0)
-    ("jdt" "<tt>true</tt>" nil 0)
+    ("jdt" "<code>true</code>" nil 0)
     ("jdth" "@throws" nil 0)
     ("while" "while" c-electric-continued-statement 0)
     ))
