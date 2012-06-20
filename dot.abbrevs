@@ -20,9 +20,9 @@
 (define-abbrev-table 'bsh-script-mode-abbrev-table '(    ))
 
 (define-abbrev-table 'c++-mode-abbrev-table '(    ("catch" "catch" c-electric-continued-statement 0)
-    ("doxb" "<b></b>" (lambda nil nil (backward-char 4)) 0)
-    ("doxem" "<em></em>" (lambda nil nil (backward-char 5)) 0)
-    ("doxtt" "<tt></tt>" (lambda nil nil (backward-char 5)) 2)
+    ("doxb" "<b></b>" jpw-abbrev-post-insert 0)
+    ("doxem" "<em></em>" jpw-abbrev-post-insert 0)
+    ("doxtt" "<tt></tt>" jpw-abbrev-post-insert 2)
     ("doxyc" " // Class/Namespace
  /**
   * Short Descr.
@@ -339,11 +339,14 @@
 (define-abbrev-table 'java-mode-abbrev-table '(    ("catch" "catch" c-electric-continued-statement 2)
     ("else" "else" c-electric-continued-statement 3)
     ("finally" "finally" c-electric-continued-statement 0)
-    ("jdarg" "<code><em></em></code>" (lambda nil nil (backward-char 12)) 0)
-    ("jdb" "<b></b>" (lambda nil nil (backward-char 4)) 0)
+    ("jdarg" "<code><em></em></code>"
+     (lambda nil nil (jpw-abbrev-post-insert 12)) 0)
+    ("jdb" "<b></b>" jpw-abbrev-post-insert 0)
+    ("jdbb" "<b></b>" jpw-abbrev-post-insert 0)
     ("jdbr" "<br/>")
-    ("jdc" "<code></code>" (lambda nil nil (backward-char 7)) 0)
-    ("jdem" "<em></em>" (lambda nil nil (backward-char 5)) 0)
+    ("jdc" "<code></code>" jpw-abbrev-post-insert 0)
+    ("jdcq" "'<code></code>'" jpw-abbrev-post-insert 0)
+    ("jdem" "<em></em>" jpw-abbrev-post-insert 0)
     ("jdf" "<code>false</code>" nil 0)
     ("jdl" "{@link}" (lambda nil nil (backward-char)) 0)
     ("jdm" "/**
@@ -503,10 +506,10 @@
 
 (define-abbrev-table 'svn-status-diff-mode-abbrev-table '(    ))
 
-(define-abbrev-table 'tcl-mode-abbrev-table '(    ("''" "<tt></tt>" (lambda nil nil (backward-char 5)) 2)
-    ("**" "<b></b>" (lambda nil nil (backward-char 4)) 0)
-    ("//" "<em></em>" (lambda nil nil (backward-char 5)) 0)
-    ("__" "<u></u>" (lambda nil nil (backward-char 4)) 0)
+(define-abbrev-table 'tcl-mode-abbrev-table '(    ("''" "<tt></tt>" jpw-abbrev-post-insert 2)
+    ("**" "<b></b>" jpw-abbrev-post-insert 0)
+    ("//" "<em></em>" jpw-abbrev-post-insert 0)
+    ("__" "<u></u>" jpw-abbrev-post-insert 0)
     ))
 
 (define-abbrev-table 'text-mode-abbrev-table '(    ))

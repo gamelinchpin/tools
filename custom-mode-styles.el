@@ -363,6 +363,7 @@
   (local-set-key "\C-cd" 'edebug-eval-top-level-form)
   (local-set-key "\C-c\C-d" 'edebug-eval-top-level-form)
   (local-set-key "\C-ce" 'eval-defun)
+  (local-set-key [\C-return] 'indent-new-comment-line)
   )
 
 

@@ -287,6 +287,36 @@ tags on either side of the region.
   )
 
 
+(defun jpw-correct-tabs ()
+  "If `indent-tabs-mode' is true, calls `tabify-buffer', otherwise, it calls
+`untabify-buffer'.
+
+Designed for use as a `before-save-hook'.
+{jpw: 06/2012}"
+  (interactive)
+  (if indent-tabs-mode
+      (tabify-buffer)
+    ;; else
+    (untabify-buffer)
+    )
+  )
+
+
+(defun jpw-clean-trailing-whitespace ()
+  "Removes all whitespace at the end of every line.
+
+Designed for use as a `before-save-hook'.
+{jpw: 06/2012}"
+  (interactive)
+  (save-excursion
+    (goto-char (point-min))
+    ;; From the fn. documentation for `perform-replace':
+    (while (re-search-forward "[ \t]+$" nil t)
+      (replace-match "" nil nil))
+    );;end excursion
+  )
+
+
 (defvar jpw-correct-tabs-on-save t
   "If set non-nil, causes `save-buffer-tab-consistent' and
 `kill-buffer-tab-consistent' to convert all leading whitespace to
@@ -300,7 +330,7 @@ space-characters or tabs.  Which it converts to depends on the value of
 
 If `indent-tabs-mode' is true, calls `tabify-buffer' before saving.
 Otherwise, it calls `untabify-buffer'.
-{jpw: 9/1998}"
+{jpw: 09/1998}"
   (interactive)
   (if jpw-correct-tabs-on-save
       (if indent-tabs-mode
@@ -935,7 +965,7 @@ the first.  The first is inserted as a block.
   (save-excursion
     (do-comment-line-break)
     )
-  (delete-backward-char 1)
+  (delete-char -1)
   (jpw-insert-doc-tag innertagname)
   )
 
@@ -1155,16 +1185,56 @@ and END-AT are non-`null', they override the region.
   ;; Lastly, delete any space char left on the last line by the abbrev-mode
   ;;mechanism.
   (if (= (preceding-char) ?\ )
-      (delete-backward-char 1)
+      (delete-char -1)
     )
   );;end defun
+
+
+(defun jpw-abbrev-post-insert (&optional nBack)
+  "Used by abbrev-tables after inserting inlined HTML tags.
+Moves back by NBACK characters and removes the space character that expanded
+the abbreviation (if that's the character that did so).
+
+If NBACK is nil, uses `re-search-backward' to look for the first
+occurrence of '> </' before the beginning of the line.  The cursor is placed
+between the tags if found, and the space (if present) is removed.
+
+So, if your abbreviation inserts a complex string, call this defun with an
+explicit NBACK value (from inside of a `lambda' function).
+
+{jpw: 06/2012}"
+  (interactive)
+  (if (not nBack)
+
+      (let ((origPos (point))
+            (bolp (save-excursion (beginning-of-line)
+                                  (point)))
+            );; end varbindings
+        (if (re-search-backward "> ?</" bolp t)
+            (forward-char)
+          )
+        (if (= (following-char) ?\ )
+            (delete-char 1)
+          )
+        );; end let
+
+    ;; else:
+    (backward-char nBack)
+    ;; Delete any space char left on the last line by the abbrev-mode
+    ;;mechanism.
+    (if (= (preceding-char) ?\ )
+        (delete-char -1)
+      )
+    );; end outer-if
+
+  );; end defun
 
 
 (defun jpw-abbrev-insert-doc-par ()
   "Used by abbrev-tables to insert a \"<p>...</p>\" block.
 {jpw: 12/2011}"
   (jpw-insert-doc-tagblock "p")
-  (delete-backward-char 1)
+  (delete-char -1)
   )
 
 
@@ -1172,7 +1242,7 @@ and END-AT are non-`null', they override the region.
   "Used by abbrev-tables to insert a \"<pre>...</pre>\" block.
 {jpw: 12/2011}"
   (jpw-insert-doc-tagblock "pre")
-  (delete-backward-char 1)
+  (delete-char -1)
   )
 
 

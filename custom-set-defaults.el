@@ -2,7 +2,7 @@
 ;;
 ;; Core Emacs Setup File
 ;;
-;;  Copyright © 1995-2011 John P. Weiss
+;;  Copyright © 1995-2012 John P. Weiss
 ;;
 ;;  This package is free software; you can redistribute it and/or modify
 ;;  it under the terms of the Artistic License, included as the file
@@ -29,6 +29,7 @@
 
 (require 'custom)
 (require 'cus-face)
+(require 'custom-vars)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -55,7 +56,7 @@ customizations from being written to your \".emacs\" file.
 
 REQUIRED_FEATURE_LIST is a list of packages to load before setting VARNAME to
 the value of VAL_EXPRESSION.  Note that this function partially-overrides
-MAKE_DEFAULT_AND_EVAL_NOW (since it always maked the \"new\" value the
+MAKE_DEFAULT_AND_EVAL_NOW (since it always makes the \"new\" value the
 default).
 
 Note that this function may require modification whenever
@@ -89,7 +90,8 @@ Calls `custom-set-faces' on the list of arguments, then converts the
 customizations from being written to your \".emacs\" file.
 
 Note that this function may require modification whenever
-`custom-declare-face' changes.  {jpw: 9/2004}"
+`custom-declare-face' changes.
+{jpw: 9/2004}"
   (apply 'custom-set-faces args)
   (while args
     (let ((entry (car args)))
@@ -110,6 +112,29 @@ Note that this function may require modification whenever
   )
 
 
+;;
+;; "'.emacs'-Only" Customization-Menu Variables:
+;;
+;;   These are defcustom vars that `jpw-custom-set-variables-nonsaved' fails
+;;   to change.  Or at least it seems that way.
+;;
+;;   You have to leave the following in your '~/.emacs' file's
+;;   `custom-set-variables' block:
+;;
+;;       blink-matching-paren
+;;       blink-matching-paren-distance
+;;       c-doc-comment-style
+;;       c-echo-syntactic-information-p
+;;       c-report-syntactic-errors
+;;       paren-message-linefeed-display
+;;       password-cache-expiry
+;;       recentf-save-file
+;;       tramp-auto-save-directory
+;;       tramp-default-method
+;;       which-function-mode
+;;
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;; Customization-Menu Variables.
@@ -121,8 +146,9 @@ Note that this function may require modification whenever
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
-;; Misc Default Filenames
+;; Filenames and Paths
 (jpw-custom-set-variables-nonsaved
+ '(desktop-path (quote ("~/.emacs.d" "." "~")))  ;; No longer a variable?
  '(abbrev-file-name "~/.emacs.d/.abbrevs" t)
  '(ps-printer-name "~/emacs-out.ps")  ;; No longer a variable?
  '(quickurl-url-file "~/.emacs.d/.quickurls")  ;; No longer a variable?
@@ -146,25 +172,39 @@ Note that this function may require modification whenever
 (jpw-custom-set-variables-nonsaved
  '(case-fold-search t)
  '(confirm-kill-emacs (quote y-or-n-p))
- '(default-major-mode (quote text-mode))
+ '(default-major-mode (quote text-mode)) ;; obsolete since 23.2
+ '(major-mode (quote text-mode)) ;; replacement for `default-major-mode'
  '(history-delete-duplicates t)
  '(revert-without-query (quote (".*")))
+ '(enable-local-eval t)
+ '(safe-local-eval-forms (quote ((add-hook
+                                  (quote write-file-hooks)
+                                  (quote time-stamp)
+                                  (quote sh-set-shell)
+                                  ))))
  '(safe-local-variable-values
-   (quote ((coding-system . utf-8-unix)
-           (coding-system . utf-8)
-           (coding-system . utf-16-unix)
-           (coding-system . utf-16)
+   (quote ((buffer-file-coding-system . utf-16)
            (buffer-file-coding-system . utf-8)
-           (buffer-file-coding-system-explicit . mule-utf-8-dos)
-           (buffer-file-coding-system . utf-16)
            (buffer-file-coding-system-explicit . mule-utf-16-dos)
+           (buffer-file-coding-system-explicit . mule-utf-8-dos)
+           (coding-system . utf-16)
+           (coding-system . utf-16-unix)
+           (coding-system . utf-8)
+           (coding-system . utf-8-unix)
+           (sql-product . Postgres)
+           (sql-product . ansi)
            (tab-stop-list 8 16 24 32 40 48 56 64 72))))
  '(save-abbrevs (quote silently))
  )
 
 
-;; Misc. Modes to Enable by Default
+;; Misc. Settings and Modes to Enable by Default
 (jpw-custom-set-variables-nonsaved
+ '(archive-zip-use-pkzip nil)  ;; No longer a variable?
+ '(browse-url-browser-function (quote browse-url-w3))
+ '(before-save-hook (quote (copyright-update
+                            jpw-clean-trailing-whitespace)))
+ ;; Modes to enable by default:
  '(abbrev-mode t)
  '(partial-completion-mode t)
  )
@@ -172,8 +212,6 @@ Note that this function may require modification whenever
 
 ;; Editing Behavior
 (jpw-custom-set-variables-nonsaved
- '(blink-matching-paren t) ;; FIXME:  Not being set.
- '(blink-matching-paren-distance nil) ;; FIXME:  Not being set?
  '(fill-column 78)  ;; For all but text mode.
  '(indent-tabs-mode 'nil) ;; Auto-convert Tabs to Spaces.
  '(next-line-add-newlines nil) ;; [Down] doesn't add \n at EOB
@@ -184,8 +222,15 @@ Note that this function may require modification whenever
  )
 
 
-;; Keep Running File Versions (swiped from Jerry Leichter)
+;; Session and File Version Control
 (jpw-custom-set-variables-nonsaved
+ '(session-initialize (quote (de-saveplace session places keys menus))
+                      nil
+                      (session))
+ '(session-name-disable-regexp
+   "\\`\\(/tmp\\|~/tmp/\\(itsalltext\\|mozex.wrk\\)\\)")
+ '(session-save-file "~/.emacs.d/.session")
+ ;; Below:  Keep Running File Versions (swiped from Jerry Leichter)
  '(delete-old-versions nil)
  '(kept-new-versions 100)
  '(kept-old-versions 0)
@@ -193,15 +238,18 @@ Note that this function may require modification whenever
  )
 
 
-;; Fontification-Related
+;; Fontification- and Display-Related
 (jpw-custom-set-variables-nonsaved
  '(global-font-lock-mode t nil (font-lock))
  '(transient-mark-mode t)
+ '(blink-matching-paren t nil (simple)) ;; FIXME:  Not being set.
+ '(blink-matching-paren-distance nil nil (simple)) ;; FIXME:  Not being set?
  ;;'(show-paren-mode t nil (paren))
  ;; `show-paren-mode' disables `blink-matching-paren' mode.  :P
  '(show-paren-mode nil nil (paren))
  '(show-paren-delay 0.5 nil (paren))
  '(show-paren-style (quote parenthesis) nil (paren))
+ '(paren-message-linefeed-display "¶") ;; FIXME:  Not being set?
  )
 
 
@@ -231,11 +279,12 @@ Note that this function may require modification whenever
  ;; FIXME:  Not being set.
  '(c-doc-comment-style (quote ((c-mode . javadoc)
                                (c++-mode . javadoc)
-                               (java-mode . javadoc)
-                               (pike-mode . autodoc))))
- '(c-echo-syntactic-information-p t)   ;; FIXME:  Not being set.
- '(c-report-syntactic-errors t)  ;; FIXME:  Not being set.
- ;; No longer a variable?
+                               (java-mode . javadoc))))
+ ;; NOTE[2012-06-19]:  The following two have been disabled.  There's no need
+ ;;                    for them unless one's debugging a c-style programming
+ ;;                    mode.
+ ;;'(c-echo-syntactic-information-p t)   ;; FIXME:  Not being set.
+ ;;'(c-report-syntactic-errors t)  ;; FIXME:  Not being set.
  '(compile-command "LC_CTYPE=ascii make -k ")
  '(cperl-font-lock t)
  '(cperl-highlight-variables-indiscriminately t)
@@ -274,6 +323,8 @@ Note that this function may require modification whenever
  '(grep-command
    "grep --binary-files=without-match --exclude=\\*.svn\\* -n -r -P ")
  '(vc-handled-backends (quote (SVN RCS CVS SCCS)))
+ ;; NOTE[2012-06-19]:  I don't want to see the current fn. name.  Makes the
+ ;;                    mode-bar too cluttered.
  '(which-function-mode nil nil (which-func))  ;; FIXME:  Not being set?
  )
 
@@ -297,14 +348,26 @@ Note that this function may require modification whenever
  '(org-blank-before-new-entry (quote ((heading . t) (plain-list-item)))
                               nil (org))
  '(org-comment-string ":COMMENT:" nil (org))
+ '(org-cycle-global-at-bob t)
  '(org-cycle-include-plain-lists t nil (org))
  '(org-ellipsis "···
 "
                 nil (org))
+ '(org-enable-fixed-width-editor nil)
  '(org-export-headline-levels 6 nil (org))  ;; No longer a variable?
+ '(org-hide-emphasis-markers t)
+ '(org-imenu-depth 4)
  '(org-insert-heading-respect-content
    t nil (org)) ;; Insert heading after body.
+ '(org-insert-mode-line-in-empty-file t)
  '(org-level-color-stars-only nil nil (org))
+ '(org-list-demote-modify-bullet (quote (("-" . "+")
+                                         ("+" . "¤")
+                                         ("¤" . "·")
+                                         ("·" . "-")
+                                         ("1." . "a. ")
+                                         ("a. " . "(  i) "))))
+ '(org-modules nil)
  ;; No longer a variable?
  '(org-publish-timestamp-directory "~/.emacs.d/.org-timestamps/" nil (org))
  '(org-quote-string ":QUOTE:" nil (org))
@@ -319,8 +382,13 @@ Note that this function may require modification whenever
 
 ;; Speedbar
 (jpw-custom-set-variables-nonsaved
+ ;; According to its documentation, this next var doesn't need to include
+ ;; version-control dirs.
  '(speedbar-directory-unshown-regexp "^\\(CVS\\|RCS\\|SCCS\\|.svn\\)\\'")
- '(speedbar-update-speed 300 t)
+ '(speedbar-update-speed 300 t) ;; obsolete since v23.1
+ ;; Global-replacement for `speedbar-update-speed'.  But, because it's global,
+ ;; it affects every frame.  Feh!
+ ;;[replace at later date]'(dframe-update-speed 30 t) ;; default is 1
  )
 
 
@@ -328,9 +396,9 @@ Note that this function may require modification whenever
 ;; FIXME:  Not being set.
 ;;Possibly being overwritten by the pkg. itself when loaded?
 (jpw-custom-set-variables-nonsaved
- '(password-cache-expiry 86400)
- '(tramp-auto-save-directory "/tmp/")
- '(tramp-default-method "scp")
+ '(password-cache-expiry 86400 t (password-cache))
+ '(tramp-auto-save-directory "/tmp/" t (tramp))
+ '(tramp-default-method "scp" t (tramp))
  )
 
 
@@ -340,6 +408,82 @@ Note that this function may require modification whenever
  '(woman-cache-level 1 nil (woman))
  '(woman-use-own-frame nil nil (woman))
  )
+
+;; WOMAN:  OS-Specific `woman-manpath'
+(cond
+ (is-cygwin
+  (jpw-custom-set-variables-nonsaved
+   '(woman-manpath (quote (("/bin" . "/usr/share/man")
+                           ("/usr/bin" . "/usr/share/man")
+                           ("/sbin" . "/usr/share/man")
+                           ("/usr/sbin" . "/usr/share/man")
+                           ("/usr/local/bin" . "/usr/local/man")
+                           ("/usr/local/bin" . "/usr/local/share/man")
+                           ("/usr/local/sbin" . "/usr/local/man")
+                           ("/usr/local/sbin" . "/usr/local/share/man")
+                           ("/usr/games" . "/usr/share/man")
+                           ("/opt/bin" . "/opt/man")
+                           ("/opt/bin" . "/opt/share/man")
+                           ("/opt/sbin" . "/opt/man")
+                           ("/opt/sbin" . "/opt/share/man")
+                           )
+                          );;end quote
+                   nil (woman));; end woman-manpath
+   );;end jpw-custom-set-variables-nonsaved
+  ;; Ensure that this case succeeds even if the body doesn't.
+  t
+  );; end is-cygwin
+
+ (is-winblows
+  (jpw-custom-set-variables-nonsaved
+   '(woman-manpath (quote ("/usr/share/man"
+                           "/usr/local/share/man"
+                           "/opt/share/man/"
+                           ("/bin" . "/usr/share/man")
+                           ("/usr/bin" . "/usr/share/man")
+                           ("/sbin" . "/usr/share/man")
+                           ("/usr/sbin" . "/usr/share/man")
+                           ("/usr/local/bin" . "/usr/local/man")
+                           ("/usr/local/bin" . "/usr/local/share/man")
+                           ("/usr/local/sbin" . "/usr/local/man")
+                           ("/usr/local/sbin" . "/usr/local/share/man")
+                           ("/usr/games" . "/usr/share/man")
+                           ("/opt/bin" . "/opt/man")
+                           ("/opt/sbin" . "/opt/man")
+                           )
+                          );;end quote
+                   nil (woman));; end woman-manpath
+   );;end jpw-custom-set-variables-nonsaved
+  ;; Ensure that this case succeeds even if the body doesn't.
+  t
+  );; end is-winblows
+
+ (t ;; default case
+  (jpw-custom-set-variables-nonsaved
+   '(woman-manpath (quote (("/bin" . "/usr/share/man")
+                           ("/usr/bin" . "/usr/share/man")
+                           ("/sbin" . "/usr/share/man")
+                           ("/usr/sbin" . "/usr/share/man")
+                           ("/usr/local/bin" . "/usr/local/man")
+                           ("/usr/local/bin" . "/usr/local/share/man")
+                           ("/usr/local/sbin" . "/usr/local/man")
+                           ("/usr/local/sbin" . "/usr/local/share/man")
+                           ("/usr/games" . "/usr/share/man")
+                           ("/opt/bin" . "/opt/man")
+                           ("/opt/sbin" . "/opt/man")
+                           ("/opt/trinity/bin" . "/opt/trinity/share/man")
+                           ;; [jpw; 2012] Old paths.  Remove eventually...
+                           ("/usr/X11R6/bin" . "/usr/X11R6/man")
+                           ("/usr/bin/X11" . "/usr/X11R6/man")
+                           ("/opt/kde3/bin" . "/opt/kde3/share/man")
+                           )
+                          );;end quote
+                   nil (woman));; end woman-manpath
+   );;end jpw-custom-set-variables-nonsaved
+  ;; Ensure that this case succeeds even if the body doesn't.
+  t
+  );; end default
+ );; end cond
 
 
 ;; Some GNU-Emacs-specific settings.
