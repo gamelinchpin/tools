@@ -1149,6 +1149,58 @@ and END-AT are non-`null', they override the region.
   )
 
 
+(defsubst jpw--abbrev-remove-prev-char (ch)
+  "Remove CH from the buffer if it's the previous character.  Then check
+the `unread-command-char' for a match to CH and remove it if it's there.
+Finally, if neither of those matched, check `last-input-char' and, if that
+matches, queue up a backspace character as the next input event.
+{jpw: 06/2012}"
+  (cond
+   ;; 'ch' was put into the buffer.  Remove it.
+   ((= (preceding-char) ch)
+    (delete-char -1)
+    t)
+
+   ;; 'ch' is waiting in the unread-command queue, and is the only thing
+   ;; there.  Pitch all of the input.
+   ((and (input-pending-p)
+         (numberp unread-command-events)
+         (= unread-command-events ch))
+    (discard-input)
+    t)
+
+   ;; 'ch' is the most recent key waiting in the unread-command queue.  Remove
+   ;; it from the list of unread commands.
+   ((and (input-pending-p)
+         (listp unread-command-events)
+         (= (car unread-command-events) ch))
+    (setq unread-command-events (cdr unread-command-events))
+    t)
+
+   ;; 'ch' was the most recent key received.  Queue up a backspace character
+   ;; as the next to process.
+   ((or (and (numberp last-input-event)
+             (= last-input-event ch))
+        (and (listp last-input-event)
+             (= (car last-input-event) ch))
+        )
+
+    (let ((backspcEvent (car (listify-key-sequence [backspace])))
+          );;end bindings
+
+      (if (listp unread-command-events)
+          (setq unread-command-events
+                (cons backspcEvent unread-command-events))
+        ;; else
+        (setq unread-command-events backspcEvent)
+        )
+      );; end let
+    t)
+
+   );; end cond
+  );; end defsubst
+
+
 (defun jpw-abbrev-indent-doc-block ()
   "Used by abbrev-tables to correctly indent a recently-added comment block.
 `point' should be immediately after the comment-ending \"*/\".
@@ -1184,9 +1236,7 @@ and END-AT are non-`null', they override the region.
 
   ;; Lastly, delete any space char left on the last line by the abbrev-mode
   ;;mechanism.
-  (if (= (preceding-char) ?\ )
-      (delete-char -1)
-    )
+  (jpw--abbrev-remove-prev-char ?\ )
   );;end defun
 
 
@@ -1227,6 +1277,12 @@ explicit NBACK value (from inside of a `lambda' function).
       )
     );; end outer-if
 
+  (message "%s: %s\t%s"
+           (input-pending-p)
+           unread-command-events
+           last-input-event
+           )
+  (jpw--abbrev-remove-prev-char ?\ )
   );; end defun
 
 
