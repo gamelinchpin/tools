@@ -853,21 +853,24 @@ Doxygen or Javadoc-style comment line.
     (">" . "&gt;")
     ("&" . "&amp;")
     ("@" . "&#064;")
+    ("/*" . "/&#042;")
+    ("*/" . "&#042;/")
     )
   "Table of characters that can't be used in Javadoc comments, mapped to their
 replacements.
 {jpw; 02/2012}")
 
 
-(defconst jpw-javadoc-invalid-chars-re  "[<>&@]"
-  "Regexp of characters that can't be used in Javadoc comments.
-{jpw; 02/2012}")
+(defconst jpw-javadoc-invalid-chars-re  "\\(?:[<>&@]\\|/\\*\\|\\*/\\)"
+  "Regexp of characters and substrings that can't be used in Javadoc
+comments.
+{jpw; 06/2012}")
 
 
-(defconst jpw-javadoc-invalid-nontag-chars-re  "[&@]"
-  "Regexp of characters that can't be used in Javadoc comments, minus '<' and
-'>'
-{jpw; 02/2012}")
+(defconst jpw-javadoc-invalid-nontag-chars-re  "\\(?:[&@]\\|/\\*\\|\\*/\\)"
+  "Like `jpw-javadoc-invalid-chars-re', but omitting the '<' and '>'
+characters.
+{jpw; 06/2012}")
 
 
 (defconst jpw-javadoc-chk-invalid-start-re
@@ -1012,11 +1015,12 @@ the first.  The first is inserted as a block.
   (let ((entity (cdr (assoc (match-string 0)
                             jpw-javadoc-invalid-chars-table)))
         );;end bindings
+    (if entity
         (if (looking-at jpw-javadoc-replacement-entity-re)
             (goto-char (match-end 0))
           ;; else
-          (replace-match entity t t))
-        );;end let
+          (replace-match entity t t)))
+    );;end let
   )
 
 
@@ -1027,7 +1031,9 @@ the first.  The first is inserted as a block.
     '>' with '&lt;'
     '&' with '&amp;'
     '@' with '&#064;'
-{jpw: 02/2012}"
+    '/*' with '/&#042;'
+    '*/' with '&#042;/'
+{jpw: 06/2012}"
 
   (if (< end-mark start-mark)
       ;; Exchange marks that are out of order.
@@ -1055,6 +1061,8 @@ the first.  The first is inserted as a block.
     '>' with '&lt;'
     '&' with '&amp;'
     '@' with '&#064;'
+    '/*' with '/&#042;'
+    '*/' with '&#042;/'
 
 Anything inside of '<code> ... </code>', '<pre> ... </pre>',
 or '{@link ... }' is considered a code sample.  Text outside of these blocks
@@ -1068,7 +1076,17 @@ is ignored.
             (jdb-end (region-end))
             (subblock-start-mark (make-marker))
             (subblock-end-mark (make-marker))
-            match-end-start-re);;end bindings
+            match-end-start-re
+            );;end bindings
+
+        (if (< jdb-end jdb-start)
+            ;; Exchange if the region begin/end points are out of order.
+            (let ((swap-pt jdb-end))
+              (setq jdb-end jdb-start
+                    jdb-start swap-pt)
+              )
+          )
+
         (save-excursion
           (goto-char jdb-start)
           (while (re-search-forward jpw-javadoc-chk-invalid-start-re
