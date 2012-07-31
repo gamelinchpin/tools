@@ -154,6 +154,34 @@ Note that this fn. only sets a face bold.  It cannot unset it.
 ;;
 
 
+(defun string-ends-with (the-string the-suffix &optional ignore-case)
+  "Checks if THE-STRING ends with THE-SUFFIX.  Performs a caseless comparison
+if IGNORE-CASE is non-`nil'.
+
+This function returns `nil' if THE-STRING and/or THE-SUFFIX is/are:
+- `nil';
+- Not a string;
+- The empty string.
+
+{jpw: 07/2012}"
+  (if (and (stringp the-string)
+           (stringp the-suffix))
+      (let* ((suf-len (length the-suffix))
+             (suf-start (- (length the-string) suf-len))
+             cmp-result
+             );; end varbindings
+        (if (and (< 0 suf-len)
+                 (<= 0 suf-start))
+            (setq cmp-result
+                  (compare-strings the-string suf-start nil
+                                   the-suffix 0 nil
+                                   ignore-case)))
+        (and cmp-result (not (numberp cmp-result)))
+        );; end let
+    )
+  )
+
+
 (defsubst jpw-insert-markup-tags (start-tag end-tag)
   "Inserts the two markup tags, `start-tag' and `end-tag', on either side of
 `point'.  If a region is active, it inserts the two tags on either side of the
@@ -453,83 +481,62 @@ whatever buffer is presently open.
   (set-buffer-file-coding-system 'raw-text-dos nil))
 
 
-(defun jpw-session-reload ()
-  "Reload the files from a previous session.  Will invoke `session-initialize'
-if not done already.
-{jpw:  8/2010}"
-  (interactive)
-  (and
+(defun refresh-buffers (type-suffix &optional do-not-add-dot)
+  "Reload a bunch of buffers.
 
-   (if (not (boundp 'session-file-alist))
-       ;; Ensure that we proceed only if we load and init the session pkg.
-       (and
-        (require 'session)
-        (session-initialize)
-        );; end and
-     ;; else
-     t
-     );; end if
+Modified buffers and buffers that aren't associated with a file are never
+touched by this function.
 
-   (let (jpw-session-filespec
-         jpw-session-filename)
+If TYPE-SUFFIX is a non-empty string, only buffers whose file ends with that
+string are reloaded.  If TYPE-SUFFIX doesn't begin with a '.', one is
+prepended ... unless DO-NOT-ADD-DOT is `t'.  When the optional argument,
+DO-NOT-ADD-DOT, is non-`nil', TYPE-SUFFIX is used as-specified (no '.' is
+prepended).
 
-     (dolist (jpw-session-filespec session-file-alist)
-       (setq jpw-session-filename (car jpw-session-filespec))
-       (and
-        (file-exists-p jpw-session-filename)
-        (find-file-existing jpw-session-filename)
+{jpw: 07/2012}"
+  (interactive "sTypes to update: ")
+
+  (if type-suffix
+      (if (and (stringp type-suffix)
+               (< 0 (length type-suffix)))
+          ;; Check for a leading '.' in the name ... unless suppressed.
+          (if (not (or do-not-add-dot
+                       (char-equal ?. (string-to-char type-suffix))))
+              (setq type-suffix (concat "." type-suffix))
+              )
+        ;; else
+        ;; If we weren't passed a string, or were passed an empty string, set
+        ;;it back to null.
+        (setq type-suffix nil)
         )
-       ;; No need to restore the point & mark; `session-find-file-hook' (which
-       ;; `session-initialize' adds to `find-file-hooks') will do this and
-       ;; more for us.
+    )
 
-       );; end dolist
-     );; end let
+  (save-current-buffer
+    (let ((buffers-to-refresh (list))
+          name
+          );; end varbindings
 
-   );; end outer-and
-  )
+      (dolist (buf (buffer-list) buffers-to-refresh)
+        (setq name (buffer-file-name buf))
+        (if (and (not (buffer-modified-p buf))
+                 ;; Buffer must be associated with a file.
+                 name
+                 ;; If there's not suffix to check for, skip this next
+                 ;; comparison.
+                 (or (not type-suffix)
+                     (string-ends-with name type-suffix)))
+            (push buf buffers-to-refresh)
+          )
+        );;end dolist
 
-
-(defun jpw-session-save ()
-  "Call `session-save-session' with completely \"fresh state\".  The old
-`session-save-file' is deleted and the variable `session-file-alist' erased.
-
-{Note:  Previously-killed buffers are all stored in `session-file-alist'.
-        Erasing it first ensures that only the open buffers are stored.}
-{Note2:  `session-save-session' appears to delete any existing
-         `session-save-file'.  Well, the present version of \"session.el\"
-         appears to.  But this defun also deletes `session-save-file', just to
-         be on the safe side.}
-
-Use it to save a clean session.
-{jpw:  8/2010}"
-  (interactive)
-  (and
-   (boundp 'session-use-package)
-   (boundp 'session-file-alist)
-   (let ((old-sess-undo-chk session-undo-check))
-     (setq session-file-alist nil
-           session-undo-check -65536)
-     (delete-file session-save-file)
-     (session-save-session)
-     (setq session-undo-check old-sess-undo-chk)
-     )
-   )
-  )
-
-
-(defun jpw-init-session-mgmt ()
-  "Load the \"session\" package and set up use of my `jpw-session-save' and
-'jpw-session-load' defuns for saving and loading session.
-{jpw:  7/2011}"
-  (interactive)
-
-  (require 'session)
-  (remove-hook 'kill-emacs-hook 'session-save-session)
-  (add-hook 'kill-emacs-hook 'jpw-session-save)
-  (add-hook 'emacs-startup-hook 'jpw-session-reload)
-  (global-set-key [?\C-c \S-f9] 'jpw-session-save)
-  (global-set-key [?\C-c \M-f10] 'jpw-session-reload)
+      (dolist (buf buffers-to-refresh buffers-to-refresh)
+        (set-buffer buf)
+        (revert-buffer nil t t)
+        );;end dolist
+      ;; This fn. will eval to the list of refreshed buffers, or 'nil' if
+      ;; nothing was touched.
+      );;end let
+    );;end s-c-b
   )
 
 
@@ -690,6 +697,92 @@ function definitions in bash and ksh.
       )
     (setq sh-font-lock-keywords-var modified-keywords-var)
     ) ;; end let
+  )
+
+
+;;----------------------------------------------------------------------
+;;
+;; Emacs Sessions
+;;
+
+
+(defun jpw-session-reload ()
+  "Reload the files from a previous session.  Will invoke `session-initialize'
+if not done already.
+{jpw:  8/2010}"
+  (interactive)
+  (and
+
+   (if (not (boundp 'session-file-alist))
+       ;; Ensure that we proceed only if we load and init the session pkg.
+       (and
+        (require 'session)
+        (session-initialize)
+        );; end and
+     ;; else
+     t
+     );; end if
+
+   (let (jpw-session-filespec
+         jpw-session-filename)
+
+     (dolist (jpw-session-filespec session-file-alist)
+       (setq jpw-session-filename (car jpw-session-filespec))
+       (and
+        (file-exists-p jpw-session-filename)
+        (find-file-existing jpw-session-filename)
+        )
+       ;; No need to restore the point & mark; `session-find-file-hook' (which
+       ;; `session-initialize' adds to `find-file-hooks') will do this and
+       ;; more for us.
+
+       );; end dolist
+     );; end let
+
+   );; end outer-and
+  )
+
+
+(defun jpw-session-save ()
+  "Call `session-save-session' with completely \"fresh state\".  The old
+`session-save-file' is deleted and the variable `session-file-alist' erased.
+
+{Note:  Previously-killed buffers are all stored in `session-file-alist'.
+        Erasing it first ensures that only the open buffers are stored.}
+{Note2:  `session-save-session' appears to delete any existing
+         `session-save-file'.  Well, the present version of \"session.el\"
+         appears to.  But this defun also deletes `session-save-file', just to
+         be on the safe side.}
+
+Use it to save a clean session.
+{jpw:  8/2010}"
+  (interactive)
+  (and
+   (boundp 'session-use-package)
+   (boundp 'session-file-alist)
+   (let ((old-sess-undo-chk session-undo-check))
+     (setq session-file-alist nil
+           session-undo-check -65536)
+     (delete-file session-save-file)
+     (session-save-session)
+     (setq session-undo-check old-sess-undo-chk)
+     )
+   )
+  )
+
+
+(defun jpw-init-session-mgmt ()
+  "Load the \"session\" package and set up use of my `jpw-session-save' and
+'jpw-session-load' defuns for saving and loading session.
+{jpw:  7/2011}"
+  (interactive)
+
+  (require 'session)
+  (remove-hook 'kill-emacs-hook 'session-save-session)
+  (add-hook 'kill-emacs-hook 'jpw-session-save)
+  (add-hook 'emacs-startup-hook 'jpw-session-reload)
+  (global-set-key [?\C-c \S-f9] 'jpw-session-save)
+  (global-set-key [?\C-c \M-f10] 'jpw-session-reload)
   )
 
 
