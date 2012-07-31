@@ -531,7 +531,7 @@ prepended).
 
       (dolist (buf buffers-to-refresh buffers-to-refresh)
         (set-buffer buf)
-        (revert-buffer nil t t)
+        (revert-buffer t t)
         );;end dolist
       ;; This fn. will eval to the list of refreshed buffers, or 'nil' if
       ;; nothing was touched.
