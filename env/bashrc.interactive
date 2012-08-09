@@ -101,7 +101,7 @@ export LANGUAGE
 
 
 # Set the shell to use emacs style input editing (yes, we need both the
-# "set keymap" and "set editing-mode" commands).  Do not use 
+# "set keymap" and "set editing-mode" commands).  Do not use
 # "bind -m emacs", as this will reset the key map.
 if [ -e "${BASH_INPUTRC}" ]; then
     source ${BASH_INPUTRC}
@@ -347,7 +347,7 @@ do__cpio__engine() {
                 cpio -0 -o $cpioOpts --file=$arfile
         fi
 
-    else 
+    else
 
         if [ "$mode" = "-i" ]; then
             cpioOpts="$cpioOpts $xopts"
@@ -362,7 +362,7 @@ do__cpio__engine() {
 
         $catbin $arfile | cpio $mode $cpioOpts
 
-    fi     
+    fi
 }
 
 # Functions & Aliases that use do__cpio__engine
@@ -738,10 +738,12 @@ case ${OSTYPE} in
         ;;
 
     *linux*)
+        # Workaround for Flash Errors:
+        export VDPAU_NVIDIA_NO_OVERLAY=1
+
         # Enable commandline completion for certain functions & aliases.
         #
         complete -F complete__runx runx
-        
 
         #
         # *NetStuff*
