@@ -2,7 +2,7 @@
 ;;
 ;; Mode Hooks
 ;;
-;;  Copyright © 1995-2011 John P. Weiss
+;;  Copyright © 1995-2012 John P. Weiss
 ;;
 ;;  This package is free software; you can redistribute it and/or modify
 ;;  it under the terms of the Artistic License, included as the file
@@ -69,6 +69,7 @@
 (add-hook 'perl-mode-hook 'use-jpw-style-perl)
 (add-hook 'cperl-mode-hook 'use-jpw-style-cperl)
 (add-hook 'octave-mode-hook 'use-jpw-style-octave)
+(add-hook 'ess-mode-hook 'use-jpw-style-ess)
 
 ;; There is no longer an separate "shell-script-mode-hook"; the `sh-mode-hook'
 ;; serves both the programming mode and the Shell-in-a-Box mode.

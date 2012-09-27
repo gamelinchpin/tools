@@ -261,6 +261,7 @@ Note that this function may require modification whenever
 
 
 ;; Programming-Related Settings
+(setq-default ess-language "R")
 (jpw-custom-set-variables-nonsaved
  ;; No longer a variable?
  '(align-c++-modes (quote (c++-mode c-mode
@@ -290,6 +291,12 @@ Note that this function may require modification whenever
  '(cperl-highlight-variables-indiscriminately t)
  '(ediff-window-setup-function (quote ediff-setup-windows-plain)
                                 nil (ediff-wind))
+
+ '(ess-default-style (quote OWN))
+ '(ess-fancy-comments nil)
+ '(ess-language "R")
+ '(ess-own-style-list (quote ((ess-indent-level . 2) (ess-continued-statement-offset . 2) (ess-brace-offset . 0) (ess-expression-offset . 4) (ess-else-offset . 0) (ess-brace-imaginary-offset . 0) (ess-continued-brace-offset . 0) (ess-arg-function-offset-new-line . 2) (ess-close-brace-offset . 0))))
+
  ;; `generic-define-*-modes is now obsolete, replaced by
  ;;`generic-extras-enable-list'
  '(generic-define-mswindows-modes t)
@@ -320,8 +327,12 @@ Note that this function may require modification whenever
                                       show-tabs-generic-mode
                                       x-resource-generic-mode))
                               nil (generic-x))
+
  '(grep-command
    "grep --binary-files=without-match --exclude=\\*.svn\\* -n -r -P ")
+
+ '(inferior-ess-same-window nil)
+
  '(vc-handled-backends (quote (SVN RCS CVS SCCS)))
  ;; NOTE[2012-06-19]:  I don't want to see the current fn. name.  Makes the
  ;;                    mode-bar too cluttered.
@@ -344,6 +355,7 @@ Note that this function may require modification whenever
 
 ;; Org/Outline Mode
 (jpw-custom-set-variables-nonsaved
+ '(org-alphabetical-lists t nil (org)) ;; FIXME:  Not being set?
  '(org-archive-tag ":ARCHIVE:" nil (org))
  '(org-blank-before-new-entry (quote ((heading . t) (plain-list-item)))
                               nil (org))
@@ -364,10 +376,16 @@ Note that this function may require modification whenever
  '(org-list-demote-modify-bullet (quote (("-" . "+")
                                          ("+" . "¤")
                                          ("¤" . "·")
-                                         ("·" . "-")
-                                         ("1." . "a. ")
-                                         ("a. " . "(  i) "))))
- '(org-modules nil)
+                                         ("·" . "°")
+                                         ("°" . "»")
+                                         ("»" . "-")
+                                         ("*" . "1)")
+                                         ("1." . "a.")
+                                         ("a." . "1)")
+                                         ("1)" . "a)")
+                                         ("a)" . "1.")
+                                         )))
+ '(org-modules (quote (org-mouse)))
  ;; No longer a variable?
  '(org-publish-timestamp-directory "~/.emacs.d/.org-timestamps/" nil (org))
  '(org-quote-string ":QUOTE:" nil (org))

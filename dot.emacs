@@ -3,7 +3,7 @@
 ;;  .emacs setup file
 ;;
 ;;
-;;  last modified 06/2012            (jpw)
+;;  last modified 09/2012            (jpw)
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -50,6 +50,14 @@
 ;; at some point.
 (require 'mic-paren)
 (paren-activate)
+
+;; [jpw; 2012/09]  For Emacs-Edit support from Chromium
+(if window-system
+    (progn
+      (require 'edit-server)
+      (edit-server-start)
+      )
+  )
 
 ;;
 ;; Desktop-Only Setting
@@ -146,8 +154,8 @@
   ;; If you edit it by hand, you could mess it up, so be careful.
   ;; Your init file should contain only one such instance.
   ;; If there is more than one, they won't work right.
- '(blink-matching-paren t)
- '(blink-matching-paren-distance nil)
+ '(blink-matching-paren t nil (simple))
+ '(blink-matching-paren-distance nil nil (simple))
  '(c-doc-comment-style (quote ((c-mode . javadoc)
                                (c++-mode . javadoc)
                                (java-mode . javadoc))))
@@ -158,6 +166,7 @@
  '(jpw-lj-user-avatars (quote ("Babuuuuusha" "Dr._Alchemist" "Fiend::Kitty" "Frannie" "Gay::duo" "Gay::rainbow_flag" "Gir::cheery" "Gir::cheery" "Gir::piggy" "Gir::serious" "Gir::waffles" "Ian" "Ian::Bashful" "Martin" "Me_1995" "MsBitters::doom" "MsBitters::looming" "MsBitters::pensive" "My_Icon" "fascists" "linux")))
  '(jpw-lj-xlate-entities-on-save t)
  '(mutt-alias-file-list (quote ("~/Mail/mutt/aliases" "~/Mail/mutt/aliases.prof" "~/Mail/mutt/aliases.work" "~/Mail/mutt/aliases.sb")))
+ '(org-alphabetical-lists t nil (org))
  '(paren-message-linefeed-display "¶")
  '(password-cache-expiry 86400)
  '(recentf-save-file "~/.emacs.d/.recentf")

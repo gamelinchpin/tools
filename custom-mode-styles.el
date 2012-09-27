@@ -112,13 +112,27 @@
   (interactive)
   ;; Define doc-comment keybindings.
   (bind-jpw-doc-comment)
+  (local-set-key "\M-o\M-c" (lambda() (interactive)
+                           (jpw-insert-markup-tags "<code>" "</code>")))
   (local-set-key "\M-oc" (lambda() (interactive)
-                           (jpw-insert-doc-tag "code")))
+                           (jpw-insert-markup-tags "{@code " "}")))
+  (local-set-key "\M-oq" (lambda() (interactive)
+                           (jpw-insert-markup-tags "'{@code " "}'")))
+  (local-set-key "\M-o\S-q" 'jpw-insert-javadoc-literal)
+  (local-set-key "\M-ol" 'jpw-insert-javadoc-literal)
   (local-set-key "\M-pc" (lambda() (interactive)
                            (jpw-insert-doc-tagblock "pre")))
+  (local-set-key "\M-pi" (lambda() (interactive)
+                           (insert "{@inheritDoc}")))
+  (local-set-key "\M-p\S-r" (lambda() (interactive)
+                           (insert "{@docRoot}")))
   (local-set-key "\M-pr" 'jpw-insert-javadoc-link)
   (local-set-key "\M-pl" 'jpw-insert-javadoc-link)
   (local-set-key "\M-pm" 'jpw-insert-javadoc-member-link)
+  (local-set-key "\M-pv" (lambda() (interactive)
+                           (jpw-insert-markup-tags "{@value " "}")))
+  (local-set-key "\M-p\S-v" (lambda() (interactive)
+                              (jpw-insert-markup-tags "{@value #" "}")))
   (local-set-key "\M-p\'" 'jpw-cleanup-javadoc-block)
   (local-set-key "\M-p\M-l" (lambda() (interactive)
                               (if (null current-prefix-arg)
@@ -152,20 +166,18 @@
   )
 
 
-(defvar jpw-outline-toggle-all-visible 'nil)
-(defun jpw-outline-toggle-show-hide-all()
-  (interactive)
-  (if jpw-outline-toggle-all-visible
-      (progn
-        (setq jpw-outline-toggle-all-visible 'nil)
-        (hide-sublevels 1)
-        )
-    ;; else:
-    (setq jpw-outline-toggle-all-visible 't)
-    (show-all)
-    )
-  )
-
+(define-skeleton jpw-org-insert-bold
+  "Bold" nil "*" _ "*")
+(define-skeleton jpw-org-insert-italic
+  "Italics" nil "/" _ "/")
+(define-skeleton jpw-org-insert-underline
+  "Underline" nil "_" _ "_")
+(define-skeleton jpw-org-insert-fixed
+  "Inlined-Code" nil "=" _ "=")
+(define-skeleton jpw-org-insert-inlined-code
+  "Inlined-Code" nil "'=" _ "='")
+(define-skeleton jpw-org-insert-code-block-line
+  "A new line in a code block" nil \n ": " _ )
 
 (defun use-jpw-style-org ()
   (interactive)
@@ -179,6 +191,22 @@
             (eq org-startup-folded 'showall)
             )
         )
+
+  (local-set-key "\M-oi" 'jpw-org-insert-italic)
+  (local-set-key "\M-ob" 'jpw-org-insert-bold)
+  (local-set-key "\M-ou" 'jpw-org-insert-underline)
+  (local-set-key "\M-oe" 'jpw-org-insert-italic)
+  (local-set-key "\M-os" 'jpw-org-insert-bold)
+  (local-set-key "\M-ot" 'jpw-org-insert-fixed)
+  (local-set-key "\M-oc" 'jpw-org-insert-inlined-code)
+  (local-set-key [?\M-p return] 'jpw-org-insert-code-block-line)
+  (local-set-key "\M-j" 'jpw-org-insert-code-block-line)
+  (local-set-key [\C-linefeed] 'jpw-org-insert-code-block-line)
+
+  (local-set-key [tab] 'jpw-org-cycle)
+  (local-set-key [\S-tab] 'jpw-org-shifttab)
+  (local-set-key [\S-iso-lefttab] 'jpw-org-shifttab)
+
   (local-set-key [\M-\S-return] 'org-meta-return)
   (local-set-key [\C-return] 'org-meta-return)
   (local-set-key [\M-return] 'join-next-line)
@@ -190,11 +218,12 @@
   (local-set-key [?\C-c tab] 'jpw-outline-toggle-show-hide-all)
   (local-set-key [\C-\S-down] 'org-shiftmetadown)
   (local-set-key [\C-\S-up] 'org-shiftmetaup)
-  (local-set-key [\C-\S-right] 'org-shiftmetaright)
-  (local-set-key [\C-\S-left] 'org-shiftmetaleft)
+  (local-set-key [\C-\S-right] 'jpw-org-shiftmetaright)
+  (local-set-key [\C-\S-left] 'jpw-org-shiftmetaleft)
   (local-set-key [\C-tab] 'unindent-line)
-  (local-set-key [\S-tab] 'reverse-indent-line)
-  (local-set-key [\S-iso-lefttab] 'reverse-indent-line)
+  (local-set-key [\C-\S-tab] 'reverse-indent-line)
+  (local-set-key [\C-\S-iso-lefttab] 'reverse-indent-line)
+  (local-set-key [\C\S-/] 'completion-at-point)
   (font-lock-mode t)
   )
 
@@ -515,6 +544,26 @@
   (font-lock-mode)
   (local-set-key "\M-j" 'octave-indent-new-comment-line)
   (local-set-key [\C-linefeed] 'octave-indent-new-comment-line)
+  )
+
+
+(defun use-jpw-style-ess ()
+  (interactive)
+  (turn-on-auto-fill)
+  (font-lock-mode)
+
+  ;; The 'C-c' prefix is used for statement & block execution.  Avoid binding
+  ;; anything to it.
+  ;;(local-set-key [?\C-c left] 'ess-beginning-of-function)
+  ;;(local-set-key [?\C-c right] 'ess-end-of-function)
+  (local-set-key [(control shift up)] 'ess-beginning-of-function)
+  (local-set-key [(control shift down)] 'ess-end-of-function)
+  (local-set-key "\M-j" 'do-comment-line-break)
+  (local-set-key [\C-linefeed] 'do-comment-line-break)
+  (local-set-key [\C-return] 'do-comment-line-break)
+  (local-set-key "\M-p=" 'ess-fix-eq-assign)
+  (local-set-key "\M-p#" 'ess-fix-comments)
+  (local-set-key "\M-p\'" 'ess-fix-miscellaneous)
   )
 
 

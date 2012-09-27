@@ -29,6 +29,7 @@
 (require 'custom-vars)
 (eval-when-compile
   (require 'custom-set-defaults)
+  (require 'org)
   (require 'sh-script))
 
 
@@ -583,7 +584,7 @@ top-level directory file."
 
 (defun do-comment-line-break ()
   "Calls the function that the variable `comment-line-break-function'
-is set to
+is set to.
 {jpw: 3/2002}."
   (interactive)
   (funcall comment-line-break-function))
@@ -1081,7 +1082,7 @@ the first.  The first is inserted as a block.
 
 
 (defun jpw-insert-javadoc-link ()
-  "Insert a javadoc '@link' field
+  "Insert a javadoc '@link' tag.
 {jpw: 07/2004}"
   (interactive)
   (if mark-active
@@ -1097,10 +1098,18 @@ the first.  The first is inserted as a block.
 
 
 (defun jpw-insert-javadoc-member-link ()
-  "Insert a javadoc '@link' field for a member
+  "Insert a javadoc '@link' tag for a member.
 {jpw: 01/2009}"
   (interactive)
   (jpw-insert-markup-tags "{@link #" "}")
+  )
+
+
+(defun jpw-insert-javadoc-literal ()
+  "Insert a javadoc '@literal' tag.
+{jpw: 2012/08}"
+  (interactive)
+  (jpw-insert-markup-tags "'{@literal " "}'")
   )
 
 
@@ -1222,6 +1231,88 @@ is ignored.
   )
 
 
+;;----------------------------------------------------------------------
+;;
+;; Org-Mode Overrides
+;;
+
+
+(defconst jpw--org-list-bullets
+  (eval-when-compile
+    (let* ((bullets-all (append '("-" "+")
+                                 (mapcar
+                                  'car org-list-demote-modify-bullet)
+                                 (mapcar
+                                  'cdr org-list-demote-modify-bullet)
+                                 ))
+           (bullets (delete-dups (mapcar (lambda (val)
+                                           (if (= 1 (length val))
+                                               val
+                                             ;; else
+                                             "+"
+                                             )
+                                           )
+                                         bullets-all)))
+           );;;end varbindings
+      (apply 'concat bullets)
+      );;end let*
+    )
+  "A cached regexp of all of the [non-alphanumeric] bullets in
+`org-list-demote-modify-bullet'.
+{jpw; 09/2012}")
+
+
+(defconst jpw--org-list-full-item-re
+  (concat "^[ \t]*\\(\\(?:["
+          jpw--org-list-bullets
+          "*]\\|\\(?:[0-9]+\\|[A-Za-z]\\)[.)]\\)[ \t]+\\)"
+          "\\(?:\\[@\\(?:start:\\)?\\([0-9]+\\|[A-Za-z]\\)\\][ \t]*\\)?"
+          "\\(?:\\(\\[[ X-]\\]\\)[ \t]+\\)?"
+          "\\(?:\\(.*\\)[ \t]+::\\(?:[ \t]+\\|$\\)\\)?")
+  "Version of `org-list-full-item-re--orig' that handles any single-character
+bullet symbols specified in `org-list-demote-modify-bullet'.
+
+{jpw; 09/2012}")
+
+
+(defun jpw-org-item-re ()
+  "Version of `org-item-re--orig' that handles any single-character bullet
+symbols specified in `org-list-demote-modify-bullet'.
+
+{jpw; 09/2012}"
+  (let ((term (cond
+           ((eq org-plain-list-ordered-item-terminator t) "[.)]")
+           ((= org-plain-list-ordered-item-terminator ?\)) ")")
+           ((= org-plain-list-ordered-item-terminator ?.) "\\.")
+           (t "[.)]")))
+    (alpha (if org-alphabetical-lists "\\|[A-Za-z]" "")))
+    (concat "\\([ \t]*\\([" jpw--org-list-bullets
+            "]\\|\\(\\([0-9]+" alpha "\\)" term
+            "\\)\\)\\|[ \t]+\\*\\)\\([ \t]+\\|$\\)")))
+
+
+(unless (boundp 'org-list-full-item-re--orig)
+  (progn
+    (defconst org-list-full-item-re--orig org-list-full-item-re)
+    (setplist 'org-list-full-item-re--orig
+              (symbol-plist 'org-list-full-item-re))
+    (defvaralias 'org-list-full-item-re 'jpw--org-list-full-item-re
+      (get 'jpw--org-list-full-item-re 'variable-documentation))
+    ))
+
+(unless (functionp 'org-item-re--orig)
+  (progn
+    (defalias 'org-item-re--orig (symbol-function 'org-item-re))
+    (defalias 'org-item-re 'jpw-org-item-re)
+    ))
+
+
+;;----------------------------------------------------------------------
+;;
+;; Mode-Specific Functions
+;;
+
+
 (defun jpw-c-fill-paragraph (&optional start-at end-at arg)
   "Nearly-identical to `c-fill-paragraph', but recognizes an active region and
 restricts the fill to it.
@@ -1256,6 +1347,78 @@ and END-AT are non-`null', they override the region.
     ;; else
     ;; Just call it directly.
     (c-fill-paragraph arg)
+    )
+  )
+
+
+(defvar jpw-outline-toggle-all-visible 'nil)
+
+(defsubst jpw--org-looking-at-bullet ()
+  "Convenience `defsubt' for determining if `point' is \"at the start\" of a
+list bullet.  [`point' can be either at the bullet, or an arbitrary number of
+spaces after it.]
+
+{jpw; 09/2012}"
+  (or (and (looking-back "^\s +")
+           (looking-at (jpw-org-item-re)))
+      (looking-back (jpw-org-item-re))
+      )
+  )
+
+
+(defun jpw-org-cycle (&optional org-cycle-arg)
+  "Customized version of `org-cycle'.
+
+Runs `org-shiftmetaright' if `point' is at the start of a list bullet.
+Otherwise, it runs `org-cycle', passing it any args given to this function.
+
+{jpw: 09/2012}"
+  (interactive "P")
+  (if (jpw--org-looking-at-bullet)
+      (prog1
+          (org-shiftmetaright)
+        (end-of-line)
+        (unless (jpw--org-looking-at-bullet)
+          (back-to-indentation))
+        )
+    ;; else:
+    (org-cycle org-cycle-arg)
+    );;end if
+  )
+
+
+(defun jpw-org-shifttab (&optional org-shifttab-arg)
+  "Customized version of `org-shifttab'.
+
+Runs `org-shiftmetaleft' if `point' is at the start of a list bullet.
+Otherwise, it runs `org-shifttab', passing it any args given to this
+function.
+
+{jpw: 09/2012}"
+  (interactive "P")
+  (if (jpw--org-looking-at-bullet)
+      (prog1
+          (org-shiftmetaleft)
+        (end-of-line)
+        (unless (jpw--org-looking-at-bullet)
+          (back-to-indentation))
+        )
+    ;; else:
+    (org-shifttab org-shifttab-arg)
+    );;end if
+  )
+
+
+(defun jpw-outline-toggle-show-hide-all()
+  (interactive)
+  (if jpw-outline-toggle-all-visible
+      (progn
+        (setq jpw-outline-toggle-all-visible 'nil)
+        (hide-sublevels 1)
+        )
+    ;; else:
+    (setq jpw-outline-toggle-all-visible 't)
+    (show-all)
     )
   )
 
@@ -1394,6 +1557,16 @@ explicit NBACK value (from inside of a `lambda' function).
            last-input-event
            )
   (jpw--abbrev-remove-prev-char ?\ )
+  );; end defun
+
+
+(defun jpw-abbrev-post-insert-back1 ()
+  "Just calls '(`jpw-abbrev-post-insert' 1)'; for use in the abbreviation
+tables.
+
+{jpw: 06/2012}"
+  (interactive)
+  (jpw-abbrev-post-insert 1)
   );; end defun
 
 
