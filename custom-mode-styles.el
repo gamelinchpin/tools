@@ -176,13 +176,21 @@
   "Inlined-Code" nil "=" _ "=")
 (define-skeleton jpw-org-insert-inlined-code
   "Inlined-Code" nil "'=" _ "='")
+(define-skeleton jpw-org-insert-quoted-italic
+  "Italics" nil "'/" _ "/'")
+(define-skeleton jpw-org-insert-quoted-underline
+  "Underline" nil "'_" _ "_'")
 (define-skeleton jpw-org-insert-code-block-line
-  "A new line in a code block" nil \n ": " _ )
+  "A new line in a code block" nil \n ": " _ & "  ")
 
 (defun use-jpw-style-org ()
   (interactive)
+  (make-local-variable 'skeleton-end-newline)
+  (setq skeleton-end-newline nil)
   ;;(setq fill-column 78)
   (turn-on-auto-fill)
+  ;; Make sure that our customizations have been activated.
+  (jpw-install-org-customizations)
   ;; Initialize, using the state of the customization variable,
   ;;"org-startup-folded"
   (setq jpw-outline-toggle-all-visible
@@ -193,8 +201,10 @@
         )
 
   (local-set-key "\M-oi" 'jpw-org-insert-italic)
+  (local-set-key "\M-o\S-I" 'jpw-org-insert-quoted-italic)
   (local-set-key "\M-ob" 'jpw-org-insert-bold)
   (local-set-key "\M-ou" 'jpw-org-insert-underline)
+  (local-set-key "\M-oU" 'jpw-org-insert-quoted-underline)
   (local-set-key "\M-oe" 'jpw-org-insert-italic)
   (local-set-key "\M-os" 'jpw-org-insert-bold)
   (local-set-key "\M-ot" 'jpw-org-insert-fixed)
@@ -218,8 +228,8 @@
   (local-set-key [?\C-c tab] 'jpw-outline-toggle-show-hide-all)
   (local-set-key [\C-\S-down] 'org-shiftmetadown)
   (local-set-key [\C-\S-up] 'org-shiftmetaup)
-  (local-set-key [\C-\S-right] 'jpw-org-shiftmetaright)
-  (local-set-key [\C-\S-left] 'jpw-org-shiftmetaleft)
+  (local-set-key [\C-\S-right] 'org-shiftmetaright)
+  (local-set-key [\C-\S-left] 'org-shiftmetaleft)
   (local-set-key [\C-tab] 'unindent-line)
   (local-set-key [\C-\S-tab] 'reverse-indent-line)
   (local-set-key [\C-\S-iso-lefttab] 'reverse-indent-line)
@@ -550,7 +560,7 @@
 (defun use-jpw-style-ess ()
   (interactive)
   (turn-on-auto-fill)
-  (font-lock-mode)
+  (font-lock-mode 't)
 
   ;; The 'C-c' prefix is used for statement & block execution.  Avoid binding
   ;; anything to it.
@@ -561,6 +571,8 @@
   (local-set-key "\M-j" 'do-comment-line-break)
   (local-set-key [\C-linefeed] 'do-comment-line-break)
   (local-set-key [\C-return] 'do-comment-line-break)
+  (local-set-key [\M-return] 'join-next-line)
+  (local-set-key [\S-\M-return] 'ess-use-this-dir)
   (local-set-key "\M-p=" 'ess-fix-eq-assign)
   (local-set-key "\M-p#" 'ess-fix-comments)
   (local-set-key "\M-p\'" 'ess-fix-miscellaneous)

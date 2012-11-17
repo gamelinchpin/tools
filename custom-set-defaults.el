@@ -124,8 +124,8 @@ Note that this function may require modification whenever
 ;;       blink-matching-paren
 ;;       blink-matching-paren-distance
 ;;       c-doc-comment-style
-;;       c-echo-syntactic-information-p
-;;       c-report-syntactic-errors
+;;       c-echo-syntactic-information-p    (optional; see below)
+;;       c-report-syntactic-errors         (optional; see below)
 ;;       paren-message-linefeed-display
 ;;       password-cache-expiry
 ;;       recentf-save-file

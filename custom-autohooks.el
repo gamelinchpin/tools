@@ -34,6 +34,9 @@
 ;; Establish system-wide mode hooks
 
 
+;; Library-Load Hooks
+(add-hook 'org-load-hook 'jpw-org-init-hook)
+
 ;; Misc hooks
 (add-hook 'mail-mode-hook '(lambda () (abbrev-mode 1)))
 (add-hook 'mail-citation-hook 'sc-cite-original)

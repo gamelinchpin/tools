@@ -1254,11 +1254,15 @@ is ignored.
                                            )
                                          bullets-all)))
            );;;end varbindings
-      (apply 'concat bullets)
+      (apply 'concat (delete "*" bullets))
       );;end let*
     )
   "A cached regexp of all of the [non-alphanumeric] bullets in
 `org-list-demote-modify-bullet'.
+
+Note that '*' is omitted, as it's handled specially by the `org-mode'
+internals.
+
 {jpw; 09/2012}")
 
 
@@ -1291,20 +1295,37 @@ symbols specified in `org-list-demote-modify-bullet'.
             "\\)\\)\\|[ \t]+\\*\\)\\([ \t]+\\|$\\)")))
 
 
-(unless (boundp 'org-list-full-item-re--orig)
-  (progn
-    (defconst org-list-full-item-re--orig org-list-full-item-re)
-    (setplist 'org-list-full-item-re--orig
-              (symbol-plist 'org-list-full-item-re))
-    (defvaralias 'org-list-full-item-re 'jpw--org-list-full-item-re
-      (get 'jpw--org-list-full-item-re 'variable-documentation))
-    ))
+(defun jpw-org-init-hook ()
+  (unless (boundp 'org-list-full-item-re--orig)
+    (progn
+      (defconst org-list-full-item-re--orig org-list-full-item-re)
+      (setplist 'org-list-full-item-re--orig
+                (symbol-plist 'org-list-full-item-re))
+      (defvaralias 'org-list-full-item-re 'jpw--org-list-full-item-re
+        (get 'jpw--org-list-full-item-re 'variable-documentation))
+      ))
 
-(unless (functionp 'org-item-re--orig)
-  (progn
-    (defalias 'org-item-re--orig (symbol-function 'org-item-re))
-    (defalias 'org-item-re 'jpw-org-item-re)
-    ))
+  (unless (functionp 'org-item-re--orig)
+    (progn
+      (defalias 'org-item-re--orig (symbol-function 'org-item-re))
+      (defalias 'org-item-re 'jpw-org-item-re)
+      ))
+
+  (setq jpw---org-modifications---init-hook-was-run t)
+  )
+
+
+(defun jpw-install-org-customizations ()
+  "Use this function if you suspect that the `org-load-hook' didn't set up the
+Org mode tweaks.
+{jpw; 10/2012}"
+  (interactive)
+  (unless (boundp 'jpw---org-modifications---init-hook-was-run)
+    (setq jpw---org-modifications---init-hook-was-run nil))
+
+  (unless jpw---org-modifications---init-hook-was-run
+    (jpw-org-init-hook))
+  )
 
 
 ;;----------------------------------------------------------------------

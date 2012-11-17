@@ -173,6 +173,7 @@
  '(tramp-auto-save-directory "/tmp/")
  '(tramp-default-method "scp")
  '(visual-basic-mode-indent 2 t)
+ '(which-function-mode nil nil (which-func))
  )
 
 (custom-set-faces
