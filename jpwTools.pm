@@ -144,6 +144,7 @@ sub dbgprint($@) {
 
         # Validation checks for the special array
         my $isArrayrefArg=0;
+
         my $badArg_errmsg=undef;
         if ((ref($arg) ne '') && (ref($arg) ne 'ARRAY')) {
             $badArg_errmsg="arg passed with type '".ref($arg)."'";
@@ -171,8 +172,9 @@ sub dbgprint($@) {
         }
 
         if ($isArrayrefArg) {
+
             # We have the special array.  Just invoke print_dump on it (which
-            # will figure out whether or not it's an array
+            # will figure out whether or not it's an array).
             if ($lastOut_startsWithPrefix) {
                 print STDERR ("\n");
             } else {
@@ -190,22 +192,27 @@ sub dbgprint($@) {
                 print STDERR ($prefix);
             }
             $lastOut_startsWithPrefix = 1;
+
         }
         else
         {
+
             # Handle as string.
 
-            # Don't prefix every newline; ignore any blank lines at the end of
-            # the last string arg.
+            # Don't prefix every newline.  If the last string arg (in the
+            # fn. arglist) ends with one or more '\n', don't prefix them.
+            # Assume that the caller wants completely-blank lines after the
+            # debug-printout block.
             if ( ( scalar(@_) && ($arg =~ m/\n/) )
                  ||
                  ($arg =~ m/\n+[^\n]/) )
             {
-                $lastOut_startsWithPrefix = m/\n$/;
+                $lastOut_startsWithPrefix = ($arg =~ m/\n$/);
                 $arg =~ s/\n/\n$prefix/g;
             }
 
             print STDERR ($arg);
+
         }
     }
 }
@@ -1923,14 +1930,19 @@ Invokes C<print_array(I<arrayname>, I<arrayref>, '^', I<prefix_nextLvl>)>
 an arrayref arg to C<dbgprint> doesn't match either of these specs, it's
 treated as a string-expression.
 
-Lastly, if the last arg ends with a sequence of "\n", they will B<not> be
-prefixed.  Normally, you want this, since the next call to C<dbgprint> will
-print out the prefix at the start.
+Lastly, if the last string arg ends with one or more "\n", they will B<not> be
+prefixed.
+
+Normally, you want this.  Calls to C<dbgprint> first print out the prefix,
+always.  If we prefixed every "\n", two back-to-back C<dbgprint> calls would
+print a "double-prefix".  Alternatively, anything printed after a C<dbgprint>
+call would have the debug-prefix if we prefixed every "\n".
 
 However, you might actually want to print out a bunch of lines containing only
-the prefix.  To do that, remove one of the "\n" and make it the last arg.
-This turns your sequence of "\n" into the second-to-last arg, and terminates
-the last "prefix-only line".
+the prefix at the end of your debug-printout.  To do that, remove one of the
+"\n" and make it the last arg.  This turns your sequence of "\n" into the
+second-to-last arg.  The "\n" in the last arg now terminates your final
+"prefix-only line".
 
 =item -
 
@@ -1959,7 +1971,7 @@ inside of C<ifdbgprint>.  See L<constant> (using C<perldoc>) for details.
 Unfortunately, this pattern can't be defined in this module.  You would have
 to always define C<DEBUG> in the main namespace anytime you wanted to use this
 package.  Otherwise, this package would fail to compile.  Making C<DEBUG> a
-mackage-member constant obviously won't work (you can't redefine a constant).
+package-member constant obviously won't work (you can't redefine a constant).
 Lastly, Perl will not optimize away the call if you don't use a constant in
 the guard-C<if> block.
 
