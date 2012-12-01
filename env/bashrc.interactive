@@ -147,6 +147,27 @@ pagecommand() {
     fi
 }
 
+
+# Remove duplicates from the path
+pathclean() {
+    local cleanpath=$(echo "$PATH" |\
+        perl -e 'BEGIN { @daPath=(); %seen=(); }' \
+            -e 'END { print join(":", @daPath); }' \
+            -F: -a -n \
+            -e 'foreach my $d (@F) {
+                    unless (defined($seen{$d})) {
+                        push(@daPath, $d);
+                    }
+                    ++$seen{$d};
+                }')
+
+    if [ -n "$cleanpath" ]; then
+        export PATH=${PATH}
+        alias repath="export PATH=${PATH}"
+    fi
+}
+
+
 # The classic tar-based recursive copy
 tarcp() {
     local srcdir targdir oldpwd
@@ -757,6 +778,10 @@ case ${OSTYPE} in
         alias run_synaptic='runx -s synaptic'
         alias odx='od -A x -t x1z'
         alias datestamp='echo -`date +%Y%m%d`'
+
+        # Prune duplicates from the path
+        #
+        pathclean
         ;;
 esac
 

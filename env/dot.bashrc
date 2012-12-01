@@ -1,7 +1,7 @@
 # .bashrc
 #
 # Add your aliases, envvars, and functions to this file.
-# 
+#
 # You should leave everything in this file up to the "User-defined" section
 # alone (unless you know what you're doing).
 
@@ -18,7 +18,7 @@ fi
 
 # Get the aliases and functions used in interactive shells.
 # Global (but only if it hasn't been sourced yet)
-if [ -n "$PS1" -a -z "${INTERACTIVE}" ]; then 
+if [ -n "$PS1" -a -z "${INTERACTIVE}" ]; then
     if [ -x /etc/profile.d/000_bashrc_local.sh ]; then
         # Sets the $INTERACTIVE var and runs the global bashrc.interactive.
         . /etc/profile.d/000_bashrc_local.sh
@@ -155,7 +155,7 @@ fi # [ -z $BASHRC_INTERACTIVE ]
 ########################################
 #
 # Source the global interactive file.
-# 
+#
 ########################################
 
 
@@ -201,9 +201,12 @@ alias odx='od -A x -t x1z'
 ##alias cvsmerge='cvs update -kk -j'
 ##alias cvsmerge-head='cvs update -kk -j HEAD'
 case ${OSTYPE} in
-    [Cc]ygwin)
+    [Cc]ygwin|*linux*)
         export PATH="${PATH}:${HOME}/bin"
-        return
+        if [ -e ${HOME}/local/bin ]; then
+            export PATH="${PATH}:${HOME}/local/bin"
+        fi
+        alias repath="export PATH=${PATH}"
         ;;
 esac
 
@@ -229,11 +232,34 @@ alias adminmail="mutt -f =admin"
 alias sgroff='PAGER=${LESSBIN:-more} pagecommand groff -eptsR -Tascii -ms'
 
 # dpkg stuff
-alias dpkg-h='PAGER=${LESSBIN:-more} pagecommand dpkg --help'
-alias dpkg-all='PAGER=${LESSBIN:-more} pagecommand dpkg -l'
-alias dpkg-l='PAGER=${LESSBIN:-more} pagecommand dpkg -L'
-alias dpkg-inf='PAGER=${LESSBIN:-more} pagecommand dpkg --info'
-alias dpkg-toc='PAGER=${LESSBIN:-more} pagecommand dpkg --contents'
+alias dpkg--h='PAGER=${LESSBIN:-more} pagecommand dpkg --help'
+alias dpkg--all='PAGER=${LESSBIN:-more} pagecommand dpkg -l'
+alias dpkg--l='PAGER=${LESSBIN:-more} pagecommand dpkg -L'
+alias dpkg--inf='PAGER=${LESSBIN:-more} pagecommand dpkg --info'
+alias dpkg--toc='PAGER=${LESSBIN:-more} pagecommand dpkg --contents'
+
+find_in_dpkgs() {
+    if [ "$1" = "-L" ]; then
+        showContents='y'
+        shift
+    fi
+
+    for f in "$@"; do
+        dpkgS=$(dpkg -S $(which $f))
+        if [ -z "$showContents" ]; then
+            echo "$dpkgS"
+        else
+            srcPkg="${dpkgS%%:*}"
+            echo "$srcPkg    ($f)"
+            echo "======================================================="
+            dpkg -L $srcPkg
+            echo ""
+        fi
+    done
+}
+alias dpkg--whichcontains='PAGER=${LESSBIN:-more} pagecommand find_in_dpkgs'
+alias \
+    dpkg--l-whichcontains='PAGER=${LESSBIN:-more} pagecommand find_in_dpkgs -L'
 
 # rpm stuff
 alias rpm-h='PAGER=${LESSBIN:-more} pagecommand rpm --help'
@@ -281,6 +307,22 @@ extract_from_rpm() {
     rpm2cpio ${pkg} | cpio --extract --make-directories \
         --preserve-modification-time --no-absolute-filenames "$@"
 }
+
+# 2-sided Printing
+
+LPR_PS_US='Letter'
+LPR_PS_US_MINMARGIN='Letter'
+LPR_PS_US_NOMARGIN='Letter'
+r_duplexOpts='-o Duplex=DuplexNoTumble -o OptionDuplex=True'
+r_pageSzUS="-o PageSize=$LPR_PS_US -o PageRegion=$LPR_PS_US"
+r_pageSzUSMM="-o PageSize=$LPR_PS_US_MINMARGIN "
+r_pageSzUSMM="$r_pageSzUSMM -o PageRegion=$LPR_PS_US_MINMARGIN"
+r_pageSzUSNM="-o PageSize=$LPR_PS_US_NOMARGIN "
+r_pageSzUSNM="$r_pageSzUSMM -o PageRegion=$LPR_PS_US_NOMARGIN"
+alias lpr-ps="lpr -P ps $r_pageSzUS $r_duplexOpts"
+alias lpr-ps-smallMargin="lpr -P ps $r_pageSzUSMM $r_duplexOpts"
+alias lpr-ps-noMargin="lpr -P ps $r_pageSzUSNM $r_duplexOpts"
+unset r_duplexOpts r_pageSzUS r_pageSzUSMM r_pageSzUSNM
 
 # runx/xtoolwait aliases
 alias lyx="runx lyx -geometry 800x$((${X11_YRES:-786} - 32))+0+0"
