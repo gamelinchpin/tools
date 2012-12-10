@@ -119,6 +119,131 @@ fi
 ####################
 
 
+# Like 'comm', but for the names of files in directories.
+compareContents() {
+    local d1="$1"
+    shift
+    local d2="$1"
+    shift
+
+    local recurse
+    if [ -n "$1" -a "$d1" = "-r" ]; then
+        recurse='y'
+        d1="$d2"
+        d2="$1"
+        shift
+    fi
+
+    if [ "$d1" = "-h" -o "$d1" = "--help" ]; then
+        echo "usage:  compareContents [-r] <path1> <path2>"
+        return 1
+    fi
+
+    # Clean up the directory names
+    d1="${d1%/}"
+    d2="${d2%/}"
+
+    local get_d1ContentsCmd='echo "$d1"/*'
+    local get_d2ContentsCmd='echo "$d2"/*'
+    if [ -n "$recurse" ]; then
+        get_d1ContentsCmd='find "$d1"'
+        get_d2ContentsCmd='find "$d2"'
+    fi
+
+    echo "#CWD==# $PWD"
+
+    local bf f
+    for f in $(eval $get_d1ContentsCmd); do
+        bf="${f##$d1/}"
+        if [ -e $d2/$bf ]; then
+            echo "#3# In both paths: $bf"
+        else
+            echo "#1# Only in $d1: $bf"
+        fi
+    done
+
+    for f in $(eval $get_d2ContentsCmd); do
+        bf="${f##$d2/}"
+        if [ ! -e $d1/$bf ]; then
+            echo "#2# Only in $d2: $bf"
+        fi
+    done
+}
+
+
+# Converts the output of compareContents() back into filenames.
+reassembleComparedContents() {
+    local oi1 oi2 ib
+    local log
+    local srcList
+    while [ "$1" ]; do
+        case "$1" in
+            -1) oi1='y' ;;
+            -2) oi2='y' ;;
+            -[3b]) ib='y' ;;
+            -12|-21)
+                oi1='y'
+                oi2='y'
+                ;;
+            -1[3b]|-[3b]1)
+                oi1='y'
+                ib='y'
+                ;;
+            -2[3b]|-[3b]2)
+                oi2='y'
+                ib='y'
+                ;;
+            -12[3b]|-1[3b]2|-2[3b]1|-21[3b]|-[3b]12|-[3b]21)
+                oi1='y'
+                oi2='y'
+                ib='y'
+                ;;
+            -l|--log*)
+                shift
+                log="$1"
+                ;;
+            -h|--help)
+                echo "usage: reassembleComparedContents [-[123b]] \\"
+                echo "    [{-l|--log} <logfile>] [<srcfile>]"
+                echo ""
+                echo "-1 :  Keep things only in path #1"
+                echo "-2 :  Keep things only in path #2"
+                echo "-3|-b :  Keep things common to both"
+                echo ""
+                echo "Omitting <srcfile> pulls contents from STDIN."
+                echo "If no log file is specified, output goes to STDOUT"
+                ;;
+            *)
+                srcList="$1"
+                ;;
+        esac
+        shift
+    done
+
+    if [ -z "$oi1$oi2$ib" ]; then
+        echo "Nothing to do; punting..."
+        return 1
+    fi
+
+    local re='^#['
+    [ -n "$oi1" ] && re="${re}1"
+    [ -n "$oi2" ] && re="${re}2"
+    [ -n "$ib" ] && re="${re}3"
+    re="${re}]#"
+
+    local reReplace12='s/..# Only in \([^:][^:]*\): /\1\//'
+    local reReplace3='s/... In both paths: /=both::paths=\//'
+    if [ -n "$log" ]; then
+        grep "$re" $srcList | \
+            sed -e "$reReplace12" -e "$reReplace3" | \
+            sort -u | tee $log
+    else
+        grep "$re" $srcList | \
+            sed -e "$reReplace12" -e "$reReplace3" | sort -u
+    fi
+}
+
+
 # Create a function to page a command with additional options
 pagecommand() {
     local cmdname
@@ -206,7 +331,7 @@ cpiocp() {
     srcdir="$1"
     oldpwd=`pwd`
     case "$2" in
-        /)
+        /*)
             targdir="$2"
             ;;
         *)
@@ -217,6 +342,7 @@ cpiocp() {
     # -m == --preserve-modification-time
     # -d == --make-directories
     # -u == --unconditional == overwrite files
+    # -l == --link == where feasible, link instead of copying
     # -depth := do a depth-first find, printing leaves first.
     find . -depth -print0 | cpio -0 --pass-through -mduv $targdir
     cd $oldpwd
@@ -567,7 +693,14 @@ runx() {
         fi
     fi
 
-    runlog="/tmp/runx-${USER}.log"
+    runlog="/tmp/logs/runx-${USER}.log"
+    local logdir=$(dirname $runlog)
+    if [ ! -d $logdir ]; then
+        mkdir -p $logdir
+        chgrp users $logdir
+        chmod g+w,+t $logdir
+    fi
+
     if type -t xtoolwait >/dev/null; then
         if [ -n "$use_sudo" ]; then
             sudo xtoolwait $xtoolwaitOpts "$@" >>$runlog 2>&1
