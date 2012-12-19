@@ -42,12 +42,23 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
+(deftheme jpw-cust-defaults-theme
+  "A theme containing all of the customization variables & faces defaults that
+I use.
+
+{jpw: 12/2012}")
+
+
 (defun jpw-custom-set-variables-nonsaved  (&rest args)
   "Initializes the default value of a customization variable.
 
-Calls `custom-set-variables' on the list of arguments, then converts the
-\"saved value\" to the \"default value\".  This prevents localized
-customizations from being written to your \".emacs\" file.
+Calls `custom-set-variables' on the list of arguments, then
+passes them to `custom-theme-set-variables' using the
+`jpw-cust-defaults-theme'.
+
+Lastly, it attempts to convert the \"saved value\" to the \"default value\".
+This is in hope that localized customizations won't be written to your
+\".emacs\" file in older versions of Emacs.
 
 `args' is a list of lists of the form:
 
@@ -58,23 +69,39 @@ REQUIRED_FEATURE_LIST is a list of packages to load before setting VARNAME to
 the value of VAL_EXPRESSION.  Note that this function partially-overrides
 MAKE_DEFAULT_AND_EVAL_NOW (since it always makes the \"new\" value the
 default).
-
-Note that this function may require modification whenever
-`custom-declare-variable' changes.
-{jpw: 9/2004}"
+{jpw: 12/2012}"
   (apply 'custom-set-variables args)
+  (apply 'custom-theme-set-variables 'jpw-cust-defaults-theme args)
+
+  ;; The attempt to convert the saved value to the default value:
   (while args
     (let ((entry (car args)))
       (if (listp entry)
           (let* ((symbol (nth 0 entry))
-                 (value (get symbol 'saved-value))
+                 (nuval (nth 1 entry))
+                 (value (or (get symbol 'customized-value)
+                            (get symbol 'saved-value)
+                            nuval
+                            ))
                  )
+            ;; Before we try to convert the saved value to the new default,
+            ;; let's force-set it, just to be sure it's done.
+            ;; [20121218] Well, this next expression works *sometimes*.  But
+            ;;            other times, it just fails with a
+            ;;            value-type-mismatch error.
+            ;;            Using `funcall' or `eval' fails in even worse ways.
+            ;;            Using `apply' is no different than the direct call.
+            ;;            And `setq' fails right-out.
+            ;;(set symbol value)
+
             (if value
                 (progn
-                 (put symbol 'standard-value value)
-                 (put symbol 'force-value nil)
-                 (put symbol 'saved-value nil)
-                 )) ;; end if
+                  (put symbol 'standard-value value)
+                  (put symbol 'default-value value)
+                  (put symbol 'customized-value value)
+                  (put symbol 'force-value nil)
+                  (put symbol 'saved-value nil)
+                  )) ;; end if
             );; end let*
         ));; end (let ... (if ...
     (setq args (cdr args))
@@ -85,26 +112,36 @@ Note that this function may require modification whenever
 (defun jpw-custom-set-faces-nonsaved  (&rest args)
   "Initializes the default value of a customizable face.
 
-Calls `custom-set-faces' on the list of arguments, then converts the
-\"saved value\" to the \"default value\".  This prevents localized
-customizations from being written to your \".emacs\" file.
+Calls `custom-set-faces' on the list of arguments, then passes
+them to `custom-theme-set-faces' using the
+`jpw-cust-defaults-theme'.
 
-Note that this function may require modification whenever
-`custom-declare-face' changes.
+Lastly, it attempts to convert the \"saved value\" to the \"default value\".
+This is in hope that localized customizations won't be written to your
+\".emacs\" file in older versions of Emacs.
 {jpw: 9/2004}"
   (apply 'custom-set-faces args)
+  (apply 'custom-theme-set-faces 'jpw-cust-defaults-theme args)
+
+  ;; The attempt to convert the saved value to the default value:
   (while args
     (let ((entry (car args)))
       (if (listp entry)
           (let* ((face (nth 0 entry))
-                 (spec (get face 'saved-face))
+                 (nuspec (nth 1 entry))
+                 (spec (or (get face 'customized-face)
+                           (get face 'saved-face)
+                           nuspec
+                           ))
                  )
             (if spec
                 (progn
-                 (make-empty-face face)
-                 (face-spec-set face spec)
-                 (put face 'saved-face nil)
-                 )) ;; end if
+                  ;; The last arg changes the base-spec (i.e. the default
+                  ;; one).
+                  (face-spec-set face spec t)
+                  (put face 'force-face nil)
+                  (put face 'saved-face nil)
+                  )) ;; end if
             );; end let*
         ));; end (let ... (if ...
     (setq args (cdr args))
@@ -172,8 +209,10 @@ Note that this function may require modification whenever
 (jpw-custom-set-variables-nonsaved
  '(case-fold-search t)
  '(confirm-kill-emacs (quote y-or-n-p))
- '(default-major-mode (quote text-mode)) ;; obsolete since 23.2
- '(major-mode (quote text-mode)) ;; replacement for `default-major-mode'
+ ;; obsolete since 23.2
+ '(default-major-mode (quote text-mode))
+ ;; replacement for `default-major-mode'
+ '(major-mode 'text-mode)
  '(history-delete-duplicates t)
  '(revert-without-query (quote (".*")))
  '(enable-local-eval t)
@@ -558,6 +597,7 @@ Note that this function may require modification whenever
            '(region ((t (:background "LightBlue"))))
            '(highlight ((t (:background "Gray"))))
            '(underline ((t (:underline "purple4"))))
+
            ;; Faces that inherit from others.
            '(font-lock-doc-face
              ((t (:inherit font-lock-comment-face :background "azure"))))
@@ -565,54 +605,124 @@ Note that this function may require modification whenever
            '(woman-bold ((t (:inherit bold :foreground "blue"))))
            '(woman-italic
              ((t (:inherit italic :foreground "Purple4" :underline t))))
+
+           ;; Programming Mode
+           '(develock-long-line-1 ((t (:foreground "DeepPink"))))
+           '(develock-long-line-2 ((t
+                                    (:inherit develock-long-line-1
+                                              :background "#ffff7f"
+                                              :foreground "DeepPink3")
+                                    )))
+           '(develock-whitespace-1 ((t (:background "#ffdfdf"))))
+           '(develock-whitespace-2
+             ((t
+               (:background "#ffdfbf"
+                            :box (:line-width 1 :color "#ffcf9f")))))
+           '(develock-whitespace-3
+             ((t (:background "#ffffbf"
+                              :box (:line-width 1 :color "yellow3")))))
+
+           '(diff-added ((t (:inherit diff-changed
+                                      :foreground "SpringGreen2"
+                                      :weight bold))))
+           '(diff-changed ((nil (:foreground "#8000FF" :weight bold))))
+           '(diff-removed ((t (:inherit diff-changed
+                                        :foreground "VioletRed4"))))
+
+           '(ess-function-call-face
+             ((default (:inherit font-lock-function-name-face))
+              (nil (:foreground "#1f3fff"))))
+
+           '(font-wikipedia-bold-face ((((class color)
+                                         (background light))
+                                        (:inherit bold))))
+           '(font-wikipedia-italic-face ((((class color)
+                                           (background light))
+                                          (:inherit italic))))
+           '(font-wikipedia-math-face
+             ((((class color) (background light))
+               (:inherit font-lock-function-name-face))))
+           '(font-wikipedia-sedate-face
+             ((((class color) (background light))
+               (:inherit variable-pitch
+                         :foreground "SlateGray" :height 1.25))))
+           '(font-wikipedia-string-face
+             ((((class color) (background light))
+               (:inherit font-lock-string-face))))
+           '(font-wikipedia-verbatim-face
+             ((((class color) (background light))
+               (:inherit font-lock-constant-face))))
+
+           '(html-helper-bold-face
+             ((t (:foreground nil :weight normal :inherit (bold)))))
+           '(html-helper-builtin-face
+             ((t (:foreground nil :weight normal
+                              :inherit (font-lock-builtin-face)))))
+           '(html-helper-italic-face
+             ((t (:foreground nil :weight normal :inherit (italic)))))
+           '(html-helper-underline-face
+             ((t (:foreground nil :weight normal :inherit (underline)))))
+           '(html-tag-face
+             ((t (:foreground nil :weight normal
+                              :inherit (font-lock-function-name-face)))))
+
+           '(org-agenda-done
+             ((((class color) (min-colors 16) (background light))
+               (:inherit org-done :weight normal))))
+           '(org-block ((t (:inherit font-lock-comment-face))))
+           '(org-code ((t (:inherit font-lock-constant-face))))
+           '(org-document-info
+             ((((class color) (background light))
+               (:inherit font-lock-doc-face))))
+           '(org-document-info-keyword
+             ((t (:inherit font-lock-builtin-face))))
+           '(org-done ((t (:background "#e0ffe0"
+                                       :foreground "midnight blue"
+                                       :weight bold))))
+           '(org-formula
+             ((((class color) (min-colors 88) (background light))
+               (:inherit font-lock-type-face))))
+           '(org-level-1
+             ((t (:inherit outline-1 :overline t :underline t))))
+           '(org-level-2
+             ((t (:inherit outline-2 :overline t :underline t))))
+           '(org-level-3
+             ((t (:inherit outline-3 :overline t :underline t))))
+           '(org-level-4
+             ((t (:inherit outline-4 :overline t :underline t))))
+           '(org-level-5
+             ((t (:inherit outline-5 :overline t :underline t))))
+           '(org-level-6
+             ((t (:inherit outline-6 :overline t :underline t))))
+           '(org-level-7
+             ((t (:inherit outline-7 :overline t :underline t))))
+           '(org-level-8
+             ((t (:inherit outline-8 :overline t :underline t))))
+           '(org-scheduled
+             ((((class color) (min-colors 88) (background light))
+               (:foreground "SeaGreen2"))))
+           '(org-scheduled-today
+             ((t (:inherit org-scheduled :weight bold))))
+           '(org-special-keyword
+             ((((class color) (min-colors 16) (background light))
+               (:inherit font-lock-keyword-face))))
+           '(org-todo ((t (:background "LemonChiffon"
+                                       :foreground "DeepPink2"
+                                       :weight bold))))
+           '(org-verbatim ((t (:inherit font-lock-constant-face))))
+
+           '(sh-heredoc ((t (:inherit (font-lock-doc-face)))))
            )
 
           (if (or is-version-twentytwo is-version-twentythree)
               (progn
                 (jpw-custom-set-faces-nonsaved
-                 '(develock-long-line-1 ((t (:foreground "DeepPink"))))
-                 '(develock-long-line-2 ((t
-                                          (:inherit develock-long-line-1
-                                                    :background "#ffff7f"
-                                                    :foreground "DeepPink3")
-                                          )))
-                 '(develock-whitespace-1 ((t (:background "#ffdfdf"))))
-                 '(develock-whitespace-2
-                   ((t
-                     (:background "#ffdfbf"
-                                  :box (:line-width 1 :color "#ffcf9f")))))
-                 '(develock-whitespace-3
-                   ((t (:background "#ffffbf"
-                                    :box (:line-width 1 :color "yellow3")))))
-                 '(diff-added ((t (:inherit diff-changed
-                                            :foreground "SpringGreen2"
-                                            :weight bold))))
-                 '(diff-changed ((nil (:foreground "#8000FF" :weight bold))))
-                 '(diff-removed ((t (:inherit diff-changed
-                                              :foreground "VioletRed4"))))
                  '(escape-glyph ((((class color) (background light))
                                   (:foreground "chartreuse"))))
-                 '(font-wikipedia-bold-face ((((class color)
-                                               (background light))
-                                              (:inherit bold))))
-                 '(font-wikipedia-italic-face ((((class color)
-                                                 (background light))
-                                                (:inherit italic))))
-                 '(font-wikipedia-math-face
-                   ((((class color) (background light))
-                     (:inherit font-lock-function-name-face))))
-                 '(font-wikipedia-sedate-face
-                   ((((class color) (background light))
-                     (:inherit variable-pitch
-                               :foreground "SlateGray" :height 1.25))))
-                 '(font-wikipedia-string-face
-                   ((((class color) (background light))
-                     (:inherit font-lock-string-face))))
-                 '(font-wikipedia-verbatim-face
-                   ((((class color) (background light))
-                     (:inherit font-lock-constant-face))))
+
                  '(minibuffer-prompt ((((class color) (background light))
                                        (:foreground "blue"))))
+
                  '(mode-line
                    ((t (:background "plum3" :foreground "black"
                                     :box (:line-width -1
@@ -642,57 +752,12 @@ Note that this function may require modification whenever
                    "To accompany my more colorful modeline, I'll pick an
                     off-white color for the inactive modeline instead of
                     \"grey90\"")
-                 '(org-agenda-done
-                   ((((class color) (min-colors 16) (background light))
-                     (:inherit org-done :weight normal))))
-                 '(org-block ((t (:inherit font-lock-comment-face))))
-                 '(org-code ((t (:inherit font-lock-constant-face))))
-                 '(org-document-info
-                   ((((class color) (background light))
-                     (:inherit font-lock-doc-face))))
-                 '(org-document-info-keyword
-                   ((t (:inherit font-lock-builtin-face))))
-                 '(org-done ((t (:background "#e0ffe0"
-                                             :foreground "midnight blue"
-                                             :weight bold))))
-                 '(org-formula
-                   ((((class color) (min-colors 88) (background light))
-                     (:inherit font-lock-type-face))))
-                 '(org-level-1
-                   ((t (:inherit outline-1 :overline t :underline t))))
-                 '(org-level-2
-                   ((t (:inherit outline-2 :overline t :underline t))))
-                 '(org-level-3
-                   ((t (:inherit outline-3 :overline t :underline t))))
-                 '(org-level-4
-                   ((t (:inherit outline-4 :overline t :underline t))))
-                 '(org-level-5
-                   ((t (:inherit outline-5 :overline t :underline t))))
-                 '(org-level-6
-                   ((t (:inherit outline-6 :overline t :underline t))))
-                 '(org-level-7
-                   ((t (:inherit outline-7 :overline t :underline t))))
-                 '(org-level-8
-                   ((t (:inherit outline-8 :overline t :underline t))))
-                 '(org-scheduled
-                   ((((class color) (min-colors 88) (background light))
-                     (:foreground "SeaGreen2"))))
-                 '(org-scheduled-today
-                   ((t (:inherit org-scheduled :weight bold))))
-                 '(org-special-keyword
-                   ((((class color) (min-colors 16) (background light))
-                     (:inherit font-lock-keyword-face))))
-                 '(org-todo ((t (:background "LemonChiffon"
-                                             :foreground "DeepPink2"
-                                             :weight bold))))
-                 '(org-verbatim ((t (:inherit font-lock-constant-face))))
-                 '(sh-heredoc ((((class color) (background light))
-                                (:inherit font-lock-string-face
-                                          :background "beige"))))
+
                  '(show-paren-match ((((class color))
                                       (:background "yellow"))) t)
                  '(show-paren-mismatch ((((class color))
                                          (:background "DarkOrange"))) t)
+
                  '(trailing-whitespace
                    ((t (:background "#ffdfdf"
                                     :box (:line-width 1 :color "#ff9fbf")))))
@@ -714,6 +779,8 @@ Note that this function may require modification whenever
       ) ;;end progn
   );; end if is-fontifiable-term-type
 
+(provide-theme 'jpw-cust-defaults-theme)
+(enable-theme 'jpw-cust-defaults-theme)
 
 (provide 'custom-set-defaults)
 
