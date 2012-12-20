@@ -743,10 +743,9 @@ This is in hope that localized customizations won't be written to your
                     color, and we may need to change this.")
                  '(mode-line-inactive
                    ((t (:inherit mode-line
-                                 :background "PaleGoldenrod"
+                                 :background "LemonChiffon3"
                                  :foreground "grey35"
-                                 :box (:line-width -1
-                                                   :style released-button)
+                                 :box (:line-width -1 :style released-button)
                                  :weight light)))
                    nil
                    "To accompany my more colorful modeline, I'll pick an
