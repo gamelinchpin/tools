@@ -2,7 +2,7 @@
 ;;
 ;; A major mode for editing phpBB messages.
 ;;
-;;  Copyright © 2005-2010 John P. Weiss
+;;  Copyright © 2005-2010, 2013 John P. Weiss
 ;;
 ;;  This package is free software; you can redistribute it and/or modify
 ;;  it under the terms of the Artistic License, included as the file
@@ -684,7 +684,7 @@ underline tags.
 
 
 (defun phpBB-insert-size (sz)
-  "Insert phpBB size tags, or puts the active region inside phpBB color
+  "Insert phpBB size tags, or puts the active region inside phpBB size
 tags.
 {jpw: 2/05}"
   (interactive "NSize: ")
