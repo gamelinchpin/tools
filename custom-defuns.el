@@ -3,7 +3,7 @@
 ;;
 ;; Custom Functions
 ;;
-;;  Copyright © 1995-2012 John P. Weiss
+;;  Copyright © 1995-2013 John P. Weiss
 ;;
 ;;  This package is free software; you can redistribute it and/or modify
 ;;  it under the terms of the Artistic License, included as the file
@@ -331,18 +331,64 @@ Designed for use as a `before-save-hook'.
   )
 
 
+(defvar jpw-keep-trailing-whitespace '(diff-mode fundamental-mode)
+  "If set non-nil, causes `jpw-clean-trailing-whitespace' to do nothing.
+
+You can also set it to a list of symbols, each of which is the name of a
+major-mode.  If a buffer's major mode is in this list,
+`jpw-keep-trailing-whitespace' becomes buffer-local and is set to `t'.
+[I.e. `jpw-clean-trailing-whitespace' will do nothing in that buffer.]
+Thereafter, users can tweak the behavoir of `jpw-clean-trailing-whitespace'
+for just that buffer by setting this variable to `nil' or `t' on the spot.
+
+You should use this variable when you need to temporarily disable removing
+whitespace on save, but don't want to erase or modify `before-save-hook'.
+{jpw; 02/2013}")
+
+
 (defun jpw-clean-trailing-whitespace ()
-  "Removes all whitespace at the end of every line.
+  "Removes all whitespace at the end of every line, unless
+`jpw-keep-trailing-whitespace' is non-`nil' and/or matches the buffer's
+major-mode.
 
 Designed for use as a `before-save-hook'.
 {jpw: 06/2012}"
   (interactive)
-  (save-excursion
-    (goto-char (point-min))
-    ;; From the fn. documentation for `perform-replace':
-    (while (re-search-forward "[ \t]+$" nil t)
-      (replace-match "" nil nil))
-    );;end excursion
+  (let* ((check-modes (consp jpw-keep-trailing-whitespace))
+         ;; Note:  Yeah, we could condense the boolean-logic, but it's clearer
+         ;; what the code is doing in this form.
+         (clean-em (not (and (not check-modes) jpw-keep-trailing-whitespace)))
+         );; end varbinds
+
+    (if check-modes
+        (let (matching-mode)
+          (dolist (ktw-mode jpw-keep-trailing-whitespace matching-mode)
+            (if (and (not matching-mode)
+                     (equal ktw-mode major-mode))
+                (setq matching-mode ktw-mode)
+              )
+            );;end dolist
+
+          (if matching-mode
+              ;; Found a match.  Modify `jpw-keep-trailing-whitespace' so that
+              ;; we don't need to repeat this search in the future.
+              (progn
+                (make-local-variable 'jpw-keep-trailing-whitespace)
+                ;; Also, don't forget to set the local flag so that we don't
+                ;; try to delete the whitespace.
+                (setq jpw-keep-trailing-whitespace t
+                      clean-em nil)
+                )
+            )
+          );;end let
+      );;end if check-modes
+
+    (if clean-em
+      (save-excursion
+        (delete-trailing-whitespace)
+        );;end excursion
+      )
+    )
   )
 
 
