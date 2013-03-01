@@ -867,28 +867,32 @@ alias cpiobf='mkcpio --bzip2'
 
 alias gz="gzip -9v"
 
-if type -P emacs >/dev/null; then
-    function emacs_defaultargs() {
-        [ -n "$DISPLAY" ] || return 0
-        X11_RESOLUTION=$(xdpyinfo | grep dimensions | awk '{ print $2 }')
-        if [ -z "$X11_RESOLUTION" ]; then
-            emacs_geom="-geom 80x24"
-        else
-            if [ ${X11_RESOLUTION%%x*} -gt 1152 ]; then
-                emacs_font="-fn 10x20"
-                emacs_geom="-geom 80x48"
-            elif [ ${X11_RESOLUTION%%x*} -gt 1024 ]; then
-                emacs_font="-fn 9x15"
-                emacs_geom="-geom 80x53"
-            else
-                emacs_font="-fn 9x15"
-                emacs_geom="-geom 80x46"
-            fi
-        fi
-        echo "-bg white $emacs_font $emacs_geom"
-    }
-    alias emacs="$(type -p emacs) \$(emacs_defaultargs)"
-fi
+## [20121217] I've fixed the ".XResources" problem, so this function is no
+## longer needed.  It'll be removed in a later commit.
+##
+# if type -P emacs >/dev/null; then
+#     function emacs_defaultargs() {
+#         [ -n "$DISPLAY" ] || return 0
+#         X11_RESOLUTION=$(xdpyinfo | grep dimensions | awk '{ print $2 }')
+#         if [ -z "$X11_RESOLUTION" ]; then
+#             emacs_geom="-geom 80x24"
+#         else
+#             export X11_RESOLUTION
+#             if [ ${X11_RESOLUTION%%x*} -gt 1152 ]; then
+#                 emacs_font="-fn 10x20"
+#                 emacs_geom="-geom 80x48"
+#             elif [ ${X11_RESOLUTION%%x*} -gt 1024 ]; then
+#                 emacs_font="-fn 9x15"
+#                 emacs_geom="-geom 80x53"
+#             else
+#                 emacs_font="-fn 9x15"
+#                 emacs_geom="-geom 80x46"
+#             fi
+#         fi
+#         echo "-bg white $emacs_font $emacs_geom"
+#     }
+#     alias emacs="$(type -p emacs) \$(emacs_defaultargs)"
+# fi
 
 alias locn="pagecommand locate -e"
 alias manfile="pagecommand nroff -man"
