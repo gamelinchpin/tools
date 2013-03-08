@@ -42,7 +42,6 @@
 (require 'custom-defuns)
 
 
-
 ;;;Add any terminal-dependent bindings
 ;;(setq term (getenv "TERM"))
 ;;(if term
@@ -392,6 +391,9 @@
 ;; Bindings that autoload functions or keymaps
 (require 'iso-transl)
 (define-key key-translation-map [\C-menu] 'iso-transl-ctl-x-8-map)
+
+
+(provide 'custom-keybindings)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
