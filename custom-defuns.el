@@ -749,52 +749,52 @@ bindings.
   ;; Execute the regular function.
   (describe-bindings)
 
-  (save-excursion
     ;; Switch to the *Help*-buffer and make it modifiable.
-    (set-buffer "*Help*")
+  (with-current-buffer "*Help*"
     (toggle-read-only -1)
 
     ;; Now modify the bindings-documentation.
-    (let* ((xlation-startp (progn (goto-char (point-min))
-                                  (re-search-forward "[Kk]ey [Tt]ranslations:"
-                                                     nil t)
-                                  (match-beginning 0)
-                                  )
+    (save-excursion
+      (let* ((xlation-startp (progn (goto-char (point-min))
+                                    (re-search-forward "[Kk]ey [Tt]ranslations:"
+                                                       nil t)
+                                    (match-beginning 0)
+                                    )
+                             )
+
+             (xlation-endp (if xlation-startp
+                               (progn
+                                 (goto-char xlation-startp)
+                                 (re-search-forward "\f\n"
+                                                    nil t)
+                                 ))
                            )
 
-           (xlation-endp (if xlation-startp
-                             (progn
-                               (goto-char xlation-startp)
-                               (re-search-forward "\f\n"
-                                                  nil t)
-                               ))
-                         )
+             ;; Cut w/o changing the yank buffer.
+             (xlation-binding-doc (if (and xlation-startp xlation-endp)
+                                      (delete-and-extract-region
+                                       xlation-startp xlation-endp)
+                                    ))
+             ) ;; end varbindings
 
-           ;; Cut w/o changing the yank buffer.
-           (xlation-binding-doc (if (and xlation-startp xlation-endp)
-                                    (delete-and-extract-region
-                                     xlation-startp xlation-endp)
-                                  ))
-           ) ;; end varbindings
+        (if xlation-binding-doc
+            (progn
+              (goto-char (point-max))
+              (insert "\n\f\n" xlation-binding-doc)
+              (goto-char (point-max))
+              (delete-char -2)
+              );; end progn
+          );; end and
 
-      (if xlation-binding-doc
-           (progn
-             (goto-char (point-max))
-             (insert "\n\f\n" xlation-binding-doc)
-             (goto-char (point-max))
-             (delete-backward-char 2)
-             );; end progn
-           );; end and
+        );; end let*
 
-      );; end let*
-
-    ;; Lastly, before ending the excursion to the *Help*-buffer, reset it to
-    ;;unmodified-read-only.
-    (set-buffer-modified-p nil)
-    (toggle-read-only 1)
-    );; end excursion
+      ;; Lastly, before ending the excursion to the *Help*-buffer, reset it to
+      ;;unmodified-read-only.
+      (set-buffer-modified-p nil)
+      (toggle-read-only 1)
+      );; end excursion
+    );; end with-current-buffer
   )
-
 
 (defun jpw-sh-mode-font-lock-enhance ()
   "Modify the variable `sh-font-lock-keywords-var' to correctly highlight
