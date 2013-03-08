@@ -108,10 +108,10 @@ Note that this fn. only sets a face bold.  It cannot unset it.
                            '(:background "plum3"
                                          :foreground "black"
                                          :box (:line-width -1
-                                                           :style released-button)))
+                                               :style released-button)))
                      (list modeline-lowcolor-modeflags
                            '(:background "magenta"
-                                         :foreground "black"))
+                             :foreground "black"))
                      )
                nil
                "For when I'm in the mood for a more colorful modeline, use
@@ -119,7 +119,8 @@ Note that this fn. only sets a face bold.  It cannot unset it.
                )
          '(mode-line-highlight
            ((t (:foreground "green4"
-                            :box (:line-width 2 :color "grey40" :style released-button))))
+                            :box (:line-width 2 :color "grey40"
+                                  :style released-button))))
            nil
            "Just using a box with a darker gray is unsatisfying.  Let's
             change the text color to something that will stand out (but not
@@ -131,11 +132,12 @@ Note that this fn. only sets a face bold.  It cannot unset it.
                            '(:inherit mode-line
                                       :background "LemonChiffon3"
                                       :foreground "grey20"
-                                      :box (:line-width -1 :style released-button)
+                                      :box (:line-width -1
+                                            :style released-button)
                                       :weight light))
                      (list modeline-lowcolor-modeflags
                            '(:inherit mode-line
-                                      :background "gray"))
+                             :background "gray"))
                      )
                nil
                "To accompany my more colorful modeline, I'll pick an off-white
@@ -248,6 +250,22 @@ tags on either side of the region.
   (ediff-files (buffer-file-name (get-buffer buffer-A))
                (buffer-file-name (get-buffer buffer-B))
                startup-hooks)
+  )
+
+
+(defun jpw-vc-diff (&optional not-urgent)
+  "Calls `vc-diff' with the HISTORIC parameter set to 1.
+
+This is the original behavior.
+
+Note:  The *second* revision that this defun asks for defaults to the
+working revision.  When asked for the first revision, specify the \"older\"
+repository version that you want to diff with the working revision (or a newer
+repository revision).
+
+{jpw: 3/2013}"
+  (interactive)
+  (vc-diff 1 not-urgent)
   )
 
 

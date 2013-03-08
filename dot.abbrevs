@@ -383,21 +383,28 @@
     ("catch" "catch" c-electric-continued-statement 2)
     ("else" "else" c-electric-continued-statement 3)
     ("finally" "finally" c-electric-continued-statement 0)
-    ("jdarg" "<code><em></em></code>"
-     (lambda nil nil (jpw-abbrev-post-insert 12)) 0)
+    ("jd_root" "{@docroot}" jpw-abbrev-post-insert 0)
+    ("jd_sa" "@see <a href=\"\"></a>" jpw-abbrev-post-insert 0)
+    ("jdarg" "<em>{@code  }</em>"
+     (lambda nil nil (jpw-abbrev-post-insert 6)) 0)
     ("jdb" "<b></b>" jpw-abbrev-post-insert 0)
     ("jdbb" "<b></b>" jpw-abbrev-post-insert 0)
     ("jdbr" "<br/>")
     ("jdc" "{@code  }" jpw-abbrev-post-insert-back1 0)
+    ("jdcc" "{@code  }" jpw-abbrev-post-insert-back1 0)
     ("jdcode" "'<code></code>'" jpw-abbrev-post-insert 0)
+    ("jdcodearg" "<code><em></em></code>"
+     (lambda nil nil (jpw-abbrev-post-insert 12)) 0)
     ("jdcq" "'{@code  }'"
      (lambda nil nil (jpw-abbrev-post-insert 2)) 0)
     ("jdem" "<em></em>" jpw-abbrev-post-insert 0)
     ("jdf" "{@code false}" nil 0)
+    ("jdfa" "{@code false}" nil 0)
     ("jdinherit" "{@inheritDoc}" nil 0)
     ("jdl" "{@link  }" jpw-abbrev-post-insert-back1 0)
-    ("jdlm" "{@link #}" jpw-abbrev-post-insert-back1 0)
     ("jdlit" "{@literal  }" jpw-abbrev-post-insert-back1 0)
+    ("jdll" "{@link  }" jpw-abbrev-post-insert-back1 0)
+    ("jdlm" "{@link #}" jpw-abbrev-post-insert-back1 0)
     ("jdlp" "{@linkplain  }" jpw-abbrev-post-insert-back1 0)
     ("jdlpm" "{@linkplain #}" jpw-abbrev-post-insert-back1 0)
     ("jdm" "/**
@@ -412,6 +419,7 @@
      *
      */" jpw-abbrev-indent-doc-block 0)
     ("jdp" "@param" nil 0)
+    ("jdpp" "@param" nil 0)
     ("jdpar" "" jpw-abbrev-insert-doc-par 0)
     ("jdpre" "" jpw-abbrev-insert-doc-pre 0)
     ("jdptp" "@param <>" jpw-abbrev-post-insert-back1 0)
@@ -420,6 +428,7 @@
     ("jds" "@see" nil 0)
     ("jdsa" "@see <a href=\"\"></a>" jpw-abbrev-post-insert 0)
     ("jdt" "{@code true}" nil 0)
+    ("jdtr" "{@code true}" nil 0)
     ("jdth" "@throws" nil 0)
     ("jdv" "{@value  }" jpw-abbrev-post-insert-back1 0)
     ("jdvm" "{@value #}" jpw-abbrev-post-insert-back1 0)

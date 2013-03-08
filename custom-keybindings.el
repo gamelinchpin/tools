@@ -2,7 +2,7 @@
 ;;
 ;; Keyboard Bindings File
 ;;
-;;  Copyright © 1995-2011 John P. Weiss
+;;  Copyright © 1995-2013 John P. Weiss
 ;;
 ;;  This package is free software; you can redistribute it and/or modify
 ;;  it under the terms of the Artistic License, included as the file
@@ -311,6 +311,7 @@
 
 ;------------more bindings-------------------
 
+
 ;; Bind the Repeat Search command
 ;;; The Default: (global-set-key "\M-s" 'isearch-repeat-forward)
 (global-set-key "\C-cs" 'isearch-repeat-forward)
@@ -377,6 +378,11 @@
 
 ;; CVS-mode bindings
 ;(global-set-key [\A-v] 'cvs-mode)
+
+;; Other VC-bindings
+;;   Need to use the key-vector, since we have a double-key prefix.
+(global-set-key [?\C-x ?v ?-] 'vc-diff)
+(global-set-key [?\C-x ?v ?=] 'jpw-vc-diff)
 
 ;; Compile-mode bindings
 (global-set-key [?\C-c f7] 'compile)
