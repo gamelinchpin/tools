@@ -734,6 +734,7 @@ repository revision).
 {jpw: 03/2013}"
   (interactive)
   (vc-diff 1 not-urgent)
+  )
 
 
 (defun jpw-describe-bindings (&optional prefix buffer)
