@@ -2,8 +2,8 @@
 ;;
 ;; My custom indentation tools.
 ;;
-;;  Copyright © 2005-2006 John P. Weiss
-;;  
+;;  Copyright © 2005-2011 John P. Weiss
+;;
 ;;  This package is free software; you can redistribute it and/or modify
 ;;  it under the terms of the Artistic License, included as the file
 ;;  "LICENSE" in the source code archive.
@@ -15,12 +15,12 @@
 ;;  You should have received a copy of the file "LICENSE", containing
 ;;  the License John Weiss originally placed this program under.
 ;;
-;;  
+;;
 ;; A package of my indentation tools.  Almost all of these are `defsubst', so
 ;; that you can define mode-specific versions of them without loss of
 ;; performance.
 ;;
-;;  
+;;
 ;; $Id$
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -32,15 +32,15 @@
 ;;------------------------------------------------------------
 ;;
 ;; Utility Functions
-;; 
+;;
 
 
 (defsubst jpw-next-nonblank-line (&optional direction)
   ;; Moves forward to the next non-blank line.  The sign of the arg DIRECTION
   ;; determines whether we move forward (> 0) or backward (< 0).
   (let ((sgn (cond ((not direction) 1)
-                   ((> direction 0) 1) 
-                   ((< direction 0) -1) 
+                   ((> direction 0) 1)
+                   ((< direction 0) -1)
                    (t 0))))
     (forward-line sgn)
     (while (looking-at "^$")
@@ -223,8 +223,116 @@ one.
 
 ;;------------------------------------------------------------
 ;;
+;; List-Indentation Functions
+;;
+
+
+;; FIXME:  Document all and make the defvar a defcustom
+(defvar jpw-subitem-bullets-re "\\([-+·¤»°§]\\*+\\) +")
+(defconst jpw-number-items-re "\\([0-9]+\\.\\|(?[a-z][).]\\) +")
+(defconst jpw-roman-items-re "\\(([ivx]+)\\) +")
+
+
+(defsubst jpw-is-item-start ()
+  ;; Moves to the end of indentation of the current line, then checks if it
+  ;; matches any of the item regexps.  Modifies
+  ;; `match-beginning',`match-data', and `match-end'
+  (goto-char (current-indentation))
+  (or (looking-at jpw-subitem-bullets-re)
+      (looking-at jpw-number-items-re)
+      (looking-at jpw-roman-items-re)
+      (looking-at )
+      );;end or
+  )
+
+
+(defun jpw-find-item-fold-indent ()
+  "Returns the indentation column for the next line in an item.  Used for
+indenting after folding a line.
+{jpw: 2/11}"
+    (save-excursion
+      (goto-char (current-indentation))
+      (if (jpw-is-item-start)
+          (match-end 0)
+        ;; else
+        (backward-to-indentation 1)
+        (if (jpw-is-item-start)
+            (match-end 0)
+          ;; else
+          (current-indentation)
+          );; end if
+        );; end outer-if
+      );;end excursion
+  )
+
+
+(defun jpw-find-item-indent-info ()
+  "Returns a two item list:
+       (ITEM-START-POS PREV-INDENT-COLUMN)
+
+ITEM-START-POS is where the item's bullet or number starts.
+
+PREV-INDENT-COLUMN is the indentation of the previous line.  If the previous
+line is the first one in the item, then PREV-INDENT-COLUMN is the column after
+the bullet or number and its trailing space(s).
+
+If `point' is not in a recognized list item when this function is
+called, both ITEM-START-POS and PREV-INDENT-COLUMN will be `nil'.
+
+
+You can use this function in an unfolded item line, one in the process of
+being folded, or when reindenting an item.
+{jpw: 2/11}"
+ (let (item-start-pos
+       item-number-end-pos
+       previous-indent-pos);; end vars
+    (save-excursion
+      (goto-char (current-indentation))
+      (if (jpw-is-item-start)
+          (setq item-start-pos (match-start 0)
+                item-number-end-pos (match-end 0))
+        ;; else
+        (backward-to-indentation 1)
+        (setq previous-indent-pos (current-indentation))
+        (while (or (not item-start-pos)
+                   (= current-column 0)
+                   (= current-column (point-min))
+                   (looking-at "^\\s *$")
+                   )
+          (if (jpw-is-item-start)
+              (setq item-start-pos (match-start 0)
+                    item-number-end-pos (match-end 0))
+            );; end if
+          (backward-to-indentation 1)
+          );; end while
+        );; end outer-if
+
+
+      ;; If there's 2 or less lines in the item, set the indentation position
+      ;; to the start of the text in the item.
+      (if (or (not previous-indent-pos)
+              (= previous-indent-pos item-start-pos)
+              )
+          (setq previous-indent-pos item-number-end-pos)
+        )
+
+      ;; Since both `item-start-pos' and `previous-indent-pos' can be nil, we
+      ;; need a guard-if around the "get the indentation column" commands.
+      (if (not previous-indent-pos)
+          (list item-start-pos previous-indent-pos)
+        ;; else
+        (goto-char previous-indent-pos)
+        (list item-start-pos (current-column))
+        )
+      );;end excursion
+    );;end let
+ )
+
+
+;;------------------------------------------------------------
+;;
 ;; Comment Indentation Functions
-;; 
+;;
 
 
 (defsubst jpw-back-to-comment-body ()
@@ -342,7 +450,7 @@ will move to the start of the comment \"body\".
     ;; This way, if no indentation takes place, we leave `point' unchanged. 
     (goto-char orig-pos)
 
-    (and 
+    (and
      ;; A two-fer:  It not only tells us where the comment body's indented to,
      ;; but if we're even in a comment (non-nil value).
      body-indent
@@ -416,11 +524,11 @@ will move to the start of the comment \"body\".
 ;;
 ;; Unit Tests
 ;;
-(defun utest-jpw-back-to-matching () 
-  (interactive) 
+(defun utest-jpw-back-to-matching ()
+  (interactive)
   (message "%S" (jpw-back-to-matching '?\{ '?\})))
 (defun utest-jpw-backward-extended-line ()
-  (interactive) 
+  (interactive)
   (message "%S" (jpw-backward-extended-line)))
 
 

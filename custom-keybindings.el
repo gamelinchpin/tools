@@ -256,6 +256,10 @@
 (global-set-key [help] 'help-command)
 (global-set-key "\C-xh" 'help-command)        ;; overrides mark whole buffer
 
+(global-set-key [help ?b] 'jpw-describe-bindings)
+(global-set-key [?\C-x ?h ?b] 'jpw-describe-bindings)
+
+
 ;; Home and End keys
 (global-set-key [home] 'beginning-of-line)
 (global-set-key [\S-home] 'back-to-indentation)

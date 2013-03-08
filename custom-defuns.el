@@ -225,50 +225,6 @@ tags on either side of the region.
 ;;
 
 
-(defun ebuffer-files (buffer-A buffer-B &optional startup-hooks job-name)
-  "Like `ebuffers', does an `ediff' on the two buffers underlying files.
-{jpw: 9/2006}"
-  ;; [jpw] Stolen lock, stock, and barrel from "ediff.el"
-  (interactive
-   (let (bf)
-     ;; [jpw] This "if"-block is my own custom tweak.
-     (if (not (and (functionp 'ediff-files)
-                   (functionp 'ediff-other-buffer)
-                   )
-              )
-         (load "ediff")
-       )
-     (list (setq bf (read-buffer "Buffer A to compare: "
-                                 (ediff-other-buffer "") t))
-           (read-buffer "Buffer B to compare: "
-                        (progn
-                          ;; realign buffers so that two visible bufs will be
-                          ;; at the top
-                          (save-window-excursion (other-window 1))
-                          (ediff-other-buffer bf))
-                        t))))
-  (ediff-files (buffer-file-name (get-buffer buffer-A))
-               (buffer-file-name (get-buffer buffer-B))
-               startup-hooks)
-  )
-
-
-(defun jpw-vc-diff (&optional not-urgent)
-  "Calls `vc-diff' with the HISTORIC parameter set to 1.
-
-This is the original behavior.
-
-Note:  The *second* revision that this defun asks for defaults to the
-working revision.  When asked for the first revision, specify the \"older\"
-repository version that you want to diff with the working revision (or a newer
-repository revision).
-
-{jpw: 3/2013}"
-  (interactive)
-  (vc-diff 1 not-urgent)
-  )
-
-
 (defun kill-ring-save-entire-buffer ()
   "Like kill-ring-save, but grabs the entire buffer."
   (interactive)
@@ -728,6 +684,114 @@ Unfortunately, it doesn't work too well.
   (jpw-load-utf)
   (revert-buffer-with-coding-system 'mule-utf-8)
   (setq buffer-file-coding-system 'mule-utf-8)
+  )
+
+
+;;----------------------------------------------------------------------
+;;
+;; Enhancements to Existing Emacs Functionality
+;;
+
+
+(defun ebuffer-files (buffer-A buffer-B &optional startup-hooks job-name)
+  "Like `ebuffers', does an `ediff' on the two buffers underlying files.
+{jpw: 9/2006}"
+  ;; [jpw] Stolen lock, stock, and barrel from "ediff.el"
+  (interactive
+   (let (bf)
+     ;; [jpw] This "if"-block is my own custom tweak.
+     (if (not (and (functionp 'ediff-files)
+                   (functionp 'ediff-other-buffer)
+                   )
+              )
+         (load "ediff")
+       )
+     (list (setq bf (read-buffer "Buffer A to compare: "
+                                 (ediff-other-buffer "") t))
+           (read-buffer "Buffer B to compare: "
+                        (progn
+                          ;; realign buffers so that two visible bufs will be
+                          ;; at the top
+                          (save-window-excursion (other-window 1))
+                          (ediff-other-buffer bf))
+                        t))))
+  (ediff-files (buffer-file-name (get-buffer buffer-A))
+               (buffer-file-name (get-buffer buffer-B))
+               startup-hooks)
+  )
+
+
+(defun jpw-vc-diff (&optional not-urgent)
+  "Calls `vc-diff' with the HISTORIC parameter set to 1.
+
+This is the original behavior.
+
+Note:  The *second* revision that this defun asks for defaults to the
+working revision.  When asked for the first revision, specify the \"older\"
+repository version that you want to diff with the working revision (or a newer
+repository revision).
+
+{jpw: 03/2013}"
+  (interactive)
+  (vc-diff 1 not-urgent)
+
+
+(defun jpw-describe-bindings (&optional prefix buffer)
+  "A modified `describe-bindings' function.
+
+It moves all of the key translations to the end of the \"*Help*\" buffer so
+that you don't need to scroll down through all of the `iso-transl-ctl-x-8-map'
+bindings.
+
+{jpw:  03/2013}"
+  (interactive)
+  ;; Execute the regular function.
+  (describe-bindings)
+
+  (save-excursion
+    ;; Switch to the *Help*-buffer and make it modifiable.
+    (set-buffer "*Help*")
+    (toggle-read-only -1)
+
+    ;; Now modify the bindings-documentation.
+    (let* ((xlation-startp (progn (goto-char (point-min))
+                                  (re-search-forward "[Kk]ey [Tt]ranslations:"
+                                                     nil t)
+                                  (match-beginning 0)
+                                  )
+                           )
+
+           (xlation-endp (if xlation-startp
+                             (progn
+                               (goto-char xlation-startp)
+                               (re-search-forward "\f\n"
+                                                  nil t)
+                               ))
+                         )
+
+           ;; Cut w/o changing the yank buffer.
+           (xlation-binding-doc (if (and xlation-startp xlation-endp)
+                                    (delete-and-extract-region
+                                     xlation-startp xlation-endp)
+                                  ))
+           ) ;; end varbindings
+
+      (if xlation-binding-doc
+           (progn
+             (goto-char (point-max))
+             (insert "\n\f\n" xlation-binding-doc)
+             (goto-char (point-max))
+             (delete-backward-char 2)
+             );; end progn
+           );; end and
+
+      );; end let*
+
+    ;; Lastly, before ending the excursion to the *Help*-buffer, reset it to
+    ;;unmodified-read-only.
+    (set-buffer-modified-p nil)
+    (toggle-read-only 1)
+    );; end excursion
   )
 
 
