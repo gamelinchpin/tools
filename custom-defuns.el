@@ -721,22 +721,6 @@ Unfortunately, it doesn't work too well.
   )
 
 
-(defun jpw-vc-diff (&optional not-urgent)
-  "Calls `vc-diff' with the HISTORIC parameter set to 1.
-
-This is the original behavior.
-
-Note:  The *second* revision that this defun asks for defaults to the
-working revision.  When asked for the first revision, specify the \"older\"
-repository version that you want to diff with the working revision (or a newer
-repository revision).
-
-{jpw: 03/2013}"
-  (interactive)
-  (vc-diff 1 not-urgent)
-  )
-
-
 (defun jpw-describe-bindings (&optional prefix buffer)
   "A modified `describe-bindings' function.
 

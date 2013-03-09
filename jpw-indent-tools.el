@@ -2,7 +2,7 @@
 ;;
 ;; My custom indentation tools.
 ;;
-;;  Copyright © 2005-2011 John P. Weiss
+;;  Copyright © 2005-2013 John P. Weiss
 ;;
 ;;  This package is free software; you can redistribute it and/or modify
 ;;  it under the terms of the Artistic License, included as the file
@@ -129,7 +129,7 @@
   )
 
 
-(defun jpw-back-to-matching (delim inv-delim &optional boundpos match-any) 
+(defun jpw-back-to-matching (delim inv-delim &optional boundpos match-any)
   "Move backward until DELIM is found, ignoring any intermediate
 \"DELIM ... INV-DELIM\" in the buffer.
 
@@ -165,7 +165,7 @@ match is found before BOUNDPOS, the function returns `nil'.
          (targ-delim-inv (elt (car inv-delim-list) 0))
          (delim-re (jpw-make-delim-regexp delim-list))
          (inv-delim-re (jpw-make-delim-regexp inv-delim-list))
-         (all-delims-re (jpw-make-delim-regexp (append delim-list 
+         (all-delims-re (jpw-make-delim-regexp (append delim-list
                                                        inv-delim-list)))
          );; end bindings
 
@@ -175,7 +175,7 @@ match is found before BOUNDPOS, the function returns `nil'.
 
     (while (and (> nested-delim-count 0)
                 (re-search-backward all-delims-re boundpos t))
-      (cond 
+      (cond
        ((looking-at delim-re)
         (setq nested-delim-count (1- nested-delim-count))
         )
@@ -241,7 +241,7 @@ one.
   (or (looking-at jpw-subitem-bullets-re)
       (looking-at jpw-number-items-re)
       (looking-at jpw-roman-items-re)
-      (looking-at )
+      (looking-at "")
       );;end or
   )
 
@@ -289,18 +289,18 @@ being folded, or when reindenting an item.
     (save-excursion
       (goto-char (current-indentation))
       (if (jpw-is-item-start)
-          (setq item-start-pos (match-start 0)
+          (setq item-start-pos (match-beginning 0)
                 item-number-end-pos (match-end 0))
         ;; else
         (backward-to-indentation 1)
         (setq previous-indent-pos (current-indentation))
         (while (or (not item-start-pos)
-                   (= current-column 0)
-                   (= current-column (point-min))
+                   (= (current-column) 0)
+                   (= (current-column) (point-min))
                    (looking-at "^\\s *$")
                    )
           (if (jpw-is-item-start)
-              (setq item-start-pos (match-start 0)
+              (setq item-start-pos (match-beginning 0)
                     item-number-end-pos (match-end 0))
             );; end if
           (backward-to-indentation 1)
@@ -394,7 +394,7 @@ The indentation rules are as follows:
   previous line, then do one of the following:
   1. Do nothing if the previous line isn't a comment.
   2. Do nothing if `point' is at the beginning of line or in the left
-     \"margin\". 
+     \"margin\".
   3. Indent the body to the same level as the body of the previous comment
      line.  See below for the rules governing comment body indentation.
   4. If unable to do #2, then indent the body relatively.
@@ -440,14 +440,14 @@ will move to the start of the comment \"body\".
          (last-body-indent (jpw-prev-comment-internal-indentation t))
          (last-comment-has-body (if last-body-indent
                                     (> last-body-indent 0)))
-         (new-indent (if comment-offset 
+         (new-indent (if comment-offset
                          (+ last-indent comment-offset)
                        last-indent))
          );; end vars
 
     ;; Before doing anything, back up to where `point' was when this function
     ;; was called.
-    ;; This way, if no indentation takes place, we leave `point' unchanged. 
+    ;; This way, if no indentation takes place, we leave `point' unchanged.
     (goto-char orig-pos)
 
     (and
@@ -504,7 +504,7 @@ will move to the start of the comment \"body\".
 ;; current-indentation
 ;; back-to-indentation ;; intra-line
 ;; (backward-to-indentation arg) ;; find indentation ARG lines back
-;; forward-to-indentation 
+;; forward-to-indentation
 ;; indent-relative ;; Good fallback fn.
 ;; Moving by balanced parens:
 ;; forward-sexp

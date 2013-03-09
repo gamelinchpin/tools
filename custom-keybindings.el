@@ -384,8 +384,8 @@
 
 ;; Other VC-bindings
 ;;   Need to use the key-vector, since we have a double-key prefix.
-(global-set-key [?\C-x ?v ?-] 'vc-diff)
-(global-set-key [?\C-x ?v ?=] 'jpw-vc-diff)
+(global-set-key [?\C-x ?v ?\C-=] 'ediff-revision)
+(global-set-key [?\C-x ?v ?\C-~] 'ediff-revision)
 
 ;; Compile-mode bindings
 (global-set-key [?\C-c f7] 'compile)
