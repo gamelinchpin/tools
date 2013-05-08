@@ -15,6 +15,7 @@ if [ -n "${INTERACTIVE}" ]; then
     export PS2="$l_ps2"
 fi
 
+
 ############################################################################
 ############################################################################
 #
@@ -27,6 +28,7 @@ fi
 if [ "${INTERACTIVE}" = "ran" ]; then
     return
 fi
+
 
 ############################################################################
 ############################################################################
@@ -47,14 +49,16 @@ fi
 
 # terminal-specific stuff
 umask 022
+l_erasekey='^?'
 case $TERM in
-  xterm|linux|ansi|screen|[Cc]ygwin|rxvt*)
-    stty erase '^h' kill '^u' intr '^c' susp '^z'
-    ;;
-  *)
-    stty erase '^?' kill '^u' intr '^c' susp '^z'
-    ;;
+    xterm|linux|ansi|screen|[Cc]ygwin|rxvt*)
+        if [[ ! -d /KNOPPIX ]]; then
+            l_erasekey='^h'
+        fi
+        ;;
 esac
+stty erase "$l_erasekey" kill '^u' intr '^c' susp '^z'
+unset l_erasekey
 
 
 ########################
@@ -298,23 +302,41 @@ tarcp() {
     local srcdir targdir oldpwd
 
     if [ "x$1" = "x" -o "x$2" = "x" ]; then
-        echo "Usage: tarcp <srcdir>  <destdir>"
+        echo "Usage: tarcp <srcdir> <destdir>"
+        echo ""
+        echo "You can add options to the 2 'tar' commands using the envvars"
+        echo "\$TARCP_OPTS_IN and \$TARCP_OPTS_OUT [the latter defaults to"
+        echo "\"-v\""
+        echo ""
         echo "The contents of \"<srcdir>\" are copied INTO \"<destdir>\"."
         echo "Keep this in mind."
         return 1
     fi
+
     srcdir="$1"
     oldpwd=`pwd`
     case "$2" in
-        /)
+        /*)
             targdir="$2"
             ;;
         *)
             targdir="$oldpwd/$2"
             ;;
     esac
-    cd $srcdir
-    tar --atime-preserve -cf - . | (cd $targdir; tar -xvpf -)
+
+    if [[ ! -d $srcdir ]]; then
+        echo "Source dir does not exist:  $srcdir"
+        return 2
+    fi
+
+    if [[ ! -d $targdir ]]; then
+        echo "Target dir does not exist:  $targdir"
+        return 2
+    fi
+
+    cd $srcdir || return 1
+    tar $TARCP_OPTS_IN --atime-preserve -cf - . | \
+        (cd $targdir; tar ${TARCP_OPTS_OUT:+-v} -xpf -)
     cd $oldpwd
 }
 
@@ -328,6 +350,7 @@ cpiocp() {
         echo "Keep this in mind."
         return 1
     fi
+
     srcdir="$1"
     oldpwd=`pwd`
     case "$2" in
@@ -338,7 +361,18 @@ cpiocp() {
             targdir="$oldpwd/$2"
             ;;
     esac
-    cd $srcdir
+
+    if [[ ! -d $srcdir ]]; then
+        echo "Source dir does not exist:  $srcdir"
+        return 2
+    fi
+
+    if [[ ! -d $targdir ]]; then
+        echo "Target dir does not exist:  $targdir"
+        return 2
+    fi
+
+    cd $srcdir || return 1
     # -m == --preserve-modification-time
     # -d == --make-directories
     # -u == --unconditional == overwrite files
