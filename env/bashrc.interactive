@@ -41,6 +41,10 @@ echo "Setting up for interactive shell..."
 #
 GNU_VERBOSE="-v"
 GNU_LS_COLOR="--color"
+if [[ -f /mach_kernel ]]; then
+    IS_MAC_OS='y'
+    unset GNU_LS_COLOR
+fi
 export PSGREP_OPTS="flw"
 BASH_INPUTRC="${HOME}/.bashrc.emacs-inputrc"
 if [ \! -f $BASH_INPUTRC ]; then
@@ -52,7 +56,7 @@ umask 022
 l_erasekey='^?'
 case $TERM in
     xterm|linux|ansi|screen|[Cc]ygwin|rxvt*)
-        if [[ ! -d /KNOPPIX ]]; then
+        if [[ ! -d /KNOPPIX ]] && [ -z "${IS_MAC_OS}" ]; then
             l_erasekey='^h'
         fi
         ;;
@@ -306,7 +310,8 @@ tarcp() {
         echo ""
         echo "You can add options to the 2 'tar' commands using the envvars"
         echo "\$TARCP_OPTS_IN and \$TARCP_OPTS_OUT [the latter defaults to"
-        echo "\"-v\""
+        echo "\"-v\".  You can use the \"-T\" option via the former;"
+        echo "\"tarcp\" will handle it correctly."
         echo ""
         echo "The contents of \"<srcdir>\" are copied INTO \"<destdir>\"."
         echo "Keep this in mind."
@@ -334,10 +339,24 @@ tarcp() {
         return 2
     fi
 
-    cd $srcdir || return 1
-    tar $TARCP_OPTS_IN --atime-preserve -cf - . | \
-        (cd $targdir; tar ${TARCP_OPTS_OUT:+-v} -xpf -)
-    cd $oldpwd
+    local use_manifest
+    if [ -n "$TARCP_OPTS_IN" ]; then
+        case "$TARCP_OPTS_IN" in
+            *-T\ *|*--files-from=*)
+                use_manifest=y
+                ;;
+        esac
+    fi
+
+    cd "$srcdir" || return 1
+    if [ -n "$use_manifest" ]; then
+        tar --atime-preserve -cf - $TARCP_OPTS_IN | \
+            (cd "$targdir"; tar ${TARCP_OPTS_OUT:--v} -xpf -)
+    else
+        tar $TARCP_OPTS_IN --atime-preserve -cf - . | \
+            (cd "$targdir"; tar ${TARCP_OPTS_OUT:--v} -xpf -)
+    fi
+    cd "$oldpwd"
 }
 
 # The classic cpio-based copy
@@ -346,6 +365,13 @@ cpiocp() {
 
     if [ "x$1" = "x" -o "x$2" = "x" ]; then
         echo "Usage: cpiocp <srcdir>  <destdir>"
+        echo ""
+        echo "[This exists for convenience; \"cpio\" supports copying via"
+        echo " the \"--pass-through\" option.  To copy specific files, just"
+        echo " redirect STDIN to your list of files and use:"
+        echo "     \"cpio -pmduv <destdir>\""
+        echo "]"
+        echo ""
         echo "The contents of \"<srcdir>\" are copied INTO \"<destdir>\"."
         echo "Keep this in mind."
         return 1
@@ -372,14 +398,20 @@ cpiocp() {
         return 2
     fi
 
-    cd $srcdir || return 1
+    cd "$srcdir" || return 1
     # -m == --preserve-modification-time
     # -d == --make-directories
     # -u == --unconditional == overwrite files
     # -l == --link == where feasible, link instead of copying
     # -depth := do a depth-first find, printing leaves first.
-    find . -depth -print0 | cpio -0 --pass-through -mduv $targdir
-    cd $oldpwd
+    if [ -n "$IS_MAC_OS" ]; then
+        # The OS X version of "cpio" doesn't support the '-0' option or GNU
+        # long-form options.
+        find . -depth | cpio -p -mduv "$targdir"
+    else
+        find . -depth -print0 | cpio -0 --pass-through -mduv "$targdir"
+    fi
+    cd "$oldpwd"
 }
 
 # A core routine for creating a cpio archive.
@@ -839,7 +871,7 @@ unset l_fc l_acmd l_aci
 alias man='LESS=${LESS}r man'
 
 o_gnu_ls="${GNU_LS_COLOR}"
-o_gnu_dir="${o_gnu_ls} ${GNU_LS_COLOR:+-h}"
+o_gnu_dir="${o_gnu_ls} ${GNU_LS_COLOR:+-h} ${IS_MAC_OS:+-h}"
 o_ls="-F -C ${o_gnu_ls}"
 o_dir="-F -l ${o_gnu_dir}"
 o_less_ls="${LESSBIN:+ -o '-ReF'}"
