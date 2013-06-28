@@ -3,7 +3,7 @@
 ;;  .emacs setup file
 ;;
 ;;
-;;  last modified 09/2012            (jpw)
+;;  last modified 06/2013            (jpw)
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -170,6 +170,10 @@
  '(paren-message-linefeed-display "¶")
  '(password-cache-expiry 86400)
  '(recentf-save-file "~/.emacs.d/.recentf")
+ '(session-initialize (quote (de-saveplace session places keys menus)) nil (session))
+ '(session-name-disable-regexp "\\`\\(/tmp\\|~/tmp/\\(itsalltext\\|mozex.wrk\\)\\)")
+ '(session-save-file "~/.emacs.d/.session")
+ '(session-use-package t nil (session))
  '(tramp-auto-save-directory "/tmp/")
  '(tramp-default-method "scp")
  '(visual-basic-mode-indent 2 t)

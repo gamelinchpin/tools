@@ -2,7 +2,7 @@
 ;;
 ;; Core Emacs Setup File
 ;;
-;;  Copyright © 1995-2012 John P. Weiss
+;;  Copyright © 1995-2013 John P. Weiss
 ;;
 ;;  This package is free software; you can redistribute it and/or modify
 ;;  it under the terms of the Artistic License, included as the file
@@ -170,6 +170,14 @@ This is in hope that localized customizations won't be written to your
 ;;       tramp-default-method
 ;;       which-function-mode
 ;;
+;;   [jpw; 201306] Due to problems after a recent version upgrade, these next
+;;                 3 variables need to be in both your '~/.emacs' file's
+;;                 `custom-set-variables' block and in this file.
+;;
+;;       session-initialize
+;;       session-name-disable-regexp
+;;       session-save-file
+;;
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -263,6 +271,9 @@ This is in hope that localized customizations won't be written to your
 
 ;; Session and File Version Control
 (jpw-custom-set-variables-nonsaved
+ ;; [jpw; 201306]  The latest version of emacs has been having problems with
+ ;;                the 'session' package.  Leave these settings both here and
+ ;;                in the ".emacs" file.
  '(session-initialize (quote (de-saveplace session places keys menus))
                       nil
                       (session))
@@ -300,7 +311,6 @@ This is in hope that localized customizations won't be written to your
 
 
 ;; Programming-Related Settings
-(setq-default ess-language "R")
 (jpw-custom-set-variables-nonsaved
  ;; No longer a variable?
  '(align-c++-modes (quote (c++-mode c-mode
@@ -330,11 +340,6 @@ This is in hope that localized customizations won't be written to your
  '(cperl-highlight-variables-indiscriminately t)
  '(ediff-window-setup-function (quote ediff-setup-windows-plain)
                                 nil (ediff-wind))
-
- '(ess-default-style (quote OWN))
- '(ess-fancy-comments nil)
- '(ess-language "R")
- '(ess-own-style-list (quote ((ess-indent-level . 2) (ess-continued-statement-offset . 2) (ess-brace-offset . 0) (ess-expression-offset . 4) (ess-else-offset . 0) (ess-brace-imaginary-offset . 0) (ess-continued-brace-offset . 0) (ess-arg-function-offset-new-line . 2) (ess-close-brace-offset . 0))))
 
  ;; `generic-define-*-modes is now obsolete, replaced by
  ;;`generic-extras-enable-list'
@@ -370,13 +375,48 @@ This is in hope that localized customizations won't be written to your
  '(grep-command
    "grep --binary-files=without-match --exclude=\\*.svn\\* -n -r -P ")
 
- '(inferior-ess-same-window nil)
-
  '(vc-handled-backends (quote (SVN RCS CVS SCCS)))
  ;; NOTE[2012-06-19]:  I don't want to see the current fn. name.  Makes the
  ;;                    mode-bar too cluttered.
  '(which-function-mode nil nil (which-func))  ;; FIXME:  Not being set?
  )
+
+
+;; Programming-mode settings for R
+;; [jpw; 201306]  Disabled at the moment, since (A) I'm not using it; and
+;;                (B) ESS mode is messing up other things.
+(if (boundp 'jpw-wants-to-use-ess-mode)
+    (progn
+      (setq-default ess-language "R")
+      (jpw-custom-set-variables-nonsaved
+       '(ess-default-style (quote OWN))
+       '(ess-fancy-comments nil)
+       '(ess-language "R")
+       '(ess-own-style-list (quote ((ess-indent-level . 2)
+                                    (ess-continued-statement-offset . 2)
+                                    (ess-brace-offset . 0)
+                                    (ess-expression-offset . 4)
+                                    (ess-else-offset . 0)
+                                    (ess-brace-imaginary-offset . 0)
+                                    (ess-continued-brace-offset . 0)
+                                    (ess-arg-function-offset-new-line . 2)
+                                    (ess-close-brace-offset . 0))))
+       '(ess-R-font-lock-keywords (quote ((ess-R-fl-keyword:modifiers . t)
+                                          (ess-R-fl-keyword:fun-defs . t)
+                                          (ess-R-fl-keyword:keywords . t)
+                                          (ess-R-fl-keyword:assign-ops . t)
+                                          (ess-R-fl-keyword:constants . t)
+                                          (ess-fl-keyword:fun-calls . t)
+                                          (ess-fl-keyword:numbers)
+                                          (ess-fl-keyword:operators . t)
+                                          (ess-fl-keyword:delimiters . t)
+                                          (ess-fl-keyword:=)
+                                          (ess-R-fl-keyword:F&T . t))))
+
+       '(inferior-ess-same-window nil)
+       )
+      );; end progn
+  );; end if
 
 
 ;; Time Display Settings (only shown in TTYs)
