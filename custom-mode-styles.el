@@ -3,7 +3,7 @@
 ;;
 ;; Custom Functions
 ;;
-;;  Copyright © 1995-2012 John P. Weiss
+;;  Copyright © 1995-2013 John P. Weiss
 ;;
 ;;  This package is free software; you can redistribute it and/or modify
 ;;  it under the terms of the Artistic License, included as the file
@@ -41,6 +41,29 @@
 ;;
 ;; Autohook-specific functions.
 ;;
+
+
+(defun use-jpw-style-common (&optional with-font-lock
+                                       with-abbrev-mode
+                                       comment-linebreak-fn)
+  (interactive)
+  (turn-on-auto-fill)
+  (if with-font-lock (font-lock-mode 't))
+  (if with-abbrev-mode (abbrev-mode 1))
+
+  (if (not comment-linebreak-fn)
+      ;; Default:  Just set <C-Return> to the default comment-line-break fn.
+      (local-set-key [\C-return] 'indent-new-comment-line)
+    ;; else:
+    ;;
+    ;; Set all 3 to the specified fn.
+    (local-set-key "\M-j" comment-linebreak-fn)
+    (local-set-key [\C-linefeed] comment-linebreak-fn)
+    (local-set-key [\C-return] comment-linebreak-fn)
+    )
+
+  (local-set-key [\M-return] 'join-next-line)
+  )
 
 
 (defun use-jpw-perl-dabbrev-skip ()
@@ -157,9 +180,8 @@
 
 (defun use-jpw-style-mutt ()
   (interactive)
-  (turn-on-auto-fill)
-  (font-lock-mode 't)
-  (abbrev-mode 1)
+  (use-jpw-style-common 't 't)
+
   (local-set-key "\C-ca" 'mutt-alias-insert)
   (local-set-key "\C-ci" 'mutt-alias-insert)
   (local-set-key "\C-cl" 'mutt-alias-lookup)
@@ -185,10 +207,11 @@
 
 (defun use-jpw-style-org ()
   (interactive)
+  (use-jpw-style-common 't 'nil 'jpw-org-insert-code-block-line)
+
   (make-local-variable 'skeleton-end-newline)
   (setq skeleton-end-newline nil)
   ;;(setq fill-column 78)
-  (turn-on-auto-fill)
   ;; Make sure that our customizations have been activated.
   (jpw-install-org-customizations)
   ;; Initialize, using the state of the customization variable,
@@ -210,8 +233,6 @@
   (local-set-key "\M-ot" 'jpw-org-insert-fixed)
   (local-set-key "\M-oc" 'jpw-org-insert-inlined-code)
   (local-set-key [?\M-p return] 'jpw-org-insert-code-block-line)
-  (local-set-key "\M-j" 'jpw-org-insert-code-block-line)
-  (local-set-key [\C-linefeed] 'jpw-org-insert-code-block-line)
 
   (local-set-key [tab] 'jpw-org-cycle)
   (local-set-key [\S-tab] 'jpw-org-shifttab)
@@ -234,20 +255,18 @@
   (local-set-key [\C-\S-tab] 'reverse-indent-line)
   (local-set-key [\C-\S-iso-lefttab] 'reverse-indent-line)
   (local-set-key [\C\S-/] 'completion-at-point)
-  (font-lock-mode t)
   )
 
 
 (defun use-jpw-style-html-helper ()
   (interactive)
   (setq fill-column 78)
-  (turn-on-auto-fill)
+  (use-jpw-style-common 't)
 
   ;; Fix keys that break my bindings.
   (local-unset-key [f4])
   (local-set-key [\M-\S-return] 'tempo-template-html-paragraph)
   (local-set-key [\C-return] 'tempo-template-html-line-break)
-  (local-set-key [\M-return] 'join-next-line)
 
   ;; Special setup for HTML-Helper Mode  on Thunderbird mail buffers.
   (local-set-key "\M-p\M-t"
@@ -308,7 +327,6 @@
   (local-set-key "\C-c'" 'jpw-html-entity-abbrev-expand)
   (local-set-key [?\C-c ?\C-'] 'jpw-html-entity-abbrev-expand)
 
-  (font-lock-mode t)
   (jpw-html-fix-tempo-templates)
   )
 
@@ -329,6 +347,8 @@
 
 (defun use-jpw-style-wikipedia-mode ()
   (interactive)
+  (use-jpw-style-common 't)
+
   (local-set-key "\C-cl" 'longlines-mode)
   (local-set-key "\C-c\C-l" 'longlines-mode)
 
@@ -341,7 +361,6 @@
   ;; More disasters
   (local-set-key "\M-u" 'upcase-word)
   (local-set-key "\C-c\"" 'wikipedia-unfill-paragraph-or-region)
-  (local-set-key [\M-return] 'join-next-line)
   (local-set-key "\M-pe" 'wikipedia-insert-enumerate)
   (local-set-key [\C-return] 'wikipedia-terminate-paragraph)
   (local-set-key "\M-pi" 'wikipedia-insert-itemize)
@@ -396,19 +415,20 @@
 
 (defun use-jpw-style-elisp ()
   (interactive)
-  (auto-fill-mode 1)
-;;  (show-paren-mode 1)
+  (use-jpw-style-common 't 't)
+
+  ;;(show-paren-mode 1)
   (global-set-key "\C-cg" 'goto-char)
   (local-set-key "\C-cd" 'edebug-eval-top-level-form)
   (local-set-key "\C-c\C-d" 'edebug-eval-top-level-form)
   (local-set-key "\C-ce" 'eval-defun)
-  (local-set-key [\C-return] 'indent-new-comment-line)
   )
 
 
 (defun use-jpw-style-c-common ()
   (interactive)
-  (auto-fill-mode 1)
+  (use-jpw-style-common 't 't 'do-comment-line-break)
+
   (setq fill-column 78)
   (setq c-indent-comments-syntactically-p 't
         c-tab-always-indent "partial"
@@ -433,15 +453,15 @@
     (local-set-key [(control shift up)] 'c-beginning-of-statement)
     (local-set-key [(control shift down)] 'c-end-of-statement)
     )
-  ;; This, for some reason, needs to be in the mode-specific autohook defuns.
-  ;; Leave it here, too, just for documentation clarity.
+  ;; This needs to be in the mode-specific autohook defuns.  Putting it here
+  ;; only won't work, for some bizarre reason.  Leave it here, too, just for
+  ;; documentation clarity.
   (local-unset-key [f4])
+
   ;; Force use of correct comment-break-fn.
   (local-set-key [?\C-c f7] 'compile)
   (local-set-key [?\C-c f8] 'recompile)
-  (local-set-key "\M-j" 'do-comment-line-break)
-  (local-set-key [\C-linefeed] 'do-comment-line-break)
-  (local-set-key [\C-return] 'do-comment-line-break)
+
   (bind-jpw-c-mode-doxy)
   )
 
@@ -449,10 +469,13 @@
 (defun use-jpw-style-cxx ()
   (interactive)
   (use-jpw-style-c-common)
+
   ;; Use the value of the `jpw-c-style' variable, for that added level of
   ;; indirection. ;)
   (c-set-style jpw-c-style)
-  ;; Make sure this is set correctly...
+
+  ;; This needs to be in the mode-specific autohook defuns.  Putting it only
+  ;; in `use-jpw-style-c-common' won't work, for some bizarre reason.
   (local-unset-key [f4])
   )
 
@@ -486,7 +509,8 @@
     ;; Use the value of the `jpw-c-style' variable, for that added level of
     ;; indirection. ;)
     (c-set-style jpw-c-style)
-    ;; Make sure this is set correctly...
+    ;; This needs to be in the mode-specific autohook defuns.  Putting it only
+    ;; in `use-jpw-style-c-common' won't work, for some bizarre reason.
     (local-unset-key [f4])
     );; end if
   )
@@ -498,7 +522,11 @@
   (c-set-style "jpw-java")
   (setq fill-column 78)
   (bind-jpw-javadoc)
+
+  ;; This needs to be in the mode-specific autohook defuns.  Putting it only
+  ;; in `use-jpw-style-c-common' won't work, for some bizarre reason.
   (local-unset-key [f4])
+
   (local-set-key [?\C-c f7] 'compile)
   (local-set-key [?\C-c f8] 'recompile)
   )
@@ -507,14 +535,15 @@
 (defun use-jpw-style-tex ()
   (interactive)
   (setq tab-width 4)
-  (turn-on-auto-fill)
+  (use-jpw-style-common)
   )
 
 
 (defun use-jpw-style-sql ()
   (interactive)
   (setq tab-width 2)
-  (turn-on-auto-fill)
+  (use-jpw-style-common 't)
+
   ;;(sql-highlight-oracle-keywords)
   (sql-highlight-sybase-keywords)
   )
@@ -522,7 +551,8 @@
 
 (defun use-jpw-style-perl ()
   (interactive)
-  (auto-fill-mode 1)
+  (use-jpw-style-common 't 't)
+
   ;; Use a style equivalent to perl-mode indentation.
   (setq perl-label-offset -2)
   (use-jpw-perl-dabbrev-skip)
@@ -531,7 +561,8 @@
 
 (defun use-jpw-style-cperl ()
   (interactive)
-  (auto-fill-mode 1)
+  (use-jpw-style-common 't 't)
+
   ;; Set the indentation style to my personal one.
   (cperl-set-style "jpw-cperl-style")
   (setq cperl-font-lock t  ;; Always use font-lock-mode
@@ -550,17 +581,13 @@
 
 (defun use-jpw-style-octave ()
   (interactive)
-  (turn-on-auto-fill)
-  (font-lock-mode)
-  (local-set-key "\M-j" 'octave-indent-new-comment-line)
-  (local-set-key [\C-linefeed] 'octave-indent-new-comment-line)
+  (use-jpw-style-common 't 't 'octave-indent-new-comment-line)
   )
 
 
 (defun use-jpw-style-ess ()
   (interactive)
-  (turn-on-auto-fill)
-  (font-lock-mode 't)
+  (use-jpw-style-common 't 'nil 'do-comment-line-break)
 
   ;; The 'C-c' prefix is used for statement & block execution.  Avoid binding
   ;; anything to it.
@@ -568,10 +595,6 @@
   ;;(local-set-key [?\C-c right] 'ess-end-of-function)
   (local-set-key [(control shift up)] 'ess-beginning-of-function)
   (local-set-key [(control shift down)] 'ess-end-of-function)
-  (local-set-key "\M-j" 'do-comment-line-break)
-  (local-set-key [\C-linefeed] 'do-comment-line-break)
-  (local-set-key [\C-return] 'do-comment-line-break)
-  (local-set-key [\M-return] 'join-next-line)
   (local-set-key [\S-\M-return] 'ess-use-this-dir)
   (local-set-key "\M-p=" 'ess-fix-eq-assign)
   (local-set-key "\M-p#" 'ess-fix-comments)
@@ -592,12 +615,13 @@
 
 (defun use-jpw-style-sgml ()
   (interactive)
-  (turn-on-auto-fill)
-  (font-lock-mode)
+  (use-jpw-style-common 't)
+
   ;; Set other indentation variables to the sgml-mode's offset.  The latter
   ;;should be set using the (x)emacs customization engine.
   (jpw-set-sgml-indent sgml-basic-offset)
-  (recenter))
+  (recenter)
+  )
 
 
 (defun jpw-set-xml-lite-indent (arg)
@@ -610,12 +634,12 @@
   )
 
 
-(defun jpw-xml-lite-mode ()
+(defun use-jpw-style-xml-lite ()
   (interactive)
+  (use-jpw-style-common 't)
+
   (sgml-mode)
-  (turn-on-auto-fill)
   (xml-lite-mode)
-  (font-lock-mode)
   (jpw-set-xml-lite-indent 4)
   )
 

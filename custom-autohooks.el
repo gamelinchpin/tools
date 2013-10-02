@@ -2,7 +2,7 @@
 ;;
 ;; Mode Hooks
 ;;
-;;  Copyright © 1995-2012 John P. Weiss
+;;  Copyright © 1995-2013 John P. Weiss
 ;;
 ;;  This package is free software; you can redistribute it and/or modify
 ;;  it under the terms of the Artistic License, included as the file
@@ -52,7 +52,7 @@
 (add-hook 'speedbar-after-create-hook 'jpw-speedbar-settings)
 
 ;; Makefiles
-(add-hook 'makefile-mode-hook 'turn-on-auto-fill)
+(add-hook 'makefile-mode-hook 'use-jpw-style-common)
 
 
 ;; C/C++/Obj-C/Java
@@ -65,10 +65,10 @@
 
 ;; Lisp [Emacs and plain]
 (add-hook 'emacs-lisp-mode-hook 'use-jpw-style-elisp)
-(add-hook 'lisp-mode-hook 'turn-on-auto-fill)
+(add-hook 'lisp-mode-hook 'use-jpw-style-common)
 
 ;; Scripting languages
-(add-hook 'awk-mode-hook 'turn-on-auto-fill)
+(add-hook 'awk-mode-hook 'use-jpw-style-common)
 (add-hook 'perl-mode-hook 'use-jpw-style-perl)
 (add-hook 'cperl-mode-hook 'use-jpw-style-cperl)
 (add-hook 'octave-mode-hook 'use-jpw-style-octave)
@@ -76,33 +76,32 @@
 
 ;; There is no longer an separate "shell-script-mode-hook"; the `sh-mode-hook'
 ;; serves both the programming mode and the Shell-in-a-Box mode.
-(add-hook 'sh-mode-hook 'turn-on-auto-fill)
+(add-hook 'sh-mode-hook 'use-jpw-style-common)
 (add-hook 'sh-mode-hook 'use-jpw-sh-dabbrev-skip)
 
 
 ;; WWW and Friends
 (add-hook 'sgml-mode-hook 'use-jpw-style-sgml)
-; Not needed with `xml-lite-mode'
-;(add-hook 'xml-mode-hook 'use-jpw-style-xml)
-(add-hook 'html-mode-hook 'turn-on-auto-fill)
+(add-hook 'xml-mode-hook 'use-jpw-style-xml-lite)
+(add-hook 'html-mode-hook 'use-jpw-style-common)
 (add-hook 'html-helper-mode-hook 'use-jpw-style-html-helper)
 
 ;; LaTeX and friends.
-(add-hook 'latex-mode-hook 'turn-on-auto-fill)
-(add-hook 'bibtex-mode-hook 'turn-on-auto-fill)
+(add-hook 'latex-mode-hook 'use-jpw-style-common)
+(add-hook 'bibtex-mode-hook 'use-jpw-style-common)
 (add-hook 'tex-mode-hook 'use-jpw-style-tex)
 
 ;; FORTRAN [F77 & F90]
-(add-hook 'fortran-mode-hook 'turn-on-auto-fill)
-(add-hook 'f90-mode-hook 'turn-on-auto-fill)
+(add-hook 'fortran-mode-hook 'use-jpw-style-common)
+(add-hook 'f90-mode-hook 'use-jpw-style-common)
 
 ;; Pascal/Modula-2
-(add-hook 'pascal-mode-hook 'turn-on-auto-fill)
-(add-hook 'modula-2-mode-hook 'turn-on-auto-fill)
+(add-hook 'pascal-mode-hook 'use-jpw-style-common)
+(add-hook 'modula-2-mode-hook 'use-jpw-style-common)
 
 ;; Man pages/texinfo
-(add-hook 'texinfo-mode-hook 'turn-on-auto-fill)
-(add-hook 'nroff-mode-hook 'turn-on-auto-fill)
+(add-hook 'texinfo-mode-hook 'use-jpw-style-common)
+(add-hook 'nroff-mode-hook 'use-jpw-style-common)
 
 ;; SQL
 (add-hook 'sql-mode-hook 'use-jpw-style-sql)

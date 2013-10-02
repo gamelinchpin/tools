@@ -2,7 +2,7 @@
 ;;
 ;; M$ WinBlows-specific setup.
 ;;
-;;  Copyright © 1995-2008 John P. Weiss
+;;  Copyright © 1995-2008, 2013 John P. Weiss
 ;;
 ;;  This package is free software; you can redistribute it and/or modify
 ;;  it under the terms of the Artistic License, included as the file
@@ -54,9 +54,9 @@
 
 ;; CygWin
 ;;
-(defvar cygwin-basepath "C:/cygwin")
-;;(defvar cygwin-basepath "D:/cygwin")
-;;(defvar cygwin-basepath "D:/local/cygwin") ;Keep changin' my mind...
+(defvar cygwin-basepath "C:/local/cygwin")
+;;(defvar cygwin-basepath "D:/local/cygwin")
+;;(defvar cygwin-basepath "E:/local/cygwin") ;Keep changin' my mind...
 (defvar cygwin-tmppath (or (getenv "TEMP")
                            (getenv "TMP")
                            ;; Customize below, or set one of the envvars above.
@@ -64,6 +64,10 @@
 (defvar cygwin-home (or (getenv "HOME")
                         ;; Customize below, or set the envvar above.
                         "C:/home/tmp"))
+;; Customize below.
+(defvar windows-requires-font-setup t)
+(defvar windows-uses-large-fonts t)
+
 
 ;; Visual Source Safe
 ;;
@@ -111,6 +115,17 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
+(defun jpw-set-windows-default-font (small-font large-font)
+  (if windows-requires-font-setup
+      (set-frame-font (if windows-uses-large-fonts
+                          large-font
+                        ;; else
+                        small-font) ;; end font-arg
+                      )
+    );; end if
+  );; end defun
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; General Cygwin Environment
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -149,35 +164,41 @@
 (cond
  ((equal res "800x600")
   (setq win-default-frame-height '37)
-  (set-default-font
-   "-*-Lucida Console-normal-r-*-*-12-*-*-*-c-*-*")
+  (jpw-set-windows-default-font
+   "-*-Lucida Console-normal-r-*-*-12-*-*-*-c-*-*"
+   "-*-Lucida Console-normal-r-*-*-9-*-*-*-c-*-*")
   )
  ((equal res "1024x768")
   (setq win-default-frame-height '45)
-  (set-default-font
-;;   "-*-Lucida Sans Typewriter-normal-r-*-*-13-*-*-*-*-*-*")
-   "-*-Lucida Console-normal-r-*-*-15-*-*-*-c-*-*")
+  (jpw-set-windows-default-font
+   "-*-Lucida Console-normal-r-*-*-15-*-*-*-c-*-*"
+   "-*-Lucida Console-normal-r-*-*-11-*-*-*-c-*-*")
   )
  ((equal res "1152x864")
-  ;; For NT, the height is '53.  For XP, it's down to '51
-  ;;;(setcdr (assoc 'height initial-frame-alist) '51)
-  ;;;(set-default-font
-  ;;; "-*-Lucida Console-normal-r-*-*-15-*-*-*-c-*-*")
-  ;; For larger fonts, one could do this:
   (setq win-default-frame-height '43)
-  (set-default-font
-   "-*-Lucida Console-normal-r-*-*-17-*-*-*-c-*-*")
+  (jpw-set-windows-default-font
+   "-*-Lucida Console-normal-r-*-*-17-*-*-*-c-*-*"
+   "-*-Lucida Console-normal-r-*-*-12-*-*-*-c-*-*")
   )
+ ((equal res "1280x960")
+  (setq win-default-frame-height '45)
+  (jpw-set-windows-default-font
+   "-*-Lucida Console-normal-r-*-*-17-*-*-*-c-*-*"
+   "-*-Lucida Console-normal-r-*-*-12-*-*-*-c-*-*")
+  )
+  ;;else
  ((equal res "1280x1024")
   (setq win-default-frame-height '55)
-  (set-default-font
-   "-*-Lucida Console-normal-r-*-*-17-*-*-*-c-*-*")
+  (jpw-set-windows-default-font
+   "-*-Lucida Console-normal-r-*-*-17-*-*-*-c-*-*"
+   "-*-Lucida Console-normal-r-*-*-12-*-*-*-c-*-*")
   )
   ;;else
  (t
   (setq win-default-frame-height '24)
-  (set-default-font
-   "-*-Lucida Console-normal-r-*-*-13-*-*-*-c-*-*")
+  (jpw-set-windows-default-font
+   "-*-Lucida Console-normal-r-*-*-13-*-*-*-c-*-*"
+   "-*-Lucida Console-normal-r-*-*-12-*-*-*-c-*-*")
   )
  );;end cond
 (setcdr (assoc 'height initial-frame-alist) win-default-frame-height)
