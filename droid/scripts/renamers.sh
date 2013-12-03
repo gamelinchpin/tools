@@ -209,6 +209,15 @@ rename() {
         echo " rename [-z] -r <startNum> <numPatStr> \\"
         echo "    <file> [<file> …]"
         echo " rename <oldPatStr> <newStr> <file> [<file> …]"
+        echo ""
+        echo ""
+        echo "“<oldPatStr>” can have '?' and '*' wildcard.  The"
+        echo "matching text will be REMOVED by the rename."
+        echo "“<numPatStr>” MUST have '?' ONLY, matching"
+        echo "all of the digits to renumber."
+        echo "“<startNum>” can be negative, which will"
+        echo "reverse the numbering.  [But you'll have to"
+        echo "remove the extra '-' in another pass.]"
         return 0
         ;;
       *)
