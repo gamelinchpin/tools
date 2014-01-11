@@ -262,8 +262,9 @@ git_patchpull() {
     local today=$(date +%Y%m%d)
     local parentBranch hasErrs
 
+    local tagName="newXfer${today}"
     local patchFile="$PWD/${srcModule}-xferPatch.mbox"
-    local branchName="newXfer${today}_$srcModule"
+    local branchName="${tagName}_$srcModule"
 
     # Generate that patch.
     if [ -n "$startFrom" ]; then
@@ -280,13 +281,17 @@ git_patchpull() {
     pushd $srcRepos
     echo ""
     git format-patch --stdout $startFrom >$patchFile
-    popd
-    echo ""
     if [[ ! -s $patchFile ]]; then
+        popd
         echo ""
         echo ">> Patch creation failed.  $cowardErrmsg"
         return 4
     fi
+
+    # Before leaving, tag the revision that we just exported:
+    git tag -m "Tagging \"patchpull\" to:" -m "$destDir" $tagName
+    popd
+    echo ""
 
     # Now we'll set up the branch to import the patch into:
     pushd $destRepos >/dev/null 2>&1
@@ -384,8 +389,8 @@ git_helpers_help() {
 
                     So that's what this function does.  It also uses some
                     "sane defaults" for directory names.  Oh ... and every
-                    patch-import goes into its own branch, so that you can
-                    track it.
+                    patch-import is tagged both at the "staging"
+                    git-repository and the destination repository.
 
 
     Aliases:
