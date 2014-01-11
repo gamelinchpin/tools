@@ -25,6 +25,7 @@
 
 
 GitHub_BaseURL=https://github.com/jpweiss
+GIT_TESTER_DIR=./tmp-tester.git
 
 
 ############
@@ -66,6 +67,29 @@ github_git() {
     esac
 
     return $gitStat
+}
+
+
+git_tester() {
+    if [[ ! -d $GIT_TESTER_DIR ]]; then
+        mkdir -v $GIT_TESTER_DIR || return $?
+    fi
+
+    if [[ ! -d $GIT_TESTER_DIR/.git ]]; then
+        git init $GIT_TESTER_DIR || return $?
+    fi
+
+    pushd $GIT_TESTER_DIR
+
+    if [[ ! -e README.tmp ]]; then
+        echo "This git repo is for testing git commands." >README.tmp
+        echo "" >>README.tmp
+        echo "" >>README.tmp
+        echo "And this README file is merely a placeholder." >>README.tmp
+        echo "" >>README.tmp
+        git add -- README.tmp
+        git commit -m "Creating test repos" -q -- README.tmp
+    fi
 }
 
 
@@ -162,8 +186,84 @@ utl_git_noisy_merge() {
 }
 
 
+git_unique_tag() {
+    local theTag showUsage_retval
+
+    # Scan the args to find the tag and validate the options.
+    local o consumeNextNonOption
+    for o in "$@"; do
+        if [ -n "$consumeNextNonOption" ]; then
+            consumeNextNonOption=''
+            continue
+        fi # else:
+
+        case "$o" in
+            help)
+                # Handle immediately.
+                git help tag
+                return 0
+                ;;
+            -[dlnv]|--list|--delete|--verify)
+                # Only tag-adding supported.
+                if [ "$o" = "-n" ]; then
+                    # '-n' only used with '-l' option.
+                    o='-l'
+                fi
+                echo "\"$o\" option not supported."
+                echo ""
+                showUsage_retval=1
+                break
+                ;;
+            -h|--help)
+                showUsage_retval=0
+                ;;
+            -[umF])
+                # These options require an argument.
+                consumeNextNonOption=y
+                ;;
+            -*)
+                :
+                ;;
+            *)
+                theTag="$o"
+                break
+                ;;
+        esac
+    done
+
+    # Usage
+    if [ -n "$showUsage_retval" ]; then
+        echo "usage:  git_unique_tag {help|<git-tag-adding-options>}"
+        echo ""
+        echo "You can use the 'help' keyword to get the help for 'git tag'"
+        echo "itself."
+        echo "This helper-function only supports tag *adding*.  Trying"
+        echo "to use it to list, delete, or verify tags is an error."
+        echo ""
+        echo "If you try to create a tag that already exists, this function"
+        echo "silently does nothing.  ['git tag' will fail with an error"
+        echo "message.]"
+
+        return $showUsage_retval
+    fi
+
+    # Check if the tag exists.
+    tagExists="$(git tag -l $theTag)"
+    if [ -n "$tagExists" ]; then
+        return 0
+    fi
+    # else:
+
+    # Create the new tag, with the specified args as passed.
+    git tag "$@"
+}
+
+
 git_patchpull() {
-    local srcRepos destRepos destDir startFrom
+    local invokedAs="git_patchpull $@"
+
+    local srcRepos destRepos destDir startFrom tagSrcRepos reusePatch
+    local performMerge=y
     local showUsage_retval
     while [ -n "$1" -a -z "$showUsage_retval" ]; do
         case "$1" in
@@ -205,6 +305,18 @@ git_patchpull() {
                 fi
                 ;;
 
+            --noTag|--no[-_]tag)
+                tagSrcRepos=''
+                ;;
+
+            --reusePatch|--reuse[-_]patch)
+                reusePatch=y
+                ;;
+
+            --skipMerge|--noMerge|--no[-_]merge)
+                performMerge=''
+                ;;
+
             -h|--help)
                 showUsage_retval=0
                 ;;
@@ -242,10 +354,22 @@ git_patchpull() {
 
         echo "usage:  git_patchpull {-s|--srcRepos} <gitReposDir> \\"
         echo "    {-d|--destRepos} <gitReposDir> \\"
-        echo "    [--destDir <name>] [--startFrom <revision>]"
+        echo "    [--destDir <name>] [--startFrom <revision|tag>] \\"
+        echo "    [--noTag] [--skipMerge|--noMerge] [--reusePatch]"
         echo ""
         echo -n "The \"--destDir\" defaults to the base-pathname of "
         echo "the \"--srcRepos\" directory."
+        echo ""
+        echo "The \"--noTag\" option skips tagging of the \"--srcRepos\"."
+        echo "Useful if you're using the same source repository multiple"
+        echo "times."
+        echo ""
+        echo "The \"--noMerge\" option skips the 'git merge' onto the master"
+        echo "branch."
+        echo ""
+        echo "If the patch file already exists, it's normally recreated.  Use"
+        echo "the  \"--reusePatch\" option use the old file.  [The "
+        echo "\"--noTag\" option will also be activated.]"
 
         return $showUsage_retval
     fi
@@ -260,38 +384,50 @@ git_patchpull() {
     fi
 
     local today=$(date +%Y%m%d)
-    local parentBranch hasErrs
-
     local tagName="newXfer${today}"
-    local patchFile="$PWD/${srcModule}-xferPatch.mbox"
-    local branchName="${tagName}_$srcModule"
-
-    # Generate that patch.
     if [ -n "$startFrom" ]; then
-        patchFile="$PWD/${srcModule}-syncPatch.mbox"
-        parentBranch=$branchName
-        branchName="sync${today}_$srcModule"
+        tagName="sync${today}"
     else
         startFrom=--root
     fi
 
+    local hasErrs
+    local branchName="project.subrepos__$srcModule"
+    local patchFile="$PWD/${srcModule}-patch-$tagName.mbox"
+
     local cowardErrmsg=">> Cowardly refusing to continue."
 
+
     # Let's start by generating that patch:
-    pushd $srcRepos
-    echo ""
-    git format-patch --stdout $startFrom >$patchFile
-    if [[ ! -s $patchFile ]]; then
-        popd
-        echo ""
-        echo ">> Patch creation failed.  $cowardErrmsg"
-        return 4
+
+    if [[ -e $patchFile ]]; then
+        if [ -z "$reusePatch" ]; then
+            rm -f $patchFile >/dev/null 2>&1
+        else
+            echo ">> Reusing existing patch file:  \"$patchFile\""
+        fi
     fi
 
-    # Before leaving, tag the revision that we just exported:
-    git tag -m "Tagging \"patchpull\" to:" -m "$destDir" $tagName
-    popd
-    echo ""
+    # Generate only if needed.
+    if [[ ! -e $patchFile ]]; then
+        pushd $srcRepos
+        echo ""
+        git format-patch --stdout $startFrom >$patchFile
+        if [[ ! -s $patchFile ]]; then
+            popd
+            echo ""
+            echo ">> Patch creation failed.  $cowardErrmsg"
+            return 4
+        fi
+
+        # Before leaving, tag the revision that we just exported:
+        if [ -n "$tagSrcRepos" ]; then
+            git_unique_tag -m "Tagging \"patchpull\" to:" -m "$destDir" \
+                $tagName
+        fi
+        popd
+        echo ""
+    fi
 
     # Now we'll set up the branch to import the patch into:
     pushd $destRepos >/dev/null 2>&1
@@ -300,12 +436,6 @@ git_patchpull() {
     local common_errmsg="\nConsider doing a 'git reset'."
     common_errmsg="${common_errmsg}\n>>\n>>Remaining in"
     common_errmsg="$common_errmsg directory \"$destRepos\".\n"
-
-    if [ -n "$parentBranch" ]; then
-        utl_git_noisy_checkout $parentBranch --- \
-            "$common_errmsg" || hasErrs='y'
-    fi
-    [ -n "$hasErrs" ] && return 5
 
     utl_git_noisy_checkout -b $branchName --- \
         "$common_errmsg" || hasErrs='y'
@@ -322,28 +452,29 @@ git_patchpull() {
         return 6
     fi
 
-    # Finally, merge onto the parent branch [if any], then onto the head.
-    if [ -n "$parentBranch" ]; then
-        utl_git_noisy_checkout $parentBranch --- \
-            "$cowardErrmsg" || hasErrs='y'
-        [ -n "$hasErrs" ] && return 5
+    # Add info to the "last sync" file and commit.
+    local syncInf="$destDir/.sync2git_info"
+    echo "Ran: '$invokedAs'" >>$syncInf
+    echo "   -> Patch file:  \"$patchFile\"" >>$syncInf
+    echo "   -> Source tagged with:  \"$tagName\"" >>$syncInf
+    echo "" >>$syncInf
 
-        utl_git_noisy_merge -e $branchName --- \
-            "from \"$branchName\" to \"$parentBranch\"" \
-            "$cowardErrmsg"|| hasErrs='y'
-        [ -n "$hasErrs" && return 7
-
-        # When we merge onto the master, we'll do so from the parent branch.
-        branchName="$parentBranch"
+    git add $syncInf
+    if [ $? -eq 0 ]; then
+        git commit -m "Updated for git_patchpull '$tagName'" $syncInf
     fi
+
+    # Finally, merge onto the head.
 
     utl_git_noisy_checkout master --- "$cowardErrmsg" || hasErrs='y'
     [ -n "$hasErrs" ] && return 5
 
-    utl_git_noisy_merge -e $branchName --- \
-        "from \"$branchName\" to \"master\"" || hasErrs='y'
-    if [ -n "$hasErrs" ]; then
-        return 7
+    if [ -n "$performMerge" ]; then
+        utl_git_noisy_merge -e $branchName --- \
+            "from \"$branchName\" to \"master\"" || hasErrs='y'
+        if [ -n "$hasErrs" ]; then
+            return 7
+        fi
     fi
 
     popd
@@ -392,6 +523,17 @@ git_helpers_help() {
                     patch-import is tagged both at the "staging"
                     git-repository and the destination repository.
 
+    git_tester - Create a testing-repos in \$GIT_TESTER_DIR and "pushd" into
+                 it.
+                 [Skips any of the repo-creation steps it doesn't need.]
+
+    git_unique_tag - Silently do nothing if adding a non-unique tag name.
+
+                     The 'git tag' command already requires you to use a
+                     unique name when creating a new tag.  It will fail
+                     with an error message otherwise.  This helper-function
+                     does the opposite.
+
 
     Aliases:
     --------
@@ -403,6 +545,8 @@ git_helpers_help() {
     --------
 
     \$GitHub_BaseURL - The URL to the GitHub account used by "github_git".
+    \$GIT_TESTER_DIR - The name of the temporary test-repository used by
+                       "git_tester".  Can also be a path name.
 EOF
 }
 
