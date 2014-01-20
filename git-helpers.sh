@@ -265,7 +265,6 @@ git_patchpull() {
 
     local srcRepos destRepos destDir startFrom tagSrcRepos reusePatch
     local performMerge=y
-    local useRemoteBranch=''
     local showUsage_retval
     while [ -n "$1" -a -z "$showUsage_retval" ]; do
         case "$1" in
@@ -315,10 +314,6 @@ git_patchpull() {
                 reusePatch=y
                 ;;
 
-            --useRemoteBranch|--use[-_]remote[-_]branch)
-                useRemoteBranch=y
-                ;;
-
             --skipMerge|--noMerge|--no[-_]merge)
                 performMerge=''
                 ;;
@@ -361,8 +356,7 @@ git_patchpull() {
         echo "usage:  git_patchpull {-s|--srcRepos} <gitReposDir> \\"
         echo "    {-d|--destRepos} <gitReposDir> \\"
         echo "    [--destDir <name>] [--startFrom <revision|tag>] \\"
-        echo "    [--noTag] [--skipMerge|--noMerge] [--reusePatch] \\"
-        echo "    [--useRemoteBranch]"
+        echo "    [--noTag] [--skipMerge|--noMerge] [--reusePatch]"
         echo ""
         echo -n "The \"--destDir\" defaults to the base-pathname of "
         echo "the \"--srcRepos\" directory."
@@ -373,14 +367,6 @@ git_patchpull() {
         echo ""
         echo "The \"--noMerge\" option skips the 'git merge' onto the master"
         echo "branch."
-        echo ""
-        echo "The \"--useRemoteBranch\" option is for when (A) the"
-        echo " <gitReposDir> is connected to a remote repository; (B) the"
-        echo " remote branch \"project_subrepos__<name>\" already exists; and"
-        echo "(C) you're not using the \"--startFrom\" option.  Normally, when"
-        echo "doing a 'git_patchpull' from the root, patch is done into a new"
-        echo "empty local branch.  [You would then send that branch upstream"
-        echo "to the remote using 'git push --all'.]"
         echo ""
         echo "If the patch file already exists, it's normally recreated.  Use"
         echo "the  \"--reusePatch\" option use the old file.  [The "
@@ -402,40 +388,18 @@ git_patchpull() {
     local tagName="newXfer${today}"
     if [ -n "$startFrom" ]; then
         tagName="sync${today}"
-        useRemoteBranch=y
     else
         startFrom=--root
     fi
 
     local hasErrs
-    local branchName="${useRemoteBranch:+origin/}project.subrepos__$srcModule"
+    local branchName="project.subrepos__$srcModule"
     local patchFile="$PWD/${srcModule}-patch-$tagName.mbox"
 
     local cowardErrmsg=">> Cowardly refusing to continue."
 
 
-    # Let's start by checking for the remote branch, if that's what we're
-    # looking for.
-    if [ -n "$useRemoteBranch" ]; then
-        pushd $destRepos >/dev/null 2>&1
-        git branch -r | grep -q $branchName
-        local branchCheckStat=$?
-        popd >/dev/null 2>&1
-
-        if [ $branchCheckStat -ne 0 ]; then
-            echo ""
-            echo ">> Remote branch does not exist!!!"
-            echo ">> [Did you do a 'git push --all' instead of a plain-push?]"
-            echo ">>"
-            echo ">> Please ensure that \"$branchName\" exists upstream before"
-            echo ">> retrying."
-            echo ">>"
-            echo "$cowardErrmsg"
-            return 4
-        fi
-    fi
-
-    # Next, generate that patch:
+    # Let's start by generating that patch:
 
     if [[ -e $patchFile ]]; then
         if [ -z "$reusePatch" ]; then
@@ -474,13 +438,15 @@ git_patchpull() {
     common_errmsg="${common_errmsg}\n>>\n>>Remaining in"
     common_errmsg="$common_errmsg directory \"$destRepos\".\n"
 
-    if [ -n "$useRemoteBranch" ]; then
-        utl_git_noisy_checkout $branchName --- \
-            "$common_errmsg" || hasErrs='y'
-    else
-        utl_git_noisy_checkout -b $branchName --- \
-            "$common_errmsg" || hasErrs='y'
+    # Only create the new branch if a remote version of it doesn't already
+    # exist.
+    local createBranch="-b"
+    if git branch -r | grep -q $branchName; then
+        # (Remote) Branch exists; don't create.
+        createBranch=''
     fi
+    utl_git_noisy_checkout $createBranch $branchName --- \
+        "$common_errmsg" || hasErrs='y'
     [ -n "$hasErrs" ] && return 5
 
     # Now we import:
