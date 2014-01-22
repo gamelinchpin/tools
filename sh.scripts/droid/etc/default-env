@@ -1,0 +1,16 @@
+ANDROID_ROOT=/system
+ASEC_MOUNTPOINT=/mnt/asec
+BOOTCLASSPATH=/system/framework/core.jar:/system/framework/ext.jar:/system/framework/framework.jar:/system/framework/android.policy.jar:/system/framework/services.jar:/system/framework/com.htc.framework.jar:/system/framework/com.htc.android.pimlib.jar:/system/framework/com.htc.android.easopen.jar:/system/framework/com.scalado.util.ScaladoUtil.jar:/system/framework/com.orange.authentication.simcard.jar
+ANDROID_BOOTLOGO=1
+ANDROID_ASSETS=/system/app
+EXTERNAL_STORAGE=/mnt/sdcard
+ANDROID_DATA=/data
+ANDROID_PROPERTY_WORKSPACE=14,65536
+export ANDROID_ROOT ASEC_MOUNTPOINT BOOTCLASSPATH ANDROID_BOOTLOGO
+export ANDROID_ASSETS EXTERNAL_STORAGE ANDROID_DATA 
+export ANDROID_PROPERTY_WORKSPACE
+
+#LD_LIBRARY_PATH=/system/lib
+#PATH=/sbin:/system/sbin:/system/bin:/system/xbin
+LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/system/lib"
+export LD_LIBRARY_PATH

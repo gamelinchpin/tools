@@ -1,0 +1,236 @@
+#!tcsh - do not execute - source only
+
+#
+# Interactive Shell Tasks
+#
+if ( "$INTERACTIVE" == "ran" ) then
+    exit
+endif
+echo "Setting up for interactive shell..."
+
+
+# tcsh-specific
+#
+if ($?tcsh) then
+    set color="ls-F"
+    set listflags="C"
+    set complete="igncase"
+    set histdup="erase"
+    set history="2000"
+    set histfile="$HOME/.history.tcsh"
+    set savehist=($history merge)
+    set   dunique
+    unset dextract
+    set rmstar
+
+    # Modify these to suit your own keybinding tastes.
+    bindkey ^? delete-char-or-list
+    bindkey "^[[3~" delete-char-or-list
+    bindkey "^[^?" delete-word
+    bindkey "\377" delete-word
+    bindkey "^[[1~" beginning-of-line
+    bindkey "^[[4~" end-of-line
+    bindkey "^[[5~" history-search-backward
+    bindkey "^[[6~" history-search-forward
+    bindkey "^[[1;5D" backward-word
+    bindkey "^[[1;5C" forward-word
+    bindkey "^[OD" backward-char
+    bindkey "^[OC" forward-char
+    bindkey "^[[D" backward-char
+    bindkey "^[[C" forward-char
+    bindkey "^X^[OD" backward-word
+    bindkey "^X^[OC" forward-word
+    bindkey "^X^[[D" backward-word
+    bindkey "^X^[[C" forward-word
+    bindkey ^R i-search-back
+    bindkey "^[[1;5A" i-search-back
+    bindkey "^[[1;5B" i-search-fwd
+    bindkey "^[^[[5~" i-search-back
+    bindkey "^[^[[6~" i-search-fwd
+    #bindkey "^[[1;5A" up-something
+    #bindkey "^[[1;5B" down-something
+    #bindkey "^[OA" up-one-line
+    #bindkey "^[OB" down-one-line
+    #bindkey "^[[A" up-one-line
+    #bindkey "^[[B" down-one-line
+
+    # Only needed for old, broken Solaris tcsh binaries.
+    if ($OSTYPE == "solaris") then
+        bindkey ~ self-insert-command
+        set pushdsilent
+        alias dirs 'echo \( $dirstack \)'
+        alias cwdcmd 'echo \( $dirstack \)'
+    endif
+
+    alias s 'source ~/.tcshrc.\!^'
+    alias resharc 'set INTERACTIVE=yes; source $HOME/.tcshrc'
+
+    #set prompt="[%n@%m %c]$ "
+else
+
+    # csh-specific
+    #
+    alias s 'source ~/.cshrc.\!^'
+    alias resharc 'source $HOME/.cshrc'
+endif
+
+eval `tset -e^H -s`
+umask 022
+
+if (-d ~/bin) then
+    setenv PATH "${PATH}:${HOME}/bin"
+endif
+
+setenv LESS -MiX
+setenv EDITOR "$HOME/bin/loademacs.sh"
+if (-X less) then
+    alias v "less -r"
+    alias fv 'env LESSOPEN="| fold %s" less -r \!*'
+else
+    alias less more
+    alias v more
+    alias fv more
+endif
+
+set GNU_LS_COLOR=""
+set LS="/bin/ls -F"
+if ($OSTYPE == "linux") then
+    set GNU_LS_COLOR="--color"
+    eval `dircolors --csh /etc/DIR_COLORS`
+    alias rm 'rm -v'
+    alias mv 'mv -v'
+    alias cp 'cp -v'
+    alias psa 'ps -flew'
+    alias gtar 'tar'
+else if ($OSTYPE == "solaris") then
+    set LS="ls-F"
+endif
+
+alias ls "$LS ${GNU_LS_COLOR}"
+alias la "$LS -a ${GNU_LS_COLOR}"
+alias ll "$LS -l ${GNU_LS_COLOR}"
+alias lla "$LS -la ${GNU_LS_COLOR}"
+alias dir "ll -h"
+alias dira "lla -h"
+alias tls 'tar -tvf \!* | less'
+unset GNU_LS_COLOR
+unset LS
+
+alias pd pushd
+alias pd-d 'pushd \!^; cd `pwd`'
+alias psgrep "psa | grep -v grep | grep \!*"
+alias ps_grep psgrep
+
+if ( -X vim ) then
+    alias vi vim
+else
+    alias vim vi
+    setenv EDITOR vi
+endif
+
+if ( -x /usr/local/bin/tar ) then
+    alias gtar "/usr/local/bin/tar"
+endif
+alias tzv 'gtar -tzvf \!* | less'
+alias tbv 'gtar -tjvf \!* | less'
+alias tarzf 'gtar -czvf \!*'
+alias tarbf 'gtar -cjvf \!*'
+alias untar 'gtar -xzvf \!*'
+alias untarb 'gtar -xjvf \!*'
+
+alias bzv 'env LESSOPEN="| bzcat %s | fold" less -r \!*'
+alias zv 'env LESSOPEN="| zcat %s | fold" less -r \!*'
+
+alias datestamp 'date +%Y%m%d'
+alias dtstamp 'date +%Y%m%d-%H%M'
+alias ef 'echo "/scp:${USER}@${HOST}:\!^"'
+alias efpwd 'echo "/scp:${USER}@${HOST}:$PWD/\!^"'
+
+if ( -x ~/bin/purge-files.sh ) then
+    alias clean '~/bin/purge-files.sh'
+else if ( -x ~jweiss/bin/purge-files.sh ) then
+    alias clean '~jweiss/bin/purge-files.sh'
+endif
+
+alias startemacs 'emacs -i -fn 10x20 -geometry 81x50+150+0 \!* &'
+alias startxemacs 'xemacs -fn 10x20 -geometry 81x59+500+0 \!* &'
+alias fix-xterm-title '/bin/echo -ne "\033]2;\!^\007"'
+
+# Setup some scp-aliases (IF ssh is present)
+
+# Some utility aliases for making grep output usable with Emacs grep-mode
+alias egm__header 'echo -n "-*- mode: grep; default-directory: "; \\
+    echo -n \"; echo -n `efpwd ""`; echo -n \"; echo " -*-"; echo "";'
+alias do-grep '(egm__header; grep -n \!*; echo ""; echo "")'
+
+
+#
+# My own custom setup for interactive mode.
+#
+
+if ( ("${USER:s/1//:s/2//:s/3//}" == "jweiss") || \
+     ($USER == "john.weiss") ) then
+    # I'm not logged into some other account.  Do some personal account
+    # setup.
+
+    #set prompt="%M%% "
+    if ( -f $HOME/.Xresources && -x xrdb ) then
+        xrdb -merge -global $HOME/.Xresources
+    endif
+
+else
+
+    if ( -X vim ) then
+        setenv EDITOR vim
+    else
+        setenv EDITOR vi
+    endif
+
+endif
+
+
+# Dev-env setup.
+if ( ! $?DSQUERY ) then
+    setenv DSQUERY MCDVSYB01
+    setenv NETDBNAME jweiss
+    setenv NETDBUSER $NETDBNAME
+    setenv NETDBUSER2 $NETDBUSER$NETDBUSER
+endif
+if ( ! $?TWC_DSQUERY ) then
+    setenv TWC_DSQUERY MCDVSYB01
+    setenv TWC_DBNAME twcentraldb
+    setenv TWC_DBUSER $TWC_DBNAME
+    setenv TWC_DBUSER2 $TWC_DBUSER$TWC_DBUSER
+endif
+if ( ! $?TWC_TEST_DSQUERY ) then
+    setenv TWC_TEST_DSQUERY MCDVSYB01
+    setenv TWC_TEST_DBNAME twcentraldb
+    setenv TWC_TEST_DBUSER $TWC_TEST_DBNAME
+    setenv TWC_TEST_DBUSER2 $TWC_TEST_DBUSER$TWC_TEST_DBUSER
+endif
+
+# Some setup for Sybase
+if ( -x `which isql` ) then
+    if ( $?NETDBUSER ) then
+        alias isql-net \
+            'isql -S$DSQUERY -D $NETDBNAME -U $NETDBUSER -P $NETDBUSER2'
+    endif
+    if ( $?TWC_DBUSER ) then
+        alias isql-twc \
+            'isql -S$TWC_DSQUERY -D $TWC_DBNAME -U $TWC_DBUSER -P $TWC_DBUSER2'
+    endif
+    if ( $?TWC_TEST_DBUSER ) then
+        alias isql-twc-test \
+            'isql -S$TWC_TEST_DSQUERY -D $TWC_TEST_DBNAME -U $TWC_TEST_DBUSER -P $TWC_TEST_DBUSER2'
+    endif
+endif
+
+
+setenv INTERACTIVE "ran"
+
+
+#####################
+# Local Variables:
+# sh-shell: tcsh
+# mode: shell-script
+# End:

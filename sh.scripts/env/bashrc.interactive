@@ -1,0 +1,1023 @@
+# Set the prompt when in interactive mode, even if we ran already.
+
+l_ps1='\h:\w\$ '
+l_ps2='> '
+case "$TERM" in
+  xterm|linux|ansi|screen|[Cc]ygwin|rxvt*)
+     l_ps1='\033[01;35m\h:\w/\033[0m\n\$ '
+     l_ps2='\033[01;34m>\033[0m '
+     ;;
+esac
+
+if [ -n "${INTERACTIVE}" ]; then
+    unset PROMPT_COMMAND
+    export PS1="$l_ps1"
+    export PS2="$l_ps2"
+fi
+
+
+############################################################################
+############################################################################
+#
+# Source the rest of this file only once.
+#
+############################################################################
+############################################################################
+
+
+if [ "${INTERACTIVE}" = "ran" ]; then
+    return
+fi
+
+
+############################################################################
+############################################################################
+
+
+echo "Setting up for interactive shell..."
+
+
+# Comment out/set to "" if you're not using the GNU utils.
+#
+GNU_VERBOSE="-v"
+GNU_LS_COLOR="--color"
+if [[ -f /mach_kernel ]]; then
+    IS_MAC_OS='y'
+    unset GNU_LS_COLOR
+fi
+export PSGREP_OPTS="flw"
+BASH_INPUTRC="${HOME}/.bashrc.emacs-inputrc"
+if [ \! -f $BASH_INPUTRC ]; then
+    BASH_INPUTRC="/etc/bashrc.emacs-inputrc"
+fi
+
+# terminal-specific stuff
+umask 022
+l_erasekey='^?'
+case $TERM in
+    xterm|linux|ansi|screen|[Cc]ygwin|rxvt*)
+        if [[ ! -d /KNOPPIX ]] && [ -z "${IS_MAC_OS}" ]; then
+            l_erasekey='^h'
+        fi
+        ;;
+esac
+stty erase "$l_erasekey" kill '^u' intr '^c' susp '^z'
+unset l_erasekey
+
+
+########################
+#
+# Environment variables
+#
+########################
+
+MORE=-f
+LESS=-MiXF
+MANOPT="--sections=3:1:8:6:2:4:5:7 --all"
+MOREBIN="/bin/more"
+if [ -x /usr/bin/less ]; then
+    LESSBIN="/usr/bin/less"
+elif [ -x /bin/less ]; then
+    LESSBIN="/bin/less"
+ fi
+PAGER="${LESSBIN:-${MOREBIN}}"
+export MORE LESS MANOPT PAGER
+
+# Note:  Prompt set at top of this file.
+#export PS1 PS2
+
+# Color-LS support
+if [ -n "${GNU_LS_COLOR}" -a -z "${LS_COLORS}" ]; then
+    if [ -r $HOME/.dir_colors ]; then
+        eval `dircolors --sh $HOME/.dir_colors`
+    elif [ -r /etc/DIR_COLORS ]; then
+        eval `dircolors --sh /etc/DIR_COLORS`
+    else
+        eval `dircolors --sh`
+    fi
+    export LS_COLORS
+fi
+
+# Some other Mozilla envvars
+#source /etc/java-path.conf
+#export CLASSPATH="${CLASSPATH}:${MOZILLA_HOME}/java/classes"
+
+
+# Used by GJiten
+LANGUAGE=${LANG}
+export LANGUAGE
+
+
+# Set the shell to use emacs style input editing (yes, we need both the
+# "set keymap" and "set editing-mode" commands).  Do not use
+# "bind -m emacs", as this will reset the key map.
+if [ -e "${BASH_INPUTRC}" ]; then
+    source ${BASH_INPUTRC}
+else
+    # "Safe" mode
+    set keymap emacs
+    set editing-mode emacs
+fi
+
+
+####################
+#
+# Functions
+#
+####################
+
+
+# Like 'comm', but for the names of files in directories.
+compareContents() {
+    local d1="$1"
+    shift
+    local d2="$1"
+    shift
+
+    local recurse
+    if [ -n "$1" -a "$d1" = "-r" ]; then
+        recurse='y'
+        d1="$d2"
+        d2="$1"
+        shift
+    fi
+
+    if [ "$d1" = "-h" -o "$d1" = "--help" ]; then
+        echo "usage:  compareContents [-r] <path1> <path2>"
+        return 1
+    fi
+
+    # Clean up the directory names
+    d1="${d1%/}"
+    d2="${d2%/}"
+
+    local get_d1ContentsCmd='echo "$d1"/*'
+    local get_d2ContentsCmd='echo "$d2"/*'
+    if [ -n "$recurse" ]; then
+        get_d1ContentsCmd='find "$d1"'
+        get_d2ContentsCmd='find "$d2"'
+    fi
+
+    echo "#CWD==# $PWD"
+
+    local bf f
+    for f in $(eval $get_d1ContentsCmd); do
+        bf="${f##$d1/}"
+        if [ -e $d2/$bf ]; then
+            echo "#3# In both paths: $bf"
+        else
+            echo "#1# Only in $d1: $bf"
+        fi
+    done
+
+    for f in $(eval $get_d2ContentsCmd); do
+        bf="${f##$d2/}"
+        if [ ! -e $d1/$bf ]; then
+            echo "#2# Only in $d2: $bf"
+        fi
+    done
+}
+
+
+# Converts the output of compareContents() back into filenames.
+reassembleComparedContents() {
+    local oi1 oi2 ib
+    local log
+    local srcList
+    while [ "$1" ]; do
+        case "$1" in
+            -1) oi1='y' ;;
+            -2) oi2='y' ;;
+            -[3b]) ib='y' ;;
+            -12|-21)
+                oi1='y'
+                oi2='y'
+                ;;
+            -1[3b]|-[3b]1)
+                oi1='y'
+                ib='y'
+                ;;
+            -2[3b]|-[3b]2)
+                oi2='y'
+                ib='y'
+                ;;
+            -12[3b]|-1[3b]2|-2[3b]1|-21[3b]|-[3b]12|-[3b]21)
+                oi1='y'
+                oi2='y'
+                ib='y'
+                ;;
+            -l|--log*)
+                shift
+                log="$1"
+                ;;
+            -h|--help)
+                echo "usage: reassembleComparedContents [-[123b]] \\"
+                echo "    [{-l|--log} <logfile>] [<srcfile>]"
+                echo ""
+                echo "-1 :  Keep things only in path #1"
+                echo "-2 :  Keep things only in path #2"
+                echo "-3|-b :  Keep things common to both"
+                echo ""
+                echo "Omitting <srcfile> pulls contents from STDIN."
+                echo "If no log file is specified, output goes to STDOUT"
+                ;;
+            *)
+                srcList="$1"
+                ;;
+        esac
+        shift
+    done
+
+    if [ -z "$oi1$oi2$ib" ]; then
+        echo "Nothing to do; punting..."
+        return 1
+    fi
+
+    local re='^#['
+    [ -n "$oi1" ] && re="${re}1"
+    [ -n "$oi2" ] && re="${re}2"
+    [ -n "$ib" ] && re="${re}3"
+    re="${re}]#"
+
+    local reReplace12='s/..# Only in \([^:][^:]*\): /\1\//'
+    local reReplace3='s/... In both paths: /=both::paths=\//'
+    if [ -n "$log" ]; then
+        grep "$re" $srcList | \
+            sed -e "$reReplace12" -e "$reReplace3" | \
+            sort -u | tee $log
+    else
+        grep "$re" $srcList | \
+            sed -e "$reReplace12" -e "$reReplace3" | sort -u
+    fi
+}
+
+
+# Create a function to page a command with additional options
+pagecommand() {
+    local cmdname
+    local po=""
+    local foldIt=""
+
+    if [ "$1" = "-o" ]; then
+       shift
+       po="$1"
+       shift
+    fi
+    if [ "$1" = "-f" ]; then
+        foldIt='y'
+        shift
+    fi
+
+    cmdname=${1}
+    shift
+    if [ -z "$foldIt" ]; then
+        ${cmdname} "$@" 2>&1 | ${PAGER:-more} ${po}
+    elif [ -n "$LESSBIN" ]; then
+        ${cmdname} "$@" 2>&1 | \
+            env LESSOPEN='| fold %s -s' ${LESSBIN} ${po}
+    else
+        ${cmdname} "$@" 2>&1 | fold -s | ${PAGER:-more} ${po}
+    fi
+}
+
+
+# Remove duplicates from the path
+pathclean() {
+    local cleanpath=$(echo "$PATH" |\
+        perl -e 'BEGIN { @daPath=(); %seen=(); }' \
+            -e 'END { print join(":", @daPath); }' \
+            -F: -a -n \
+            -e 'foreach my $d (@F) {
+                    unless (defined($seen{$d})) {
+                        push(@daPath, $d);
+                    }
+                    ++$seen{$d};
+                }')
+
+    if [ -n "$cleanpath" ]; then
+        export PATH=${PATH}
+        alias repath="export PATH=${PATH}"
+    fi
+}
+
+
+# The classic tar-based recursive copy
+tarcp() {
+    local srcdir targdir oldpwd
+
+    if [ "x$1" = "x" -o "x$2" = "x" ]; then
+        echo "Usage: tarcp <srcdir> <destdir>"
+        echo ""
+        echo "You can add options to the 2 'tar' commands using the envvars"
+        echo "\$TARCP_OPTS_IN and \$TARCP_OPTS_OUT [the latter defaults to"
+        echo "\"-v\".  You can use the \"-T\" option via the former;"
+        echo "\"tarcp\" will handle it correctly."
+        echo ""
+        echo "The contents of \"<srcdir>\" are copied INTO \"<destdir>\"."
+        echo "Keep this in mind."
+        return 1
+    fi
+
+    srcdir="$1"
+    oldpwd=`pwd`
+    case "$2" in
+        /*)
+            targdir="$2"
+            ;;
+        *)
+            targdir="$oldpwd/$2"
+            ;;
+    esac
+
+    if [[ ! -d $srcdir ]]; then
+        echo "Source dir does not exist:  $srcdir"
+        return 2
+    fi
+
+    if [[ ! -d $targdir ]]; then
+        echo "Target dir does not exist:  $targdir"
+        return 2
+    fi
+
+    local use_manifest
+    if [ -n "$TARCP_OPTS_IN" ]; then
+        case "$TARCP_OPTS_IN" in
+            *-T\ *|*--files-from=*)
+                use_manifest=y
+                ;;
+        esac
+    fi
+
+    cd "$srcdir" || return 1
+    if [ -n "$use_manifest" ]; then
+        tar --atime-preserve -cf - $TARCP_OPTS_IN | \
+            (cd "$targdir"; tar ${TARCP_OPTS_OUT:--v} -xpf -)
+    else
+        tar $TARCP_OPTS_IN --atime-preserve -cf - . | \
+            (cd "$targdir"; tar ${TARCP_OPTS_OUT:--v} -xpf -)
+    fi
+    cd "$oldpwd"
+}
+
+# The classic cpio-based copy
+cpiocp() {
+    local srcdir targdir oldpwd
+
+    if [ "x$1" = "x" -o "x$2" = "x" ]; then
+        echo "Usage: cpiocp <srcdir>  <destdir>"
+        echo ""
+        echo "[This exists for convenience; \"cpio\" supports copying via"
+        echo " the \"--pass-through\" option.  To copy specific files, just"
+        echo " redirect STDIN to your list of files and use:"
+        echo "     \"cpio -pmduv <destdir>\""
+        echo "]"
+        echo ""
+        echo "The contents of \"<srcdir>\" are copied INTO \"<destdir>\"."
+        echo "Keep this in mind."
+        return 1
+    fi
+
+    srcdir="$1"
+    oldpwd=`pwd`
+    case "$2" in
+        /*)
+            targdir="$2"
+            ;;
+        *)
+            targdir="$oldpwd/$2"
+            ;;
+    esac
+
+    if [[ ! -d $srcdir ]]; then
+        echo "Source dir does not exist:  $srcdir"
+        return 2
+    fi
+
+    if [[ ! -d $targdir ]]; then
+        echo "Target dir does not exist:  $targdir"
+        return 2
+    fi
+
+    cd "$srcdir" || return 1
+    # -m == --preserve-modification-time
+    # -d == --make-directories
+    # -u == --unconditional == overwrite files
+    # -l == --link == where feasible, link instead of copying
+    # -depth := do a depth-first find, printing leaves first.
+    if [ -n "$IS_MAC_OS" ]; then
+        # The OS X version of "cpio" doesn't support the '-0' option or GNU
+        # long-form options.
+        find . -depth | cpio -p -mduv "$targdir"
+    else
+        find . -depth -print0 | cpio -0 --pass-through -mduv "$targdir"
+    fi
+    cd "$oldpwd"
+}
+
+# A core routine for creating a cpio archive.
+do__cpio__engine() {
+    local myName do_usage mode arfile xopts cpioOpts vOpt \
+        srcdirs compress catbin
+
+    myName="do__cpio__engine"
+    if [ "$1" = "--name" ]; then
+        shift
+        myName="$1"
+        shift
+    fi
+
+    do_usage=''
+    mode=''
+    arfile=''
+    xopts='-d -u -m'
+    cpioOpts=''
+    vOpt=''
+    srcdirs=''
+    compress=''
+
+    while [ -n "$1" ]; do
+        case "$1" in
+            # -o == --create := "copy-out" mode
+            -c|--create)
+                mode='-o'
+                ;;
+            # -i == --extract := "copy-in" mode
+            -x|--extract)
+                mode='-i'
+                ;;
+            # -t == --list
+            -t|--list)
+                mode='-t'
+                vOpt='-v'
+                ;;
+            -v|--verbose)
+                vOpt='-v'
+                ;;
+            -f|-F|--file)
+                shift
+                arfile="$1"
+                if [ -z "$vOpt" ]; then
+                    vOpt='-V'
+                fi
+                ;;
+            -z|--gzip)
+                compress="-z"
+                ;;
+            -j|-b|--bzip2|--bz2)
+                compress="-b"
+                ;;
+            -[kK]|--keep)
+                xopts='-d -m'
+                ;;
+            -o|--opts|--cpio-opts)
+                shift
+                cpioOpts="$cpioOpts $1"
+                ;;
+            -)
+                arfile=''
+                ;;
+            --)
+                shift
+                srcdirs="$@"
+                break
+                ;;
+            -*)
+                do_usage='y'
+                break
+                ;;
+            *.cpio|*.cpio.gz|*.cpio.bz2)
+                arfile="$1"
+                ;;
+            *)
+                srcdirs="$srcdirs $1"
+                ;;
+        esac
+        shift
+    done
+
+    [ -z "$arfile" ] \
+        || [ -z "$mode" ] \
+        || [ "$mode" = "-o" -a -z "$srcdirs" ] \
+        && do_usage='y'
+
+    if [ -n "$do_usage" ]; then
+        echo "Usage: $myName [<Options>] <archivespec> <dir|file> ..."
+        echo ""
+        echo "<archivespec>:  One of:"
+        echo "    -f|-F|--file <filename>"
+        echo "    <filename>.cpio[.gz|.bz2]"
+        echo "    -"
+        echo ""
+        echo "<Options> := <mode> [-v] [-k] [-z|-b] [--cpio-opts]"
+        echo "   -v|--verbose"
+        echo "   -k|-K|--keep"
+        echo "   -z|--gzip"
+        echo "   -j|-b|--bz2|--bzip2"
+        echo "   -o|--opts|--cpio-opts <optionList>"
+        echo "       \"<optionList>\" is a space-separted string of options to"
+        echo "       pass to \"cpio\""
+        echo "   <mode> is one of:"
+        echo "      -c|--create"
+        echo "      -x|--extract"
+        echo "      -t|--list"
+        echo "   --"
+        echo "      Stops all option processing.  All remaining args are"
+        echo "      treated as files to directories to archive."
+        echo ""
+        echo "The most recent option overrides all others.  Filename"
+        echo "extensions override the \"--gzip\" and \"--bzip2\" args."
+        echo ""
+        echo "The \"--list\" and \"--extract\" modes ignore the \"<dir|file>\""
+        echo "args."
+        return 1
+    fi
+
+    # Determine the compression type
+    case "$arfile" in
+        *.cpio)
+            compress=''
+            ;;
+        *.cpio.gz)
+            compress='-z'
+            ;;
+        *.cpio.bz2)
+            compress='-b'
+            ;;
+    esac
+
+    cpioOpts="$cpioOpts $vOpt"
+    if [ "$mode" = "-o" ]; then
+
+        if [ "$compress" = "-b" ]; then
+            find $srcdirs -depth -print0 | \
+                cpio -0 -o $cpioOpts | bzip2 >$arfile
+        elif [ "$compress" = "-z" ]; then
+            find $srcdirs -depth -print0 | \
+                cpio -0 -o $cpioOpts | gzip >$arfile
+
+        else
+            find $srcdirs -depth -print0 | \
+                cpio -0 -o $cpioOpts --file=$arfile
+        fi
+
+    else
+
+        if [ "$mode" = "-i" ]; then
+            cpioOpts="$cpioOpts $xopts"
+        fi
+
+        catbin="cat"
+        if [ "$compress" = "-b" ]; then
+            catbin="bzcat"
+        elif [ "$compress" = "-z" ]; then
+            catbin="zcat"
+        fi
+
+        $catbin $arfile | cpio $mode $cpioOpts
+
+    fi
+}
+
+# Functions & Aliases that use do__cpio__engine
+cpiov() {
+    local arfile copt
+    arfile=''
+    copt=''
+    while [ -n "$1" ]; do
+        case "$1" in
+            -z|--gzip|-j|-b|--bzip2|--bz2)
+                copt="$1"
+                ;;
+            -*)
+                arfile=''
+                break
+                ;;
+            *)
+                [ -z "$arfile" ] && arfile="$1"
+                ;;
+        esac
+        shift
+    done
+
+    if [ -z "$arfile" ]; then
+        echo "Usage: cpiov [-z|-b] <archiveFile>"
+        return 1
+    fi
+
+    do__cpio__engine --name "cpiov" $copt --file "$arfile" --list
+}
+
+mkcpio() {
+    local arfile copt err
+    arfile=''
+    copt=''
+    err=''
+
+    case "$1" in
+        -z|--gzip|-j|-b|--bzip2|--bz2)
+            copt="$1"
+            ;;
+        -*)
+            err='y'
+            ;;
+    esac
+    shift
+
+    arfile="$1"
+    shift
+    case "$arfile" in
+        -*)
+            err='y'
+            ;;
+    esac
+
+    if [ -n "$err" -o -z "$arfile" ]; then
+        echo "Usage: mkcpio [-z|-b] <archiveFile> <dir|file> ..."
+        return 1
+    fi
+
+    do__cpio__engine --name "mkcpio" $copt --file "$arfile" --create "$@"
+}
+
+uncpio() {
+    local arfile copt err
+    arfile=''
+    copt=''
+    err=''
+
+    case "$1" in
+        -z|--gzip|-j|-b|--bzip2|--bz2)
+            copt="$1"
+            ;;
+        -*)
+            err='y'
+            ;;
+    esac
+    shift
+
+    arfile="$1"
+    shift
+    case "$arfile" in
+        -*)
+            err='y'
+            ;;
+    esac
+
+    if [ -n "$err" -o -z "$arfile" ]; then
+        echo "Usage: uncpio [-z|-b] <archiveFile>"
+        return 1
+    fi
+
+    do__cpio__engine --name "uncpio" $copt --file "$arfile" --extract
+}
+alias jpwcpio='do__cpio__engine --name "jpwcpio"'
+
+
+# custom form of ps
+ps_grep() {
+    if [ "x${1}" = "x" ]; then
+           ps -e${PSGREP_OPTS} | ${PAGER} ${LESSBIN:+-E}
+    else
+           ps -e${PSGREP_OPTS} | grep "PID\|$1" | grep -v "grep" | \
+               ${PAGER} ${LESSBIN:+-E}
+    fi
+}
+
+# Fix mangled xterm titles
+fix_xterm_title() {
+    echo -ne "\033]2;${1}\007"
+}
+
+
+# Run a GUI program in the background from a terminal
+runx() {
+    local runlog use_sudo xtoolwaitOpts toDesk
+
+    if [ -z "$*" ]; then
+        set -- --help
+    fi
+    case "$*" in
+        -h|--help)
+            echo -n "runx [-s] [--desk <n>] [xtoolwait-ops [--]]"
+            echo " command [cmd-opts]"
+            echo ""
+            echo "-s:  Run using 'sudo'"
+            echo "--desk <n>:  Open program on desktop '<n>"
+            echo ""
+            echo "N.B. - Some xtoolwait options are ignored."
+            return 0
+            ;;
+    esac
+
+    xtoolwaitOpts=""
+    toDesk=''
+    use_sudo=''
+    while [ -n "$1" -a "$1" != "--" ]; do
+        # Look for xtoolwait opts -timeout, -display, -pid
+        # as well as -s and --desk
+        case "$1" in
+            -s)
+                use_sudo='y'
+                ;;
+            --desk)
+                case "$2" in
+                    -*)
+                        echo "Error:  Option '$1' requires an argument"
+                        return 1
+                        ;;
+                esac
+                shift
+                toDesk="$1"
+                ;;
+            -timeout|-display)
+                case "$2" in
+                    -*)
+                        echo "Error:  Option '$1' requires an argument"
+                        return 1
+                        ;;
+                esac
+                xtoolwaitOpts="$xtoolwaitOpts $1 $2"
+                shift
+                ;;
+            -pid)
+                xtoolwaitOpts="$xtoolwaitOpts $1"
+                ;;
+            -*)
+                echo "runx:  Unknown/unsupported option:  '$1'"
+                return 1
+                ;;
+            *)
+                break
+                ;;
+        esac
+        shift
+    done
+
+    if [ -n "$toDesk" ]; then
+        if type -t wmctrl >/dev/null; then
+            wmctrl -s $toDesk
+        fi
+    fi
+
+    runlog="/tmp/logs/runx-${USER}.log"
+    local logdir=$(dirname $runlog)
+    if [ ! -d $logdir ]; then
+        mkdir -p $logdir
+        chgrp users $logdir
+        chmod g+w,+t $logdir
+    fi
+
+    if type -t xtoolwait >/dev/null; then
+        if [ -n "$use_sudo" ]; then
+            sudo xtoolwait $xtoolwaitOpts "$@" >>$runlog 2>&1
+        else
+            xtoolwait $xtoolwaitOpts "$@" >>$runlog 2>&1
+        fi
+    else
+        echo "Error\!  xtoolwait isn't installed\!"
+        echo "Running as a background job and disowning..."
+        echo ""
+        if [ -n "$use_sudo" ]; then
+            sudo "$@" >>$runlog 2>&1 &
+        else
+            "$@" >>$runlog 2>&1 &
+        fi
+        disown -h
+    fi
+}
+
+# Bash completion support for the 'runx' function.
+complete__runx() {
+    # Use the fn. '_command_offset()' if provided by the local bash-completion
+    # package (if any).
+    if type _command_offset &>/dev/null; then
+        _command_offset 0
+        return;
+    fi
+    # else:  Do it by hand.
+
+    # Pull out the first arg to 'runx'
+    local cmd0=""
+    if [ $COMP_CWORD -gt 0 ]; then
+        cmd0=${COMP_WORDS[1]}
+    fi
+    local cmd=${cmd0##*/}
+
+    # Two cases:  completing the cmd passed to runx, or completing anything
+    # else on the cmdline.
+    if [ $COMP_CWORD -gt 1 ]; then
+        # Complete to whatever the first arg normally does.
+        local last="${COMP_WORDS[$COMP_CWORD]}"
+        local completer0=$(complete -p "$cmd" &>/dev/null)
+        local completer=${completer0#complete}
+        completer=${completer%%${cmd}}
+        if [ -z "$completer" ]; then
+            completer="-f"
+        fi
+        COMPREPLY=( $(compgen $completer -- "$last") )
+    else
+        # Complete to a command name.
+        COMPREPLY=( $(compgen -c -- "$cmd") )
+    fi
+}
+
+
+#################################################################
+#
+# set up default aliases for bash
+#
+#################################################################
+
+
+#
+# *Cmdline Interface Customizations*
+#
+
+alias pd=pushd
+
+alias =clear
+
+#alias lo=logout
+alias lo=exit
+
+alias pwd='echo $PWD'
+alias envv='pagecommand set'
+if type -t where >/dev/null; then
+    alias where='which -a'
+fi
+
+alias v="${PAGER} ${LESSBIN:+-r}"
+alias fv="pagecommand fold -s"
+# At this point, we have several special cases:
+l_fc="env LESSOPEN='| fold %s'"
+l_acmd=([0]=fv "${LESSBIN}" "-r" "" \
+    [4]=zv zless "-R" zcat \
+    [8]=bv bzless "-R" bzcat \
+    [12]=lzv lzmaless_does_not_exist "-R" lzcat)
+for l_aci in 0 4 8 12; do
+    if type -t ${l_acmd[1+$l_aci]} >/dev/null; then
+        alias ${l_acmd[$l_aci]}="$l_fc ${l_acmd[1+$l_aci]} ${l_acmd[2+$l_aci]}"
+    elif [ -n "${l_acmd[3+$l_aci]}" ]; then
+        alias ${l_acmd[$l_aci]}="pagecommand -f ${l_acmd[3+$l_aci]}"
+    fi
+done
+unset l_fc l_acmd l_aci
+
+
+#
+# *Core System Cmds*
+#
+
+alias man='LESS=${LESS}r man'
+
+o_gnu_ls="${GNU_LS_COLOR}"
+o_gnu_dir="${o_gnu_ls} ${GNU_LS_COLOR:+-h} ${IS_MAC_OS:+-h}"
+o_ls="-F -C ${o_gnu_ls}"
+o_dir="-F -l ${o_gnu_dir}"
+o_less_ls="${LESSBIN:+ -o '-ReF'}"
+alias ls="pagecommand $o_less_ls ls ${o_ls}"
+alias lsa="pagecommand $o_less_ls ls ${o_ls} -a"
+alias dira="pagecommand $o_less_ls ls ${o_dir} -a"
+alias dir="pagecommand $o_less_ls ls ${o_dir}"
+alias ll="pagecommand $o_less_ls ls -l ${o_ls/-C/}"
+alias vdir="pagecommand $o_less_ls vdir -F ${o_gnu_ls}"
+unset o_dir o_ls o_gnu_ls o_gnu_dir o_less_ls
+
+#unalias rm
+#unalias mv
+#unalias cp
+alias rm="rm ${GNU_VERBOSE}"
+alias mv="mv ${GNU_VERBOSE}"
+alias cp="cp ${GNU_VERBOSE}"
+
+alias psa="ps_grep '-v root'"
+alias psu="ps_grep"
+alias psgrep=ps_grep
+alias myjobs="ps_grep ${USER}"
+
+
+#
+# *Archivers*  [tar/cpio]
+#
+
+
+r_tzv="tar -ztvf"
+r_tbv="${r_tzv/-z/-j}"
+r_tls="${r_tzv/-zt/-t}"
+if tar --help | grep -c -- '--auto-compress' >/dev/null 2>&1; then
+    # Modern versions of 'tar' support an '-a' option for automatic
+    # decomression.
+    r_tls="${r_tls/-t/-at}"
+    r_tar_autocompress_opt="-a"
+fi
+alias tls="pagecommand ${r_tls}"
+alias tzv="pagecommand ${r_tzv}"
+alias tbv="pagecommand ${r_tbv}"
+unset r_tls r_tzv r_tbv
+
+alias tarzf='tar -zcvf'
+alias tarbf='tar -jcvf'
+[ -n "$r_tar_autocompress_opt" ] && alias taraf='tar -acvf'
+unset r_tar_autocompress_opt
+
+alias zipv="pagecommand unzip -l"
+
+alias czv="cpiov -z"
+alias cbv="cpiov -b"
+alias cpiozf='mkcpio --gzip'
+alias cpiobf='mkcpio --bzip2'
+
+
+# *Misc*
+#
+
+alias gz="gzip -9v"
+
+## [20121217] I've fixed the ".XResources" problem, so this function is no
+## longer needed.  It'll be removed in a later commit.
+##
+# if type -P emacs >/dev/null; then
+#     function emacs_defaultargs() {
+#         [ -n "$DISPLAY" ] || return 0
+#         X11_RESOLUTION=$(xdpyinfo | grep dimensions | awk '{ print $2 }')
+#         if [ -z "$X11_RESOLUTION" ]; then
+#             emacs_geom="-geom 80x24"
+#         else
+#             export X11_RESOLUTION
+#             if [ ${X11_RESOLUTION%%x*} -gt 1152 ]; then
+#                 emacs_font="-fn 10x20"
+#                 emacs_geom="-geom 80x48"
+#             elif [ ${X11_RESOLUTION%%x*} -gt 1024 ]; then
+#                 emacs_font="-fn 9x15"
+#                 emacs_geom="-geom 80x53"
+#             else
+#                 emacs_font="-fn 9x15"
+#                 emacs_geom="-geom 80x46"
+#             fi
+#         fi
+#         echo "-bg white $emacs_font $emacs_geom"
+#     }
+#     alias emacs="$(type -p emacs) \$(emacs_defaultargs)"
+# fi
+
+alias locn="pagecommand locate -e"
+alias manfile="pagecommand nroff -man"
+
+# Not needed if using the 'clean.sh' symlink to this script.
+#alias clean="file-purger.sh"
+
+
+#
+# Platform/OS-Specific
+#
+
+case ${OSTYPE} in
+    [Cc]ygwin)
+        function abspath { wa="$(cygpath -ma $1)"; cygpath -ua "$wa"; }
+        alias abscwd='cd "$(abspath $PWD)"'
+        stty eol '^j' eol2 '^m'
+        export PSGREP_OPTS="flW"
+        export CYGWIN="winsymlinks ntea"
+        ;;
+
+    *linux*)
+        # Workaround for Flash Errors:
+        export VDPAU_NVIDIA_NO_OVERLAY=1
+
+        # Enable commandline completion for certain functions & aliases.
+        #
+        complete -F complete__runx runx
+
+        #
+        # *NetStuff*
+        #
+        alias ftp='ncftp'
+
+        # Misc
+        #
+        alias xwin="/etc/LocalSys/utilities/x_at_login.sh"
+        alias eject_cdrw="eject scd0"
+        alias run_synaptic='runx -s synaptic'
+        alias odx='od -A x -t x1z'
+        alias datestamp='echo -`date +%Y%m%d`'
+
+        # Prune duplicates from the path
+        #
+        pathclean
+        ;;
+esac
+
+
+# Final Cleanup Stuff
+#
+unset GNU_LS_COLOR
+unset GNU_VERBOSE
+unset BASH_INPUTRC
+INTERACTIVE="ran"
+
+
+##################
+# Local Variables:
+# mode: Shell-script
+# sh-shell: bash
+# End:
