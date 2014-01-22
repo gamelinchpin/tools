@@ -1,0 +1,62 @@
+From: me
+To: me-lj
+Subject: Bad font-lock for mutt-mode.
+
+> Mutt singly-quoted
+>> Mutt doubly-quoted
+
+lj-music: train noise
+lj-security: private
+lj-comments: A
+lj-mood: geeky
+
+
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+
+
+<ol>
+<li></li>
+</ol>
+
+<code>some códe ---
+With Math:  a :=== b ==> a :<= b && a :>= b
+...
+\...
+</code>
+<pre>
+------------------------------
+..............................
+</pre>
+
+<del>deleted text</del>
+
+<span style="font-size: small">small text</span>
+
+<big>big text</big>
+<small>small text</small>
+
+<pre>some text</pre>
+
+<em>some italic with an entity: &copy;</em>
+
+<strong>some bold</strong>
+
+<b>forced bold</b>
+<i>forced italic</i>
+
+<u>forced underline</u>
+
+Combos:
+<i>italic <b>with bold</b></i>
+<em>emphasized <strong>with strong</strong></em>
+<u><em>underlined emphasized</em></u>
+
+
+<p>Dolor ipse lorem sit.  Dolor ipse lorem sit.  Dolor ipse lorem sit.  Dolor ipse lorem sit.  Dolor ipse lorem sit.  Dolor ipse lorem sit.  Dolor ipse lorem sit.  Dolor<em> ipse lorem sit.  Dolor <u>ipse</u> lorem</em> sit.  Dolor ipse lorem sit.  Dolor ipse lorem sit.  Dolor ipse lorem sit.  Dolor ipse lorem sit.  Dolor ipse lorem sit.  Dolor ipse lorem sit.  Dolor ipse <u>lorem <strong>sit</strong></u>.  Dolor ipse lorem sit.  Dolor ipse lorem sit.  Dolor ipse lorem sit.  Dolor ipse lorem sit.  Dolor ipse lorem sit.  Dolor ipse lorem sit.  Dolor ipse lorem sit.</p>
+
+
+<hr>
+<address></address>
+<!-- hhmts start -->
+<!-- hhmts end -->
+</body> </html>

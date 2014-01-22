@@ -1,0 +1,76 @@
+This is a test of [b]bold[/b] markup.  And of [i]italic[/i] markup.  And, lastly, of [u]underlined[/u] text. :) ;) :wink: ha :P hoo :O :0 :( :* :x :% 
+
+[code]Here's some code.[/code]
+
+Here's a [size=24]different sized text[/size] block.
+
+[quote="Somebody"]Let's quote this text.[/quote]
+
+[quote]And here's an anonymous quote.[/quote]
+
+[list]
+[*] item
+[*] item
+[*] last item
+[/list]
+
+Here's some [color=#4080FF]colorful[/color] text.
+
+[url=http://someplace.org]This[/url] points to another page.
+[img]http://www.someimage.org/someimage.jpg[/img]
+
+
+It's very multicolored, ain't it?
+
+
+[quote="Somebody Else"]Quoted List:
+[list]
+[*] first
+[*] second[b]![/b]
+[*] third
+[/list]
+[/quote]
+
+
+Test a [bad]bogus pair[/err] of tags.
+
+
+[b]joint font: [i]bold italic[/i][/b]
+[i]joint font: [b]italic bold[/b][/i]
+[b]joint font: [u]bold underlined[/u][/b]
+[u]joint font: :wink: [b]bold underlined[/b][/u]
+[i]joint font: [u]italic underline[/u][/i]
+[u]joint font: [i]underlined italic[/i][/U]
+
+
+[code]This is 
+Some [u]z[/u] multiline code.[/code]
+this is not code [i]x[/i]
+[code]Here's some more code, with "quoted text" in it.[/code]
+
+
+random [u]z[/u] text
+
+
+[code]This is 
+some multiline code.[/code]
+
+
+This is [b]a test[/b] of a line with multiple [b]boldfaced text[/b]. Also contains "quoted text".  Dolor ipse lorem sit...
+
+
+[quote="fume"] The outer quote.
+[quote="fuyu"]A nested quote.[/quote] More of the outer quote. [quote="fuyu"]Another 
+nested quote. [quote="fuuu"] With its own nested quote.[/quote]
+Remainder of the nested quote.[/quote]
+The rest of the outer quote.[/quote]
+
+
+[quote="Tuinme"]Dolor ipse lorem sit.  This is a first paragraph.  Dolor ipse lorem sit.  Dolor ipse lorem sit.  Dolor ipse lorem sit.  Dolor ipse lorem sit.  Dolor ipse lorem sit.  Dolor ipse lorem sit.  Dolor ipse lorem sit.  Dolor ipse lorem sit.  Dolor ipse lorem sit.  Dolor ipse lorem sit.  Dolor ipse lorem sit.  Dolor ipse lorem sit.  Dolor ipse lorem sit.  Dolor ipse lorem sit.  Dolor ipse lorem sit.  Dolor ipse lorem sit.  Dolor ipse lorem sit.  Dolor ipse lorem sit.  Dolor ipse lorem sit.  Dolor ipse lorem sit.  
+
+Dolor ipse lorem sit.  This is a second paragraph.  Dolor ipse lorem sit.  Dolor ipse lorem sit.  Dolor ipse lorem sit.  Dolor ipse lorem sit.  Dolor ipse lorem sit.  Dolor ipse lorem sit.  Dolor ipse lorem sit.  Dolor ipse lorem sit.  Dolor ipse lorem sit.  Dolor ipse lorem sit.  Dolor ipse lorem sit.  Dolor ipse lorem sit.  Dolor ipse lorem sit.  Dolor ipse lorem sit.  Dolor ipse lorem sit.  Dolor ipse lorem sit.  Dolor ipse lorem sit.  Dolor ipse lorem sit.  Dolor ipse lorem sit.  Dolor ipse lorem sit.  
+
+Foo bar [i]and italicize some[/i] text.
+
+Dolor ipse lorem sit.  This is a [b]third[/b] paragraph.  Dolor ipse lorem sit.  Dolor ipse lorem sit.  Dolor ipse lorem sit.  Dolor ipse lorem sit.  Dolor ipse lorem sit.  Dolor ipse lorem sit.  Dolor ipse lorem sit.  Dolor ipse lorem sit.  Dolor ipse lorem sit.  Dolor ipse lorem sit.  Dolor ipse lorem sit.  Dolor ipse lorem sit.  Dolor ipse lorem sit.  Dolor ipse lorem sit.  Dolor ipse lorem sit.  Dolor ipse lorem sit.  Dolor ipse lorem sit.  Dolor ipse lorem sit.  Dolor ipse lorem sit.  Dolor ipse lorem sit.
+[/quote]
