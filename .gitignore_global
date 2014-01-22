@@ -1,0 +1,75 @@
+#
+# Backup Files
+#
+*~
+\#*\#
+.\#*
+[._]*.s[a-w][a-z]
+[._]s[a-w][a-z]
+
+
+#
+# Other SCM Systems
+#
+/CVS/*
+*/CVS/*
+.cvsignore
+*/.cvsignore
+.svn/
+
+
+#
+# Compiled Files
+#
+
+# gcc coverage testing tool files
+*.gcno
+*.gcda
+*.gcov
+
+# Dependencies
+*.d
+
+# Object files
+*.o
+*.ko
+*.obj
+*.elf
+*.slo
+*.lo
+
+# Libraries
+*.lib
+*.a
+*.lai
+*.la
+
+# Shared objects (inc. Windows DLLs)
+*.dll
+*.so
+*.so.*
+*.dylib
+
+# Executables
+*.exe
+*.out
+*.app
+*.i*86
+*.x86_64
+*.hex
+
+
+#
+# Packages
+#
+*.7z
+*.dmg
+*.gz
+*.bz2
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+
+
