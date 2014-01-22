@@ -639,7 +639,7 @@ utl_git_subtree_sync() {
             fi
 
             echo ">> Syncing \"$remote\" to \"$targBranch\"."
-            echo        git pull -v -s subtree "$remote" "$targBranch"
+            git pull -v -s subtree "$remote" "$targBranch"
             pullStat=$?
 
             if [ $pullStat -ne 0 ]; then
