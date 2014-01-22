@@ -94,6 +94,33 @@ git_tester() {
 }
 
 
+utl_isaRemoteBranch() {
+    local remoteId="$1"
+    shift
+    local branchName="$1"
+    shift
+
+    [ -z "$branchName" ] && branchName="master"
+
+    local actualRemoteBranch="$(git branch -r | \
+                                grep $remoteId | \
+                                sed -e 's/^  *//' -e 's/  *$//')"
+
+    if [ "$branchName" = "--" ]; then
+        # Special case:  Just check if there was a match to the $remoteId.
+        [ -n "$actualRemoteBranch" ] && return 0
+        # else:
+        return 1
+    fi
+    # else:
+    # Check for an exact match.
+
+    [ "$actualRemoteBranch" = "$remoteId/$branchName" ] && return 0
+    # else:
+    return 1
+}
+
+
 utl_notaDirArg() {
     local path="$1"
     shift
@@ -487,7 +514,7 @@ git_patchpull() {
         # Only create the new branch if a remote version of it doesn't already
         # exist.
         local createBranch="-b"
-        if git branch -r | grep -q $branchName; then
+        if utl_isaRemoteBranch $branchName --; then
         # (Remote) Branch exists; don't create.
             createBranch=''
         fi
@@ -545,14 +572,14 @@ utl_git_subtree_sync() {
     local targBranch="master"
 
     if [ -z "$1" ]; then
-        echo "At least one source git 'tree-ish' must be specified."
-        echo ""
+        echo ">> At least one source git 'tree-ish' must be specified."
+        echo ">> "
         return 127
     fi
 
     if utl_notaGitRepo "$PWD"; then
-        echo "This command must be run from inside of a git-repo."
-        echo ""
+        echo ">> This command must be run from inside of a git-repo."
+        echo ">> "
         return 127
     fi
 
@@ -567,14 +594,16 @@ utl_git_subtree_sync() {
                 ready2sync=''
 
                 if [ -z "$targBranch" ]; then
-                    echo "\"-b\" option requires the name of a target branch."
-                    echo ""
+                    echo -n ">> \"-b\" option requires the name of a target "
+                    echo "branch."
+                    echo ">>"
                     return 127
                 fi
 
                 if [ -z "$2" ]; then
-                    echo "\"-b\" option can't be the last on the commandline."
-                    echo ""
+                    echo -n ">> \"-b\" option can't be the last on the "
+                    echo "commandline."
+                    echo ">>"
                     return 127
                 fi
                 ;;
@@ -586,6 +615,7 @@ utl_git_subtree_sync() {
 
             -*)
                 echo ">> Unsupported option:  \"$1\""
+                echo ">>"
                 return 127
                 ;;
 
@@ -597,13 +627,19 @@ utl_git_subtree_sync() {
 
         if [ -n "$ready2sync" ]; then
             if [ -z "$remote" ]; then
-                echo "The source git 'tree-ish' cannot be \"\"!"
-                echo ""
+                echo ">> The source git 'tree-ish' cannot be \"\"!"
+                echo ">>"
+                return 127
+            elif utl_isaRemoteBranch $remote; then
+                :
+            else
+                echo ">> This git-repo contains no remote called \"$remote\""
+                echo ">>"
                 return 127
             fi
 
-            echo ">> Syncing \"$remote\" to \"targBranch\"."
-            echo        git pull -s subtree "$remote" "$targBranch"
+            echo ">> Syncing \"$remote\" to \"$targBranch\"."
+            echo        git pull -v -s subtree "$remote" "$targBranch"
             pullStat=$?
 
             if [ $pullStat -ne 0 ]; then
@@ -642,6 +678,14 @@ utl_git_subtree_modifyRemotePullURLs() {
     local cantContinue=">> Cannot continue."
     local remote hasErr
     for remote in "$@"; do
+        if utl_isaRemoteBranch $remote; then
+            :
+        else
+            echo ">> This git-repo contains no remote called \"$remote\""
+            echo ">> Ignoring..."
+            continue
+        fi
+
         # For cmd=='reset', the following is sufficient.
         git remote set-url --delete --push "$remote" '..*' || hasErr=y
         if [ -n "$hasErr" ]; then
@@ -698,9 +742,7 @@ utl_git_subtree_add() {
                 echo "\"<subtreeDir>\" must be a relative path and cannot"
                 echo "contain any '..' upreferences."
                 echo ""
-                [ -z "$calledAsSubroutine" ] && return 127
-                # else:
-                return 1
+                return 127
                 ;;
         esac
     fi
@@ -729,7 +771,8 @@ utl_git_subtree_add() {
     git merge -s ours --no-commit $remoteBranch/master || hasErrs=y
     if [ -n "$hasErrs" ]; then
         echo ">>"
-        echo ">> Failed to prepare for the merge/read-tree of the remote-branch"
+        echo -n ">> Failed to prepare for the merge/read-tree of the "
+        echo "remote-branch"
         echo ">> \"$remoteBranch/master\"."
         echo -e "$cowardErrmsg"
         return 4
@@ -838,7 +881,8 @@ git_subtree() {
             echo "Use the \"--help\" option to see the full usage message."
             return $showUsage_retval
         fi
-        # else:  Show the full usage message.
+        # else:
+        # Show the full usage message.
 
         echo "There are 4 supported subcommands to 'git_subtree'."
         echo ""
