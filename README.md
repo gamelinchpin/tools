@@ -1,11 +1,11 @@
 tools
 =====
 
-A collection my more-general-purpose tools.
+A collection of my more-general-purpose tools.
 
 ---
 
- 
+ï¿½
 
 I have numerous scripts, in a variety of languages, that I use
 day-to-day.  Many of them are for things that are specific to my Linux
