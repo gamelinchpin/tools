@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 #
-# Copyright (C) 2002-2012 by John P. Weiss
+# Copyright (C) 2002-2013 by John P. Weiss
 #
 # This package is free software; you can redistribute it and/or modify
 # it under the terms of the Artistic License, included as the file
@@ -40,7 +40,7 @@ BEGIN {
     # Default exports.
     @EXPORT = qw(dbgprint check_syscmd_status do_error
                  openPipeDie closePipeDie failedOpenDie
-                 datestamp datetime_now
+                 datetime_now datestamp duration2secs
                  const_array uniq select_sample
                  key_not_set push_subarray
                  invert_hash pivot_hash
@@ -423,6 +423,94 @@ sub datetime_now() {
 
 sub datestamp() {
     return sprintf("%4d%02d%02d", datetime_now());
+}
+
+
+sub duration2secs($;\@) {
+    my $timeStr = shift();
+    my $ref_timeMath = shift();
+
+    # We can't really use Date::Parse or similar libraries, as they convert
+    # to/from absolute times, not durations.  And 'DateTime::Duration' is for
+    # doing math with absolute dates/times, not specifying a length of time.
+
+
+    if (!defined($ref_timeMath) && $timeStr =~ m/[-+]/) {
+        # We can handle math addition & subtraction.  We'll call via
+        # recursion.
+        my @timeMath = split(/\s*([-+])\s*/, $timeStr);
+        my $firstTime = shift(@timeMath);
+        return duration2secs($firstTime, \@timeMath);
+    } # else
+
+    # The main conversion algorithm:
+    my $nSecs=0;
+    if ($timeStr =~ m/:/) {
+        # Colon-separated timespecs.
+
+        if ($timeStr =~ m/:$/) {
+            $timeStr .= '0';
+        }
+
+        foreach my $timepart (split(/:/, $timeStr)) {
+            if ($timepart) {
+                unless ($timepart =~ m/(\d+(?:\.?\d+)?)/) {
+                    croak('duration2secs():  Garbage chars in timespec: "'.
+                          $timeStr.'"');
+                }
+            } else {
+                $timepart = 0;
+            }
+
+            $nSecs *= 60;
+            $nSecs += $timepart;
+        }
+
+    } else {
+        # Units specified on the time parts.
+
+        # First, clean up the time string:
+        foreach ($timeStr) {
+            s/(\d+)\s+(\D)(?:\s+|$)/$1$2 /g;
+            # Do these after cleaning up the intermediary ones.
+            s/^\s+//g;
+            s/\s+$//g;
+        }
+
+        foreach my $timepart (split(/\s/, $timeStr)) {
+            unless ($timepart =~ m/(\d+(?:\.?\d+)?)([hmsHMS])?/) {
+                croak('duration2secs():  Unsupported timespec: "'.
+                      $timepart.'"');
+            }
+
+            my $tVal = $1 + 0;  # Force conversion to a number.
+            my $units = lc($2);
+            if ($units eq 'h') {
+                $nSecs += 3600*$tVal;
+            } elsif ($units eq 'm') {
+                $nSecs += 60*$tVal;
+            } else {
+                $nSecs += $tVal;
+            }
+        }
+    }
+
+    # Process any time computations:
+    if (defined($ref_timeMath)) {
+        while (scalar(@$ref_timeMath)) {
+            my $operator = shift(@$ref_timeMath);
+            if ($operator eq '-') {
+                $nSecs -= duration2secs(shift(@$ref_timeMath));
+            } elsif ($operator eq '+') {
+                $nSecs += duration2secs(shift(@$ref_timeMath));
+            } else {
+                croak('duration2secs():  Unsupported operator: "'.
+                      $operator.'"');
+            }
+        }
+    }
+
+    return $nSecs;
 }
 
 
@@ -1560,7 +1648,7 @@ sub recursive_regexp_grouper() { #($$$@) {
 
     my $suffix = find_suffix(@words);
     if ($suffix ne "") {
-		# Common suffix => recurse on the prefixes.
+        # Common suffix => recurse on the prefixes.
         if ($_Verbose) {
             print STDERR ("# recursive_regexp_grouper():  ",
                           " Common suffix: \"",$suffix,
@@ -1631,9 +1719,11 @@ jpwTools - Package containing John's Perl Tools.
 
 =over 4
 
+=item datetime_now
+
 =item datestamp
 
-=item datetime_now
+=item duration2secs(I<timespec>)
 
 =item not_empty(I<var>)
 
@@ -1773,6 +1863,13 @@ jpwTools - Package containing John's Perl Tools.
 
 =item -
 
+datetime_now
+
+Returns 6 element array containing the date and time.  The array contents are
+of the form: C<(year, month, day, hour24, min, sec)>.
+
+=item -
+
 datestamp
 
 Returns string containing the current date, in the form 'YYYYMMDD'.  Useful
@@ -1780,10 +1877,55 @@ for creating date-stamped filenames.
 
 =item -
 
-datetime_now
+duration2secs(I<timespec>)
 
-Returns 6 element array containing the date and time.  The array contents are
-of the form: C<(year, month, day, hour24, min, sec)>.
+Convert the I<timespec> string into a number of seconds.
+
+There are several supported formats:
+
+=over 2
+
+=item * I<n>
+
+A plain number always has units of seconds.  The number can be floating-point.
+
+=item * I<n> C<[hms]>
+
+A number followed by its units.
+
+The C<h>, C<m>, and C<s> can have any case, and can have whitespace preceeding
+it.  Or it can have no whitespace at all.
+
+The number can be floating-point.  Fractions of minutes or hours will be
+converted to seconds as you expect, e.g. C<10.5m> becomes 630 seconds.
+
+=item * I<n_h> h I<n_m> m I<n_s> s
+
+=item * I<n_h> h I<n_m> m
+
+=item * I<n_m> m I<n_s> s
+
+... and more!  Any combination of the I<n> C<[hms]> specifications are added
+together.
+
+=item * I<hh>:I<mm>:I<ss>
+
+You can specify a time by separating the hours, minutes, and seconds with C<:>
+characters.  The numbers can be floating-point, can have any number of
+leading-zeros or none at all.
+
+You can also omit any of the numbers as a shortcut for 0.  E.g.:
+'I<hh>:I<mm>:' is equivalent to 'I<hh>:I<mm>:00'.  [However, ':I<mm>:I<ss>'
+is superfluous, since it's equivalent to 'I<mm>:I<ss>'.]
+
+=item * I<timespec> - I<timespec> [...]
+
+=item * I<timespec> + I<timespec> [...]
+
+You can perform mathematics in your I<timespec> just as you'd expect.  There's
+no limit on the number of sub-I<timespec>s that you can add & subtract.
+
+=back
 
 =item -
 
