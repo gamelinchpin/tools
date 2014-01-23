@@ -1,0 +1,23 @@
+[core]
+	repositoryformatversion = 0
+	filemode = true
+	bare = false
+	logallrefupdates = true
+[remote "origin"]
+	fetch = +refs/heads/*:refs/remotes/origin/*
+	url = https://github.com/jpweiss/tools
+[branch "master"]
+	remote = origin
+	merge = refs/heads/master
+[remote "subtree._emacs-lisp"]
+	url = /home/candide/src/github/svn.tools.staging/emacs-lisp
+	fetch = +refs/heads/*:refs/remotes/subtree._emacs-lisp/*
+	pushurl = /-push-not-permitted-
+[remote "subtree._sh.scripts"]
+	url = /home/candide/src/github/svn.tools.staging/sh.scripts
+	fetch = +refs/heads/*:refs/remotes/subtree._sh.scripts/*
+	pushurl = /-push-not-permitted-
+[remote "subtree._perl"]
+	url = /home/candide/src/github/svn.tools.staging/perl
+	fetch = +refs/heads/*:refs/remotes/subtree._perl/*
+	pushurl = /-push-not-permitted-
