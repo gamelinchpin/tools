@@ -568,7 +568,7 @@ git_patchpull() {
 }
 
 
-utl_git_subtree_sync() {
+utl_git_subtree_viaMerge_sync() {
     local targBranch="master"
 
     if [ -z "$1" ]; then
@@ -583,7 +583,7 @@ utl_git_subtree_sync() {
         return 127
     fi
 
-    local remote pullStat ready2sync
+    local remote gitStat ready2sync
     while [ -n "$1" ]; do
         ready2sync=y
 
@@ -625,6 +625,8 @@ utl_git_subtree_sync() {
         esac
         shift
 
+        # Perform the sync if we're ready.
+        #
         if [ -n "$ready2sync" ]; then
             if [ -z "$remote" ]; then
                 echo ">> The source git 'tree-ish' cannot be \"\"!"
@@ -640,15 +642,22 @@ utl_git_subtree_sync() {
 
             echo ">> Syncing \"$remote\" to \"$targBranch\"."
             git pull -v -s subtree "$remote" "$targBranch"
-            pullStat=$?
+            gitStat=$?
 
-            if [ $pullStat -ne 0 ]; then
-                return $pullStat
+            if [ $gitStat -ne 0 ]; then
+                return $gitStat
+            fi
+
+            git add --all .subtrees && \
+                git commit -m "Updating subtree info for \"$remote\"" .subtrees
+            gitStat=$?
+            if [ $gitStat -ne 0 ]; then
+                return $gitStat
             fi
         fi
     done
 
-    return $pullStat
+    return $gitStat
 }
 
 
@@ -709,7 +718,7 @@ utl_git_subtree_modifyRemotePullURLs() {
 }
 
 
-utl_git_subtree_add() {
+utl_git_subtree_viaMerge_add() {
     local srcRepos="${1%/}"
     shift
     local destRepos="${1%/}"
@@ -791,6 +800,14 @@ utl_git_subtree_add() {
     commitMesg="$commitMesg in the \"$subtreeDir\" subdirectory."
     commitMesg="$commitMesg  [Subtree source is \"$remoteBranch\".]"
     git commit -m "$commitMesg" || hasErrs=y
+    if [ -n "$hasErrs" ]; then
+        echo ">>"
+        echo ">> Could not commit the new subtree in \"$subtreeDir\"!"
+        echo -e "$cowardErrmsg"
+        return 6
+    fi
+
+    utl_git_subtree_saveState "$remoteBranch" || hasErrs=y
 
     popd >/dev/null 2>&1
     [ -n "$hasErrs" ] && return 1
@@ -799,14 +816,105 @@ utl_git_subtree_add() {
 }
 
 
-git_subtree() {
+utl_git_subtree_saveState() {
+    local remoteBranch="$1"
+    shift
+
+    # FIXME:  This whole thing needs better error handling.
+
+    # Error Handling
+    if utl_notaGitRepo "."; then
+        return 127
+    fi
+    if [ -z "$remoteBranch" ]; then
+        return 127
+    fi
+
+    # If there's no subtree state at all, set up the common files.
+    if [[ ! -d .subtrees ]]; then
+        mkdir -p .subtrees || return $?
+        git add .subtrees
+    fi
+
+    pushd .subtrees >/dev/null 2>&1
+
+    # Store configuration info about our subtrees.  Do it every time so that
+    # we capture any changes.
+    git config --get-regexp 'subtree\._' | \
+        perl -p -e 's/^([^\s]+)\s(.+)$/\x27$1\x27 \x27$2\x27/;' \
+        >config || return $?
+
+    # Stash the refs for this remote.
+    local refsDir="refs/remotes/$remoteBranch"
+    if [[ ! -d $refsDir ]]; then
+        mkdir -vp $refsDir || return $?
+    fi
+
+    local fatalErrA="!!! FATAL ERROR!  Not a file:  "
+    local fatalErrB="!!! This should never occur.  "
+    fatalErr="${fatalErrB}There's a bug in the tool.\n"
+    fatalErr="${fatalErrB}!!!"
+
+    local f bf
+
+    pushd $refsDir >/dev/null 2>&1
+    for f in ../../../../.git/$refsDir/*; do
+        if [[ ! -e $f ]]; then
+            echo "${fatalErrA}\"$f\""
+            echo -e "$fatalErrB"
+            return 11
+        fi
+
+        bf=${f##*/}
+        [[ -e $bf ]] || ln -v $f .
+    done
+    popd >/dev/null 2>&1
+
+    # Now stash the logs/refs for this remote.
+    if [[ ! -d logs/$refsDir ]]; then
+        mkdir -vp logs/$refsDir || return $?
+    fi
+    pushd logs/$refsDir >/dev/null 2>&1
+    for f in ../../../../../.git/logs/$refsDir/*; do
+        if [[ ! -e $f ]]; then
+            echo "${fatalErrA}\"$f\""
+            echo -e "$fatalErrB"
+        fi
+
+        bf=${f##*/}
+        [[ -e $bf ]] || ln -v $f .
+    done
+    popd >/dev/null 2>&1
+
+    # pop out of '.subtrees'
+    popd >/dev/null 2>&1
+
+    git add --all .subtrees && \
+        git commit -m "Saving subtree  for \"$remoteBranch\"" .subtrees
+    # FIXME:  Add Error Handling
+}
+
+
+utl_git_subtree_restoreState() {
+    # FIXME:  This is just a bare-prototype.
+
+    perl -p -e 's/^/git config --add/;' .subtrees/config \
+        >restore-subtrees-config.sh
+
+    . restore-subtrees-config.sh
+
+
+}
+
+
+git_subtree_viaMerge() {
     local cmd="$1"
     shift
 
     local v showUsage_retval showFullUsage
     case "$cmd" in
         sync)
-            utl_git_subtree_sync "$@"
+            utl_git_subtree_viaMerge_sync "$@"
             local retval=$?
             if [ $retval -eq 127 ]; then
                 showUsage_retval=1
@@ -856,20 +964,22 @@ git_subtree() {
     esac
 
     if [ -n "$showUsage_retval" ]; then
-        echo "usage: git_subtree {-h|--help}"
+        echo "usage: git_subtree_viaMerge {-h|--help}"
         echo ""
 
-        echo "       git_subtree add  {-s|--srcRepos} <gitReposDir> \\"
+        echo -n "       git_subtree_viaMerge add  {-s|--srcRepos} "
+        echo "<gitReposDir> \\"
         echo -n "            {-d|--destRepos} <gitReposDir> "
         echo "[--subtreeDir <name>] \\"
         echo "            [{--srcRepos|--subtreeDir} ...]"
         echo ""
 
-        echo -n "       git_subtree sync [-b <targBranch>] <sourceName> "
-        echo "[<sourceName> ...]"
+        echo -n "       git_subtree_viaMerge sync [-b <targBranch>] "
+        echo "<sourceName> \\"
+        echo "            [<sourceName> ...]"
         echo ""
 
-        echo -n "       git_subtree readonly <subtree_remoteName>"
+        echo -n "       git_subtree_viaMerge readonly <subtree_remoteName>"
         echo " [<subtree_remoteName> ...]"
         echo -n "       git_subtree reset-push <subtree_remoteName>"
         echo " [<subtree_remoteName> ...]"
@@ -1023,8 +1133,9 @@ git_subtree() {
             -s|--src|--srcRepos|--src[-_]repos)
                 if [ -n "$srcDestReady" ]; then
                     # There's a new value of '--srcRepos' at the ready.
-                    # Ignore it for now and trigger a 'utl_git_subtree_add' with
-                    # the args we have now.
+                    # Ignore it for now and trigger a
+                    # 'utl_git_subtree_viaMerge_add' with the args we have
+                    # now.
                     ready2add=y
                 else
                     shift
@@ -1055,8 +1166,9 @@ git_subtree() {
 
                 if [ -n "$srcDestReady" ]; then
                     # If we have a source and destination repository, an
-                    # explicit '--subtreeDir' triggers a 'utl_git_subtree_add'
-                    # using that '--subtreeDir' arg.
+                    # explicit '--subtreeDir' triggers a
+                    # 'utl_git_subtree_viaMerge_add' using that '--subtreeDir'
+                    # arg.
                     ready2add=y
                 fi
                 ;;
@@ -1079,7 +1191,7 @@ git_subtree() {
 
         # Now that we've processed the next argument, we need to check if
         # we've consumed all of the args.  That, too, must trigger a
-        # 'utl_git_subtree_add' using whatever parameters we have.
+        # 'utl_git_subtree_viaMerge_add' using whatever parameters we have.
         if [ -z "$1" -a -z "$ready2add" ]; then
             local missing dangling
 
@@ -1110,9 +1222,10 @@ git_subtree() {
             fi
         fi
 
-        # Now perform the 'utl_git_subtree_add':
+        # Now perform the 'utl_git_subtree_viaMerge_add':
         if [ -n "$ready2add" ]; then
-            utl_git_subtree_add "$srcRepos" "$destRepos" "$subtreeDir"
+            utl_git_subtree_viaMerge_add \
+                "$srcRepos" "$destRepos" "$subtreeDir"
             local retval=$?
 
             if [ $retval -ne 0 ]; then
