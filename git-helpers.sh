@@ -50,51 +50,17 @@ LS=ls
 ############
 
 
-github_git() {
-    local op="$1"
-    shift
-
-    local gitStat=127
-    case "$op" in
-        clone)
-            local repos="$1"
-            shift
-            git clone ${GitHub_BaseURL}/$repos
-            gitStat=$?
-            ;;
-        *)
-            echo "Supported: git clone <repos>"
-            ;;
-    esac
-
-    return $gitStat
-}
-
-
-git_tester() {
-    if [[ ! -d $GIT_TESTER_DIR ]]; then
-        mkdir -v $GIT_TESTER_DIR || return $?
-    fi
-
-    if [[ ! -d $GIT_TESTER_DIR/.git ]]; then
-        git init $GIT_TESTER_DIR || return $?
-    fi
-
-    pushd $GIT_TESTER_DIR
-
-    if [[ ! -e README.tmp ]]; then
-        echo "This git repo is for testing git commands." >README.tmp
-        echo "" >>README.tmp
-        echo "" >>README.tmp
-        echo "And this README file is merely a placeholder." >>README.tmp
-        echo "" >>README.tmp
-        git add -- README.tmp
-        git commit -m "Creating test repos" -q -- README.tmp
-    fi
-}
+#
+# General-Purpose Utilities
+#
 
 
 utl_isaRemoteBranch() {
+    local verbose
+    if [ "$1" = "-v" ]; then
+        verbose="$1"
+        shift
+    fi
     local remoteId="$1"
     shift
     local branchName="$1"
@@ -106,17 +72,32 @@ utl_isaRemoteBranch() {
                                 grep $remoteId | \
                                 sed -e 's/^  *//' -e 's/  *$//')"
 
+    local noRemoteErr=">> No such remote:"
+
     if [ "$branchName" = "--" ]; then
         # Special case:  Just check if there was a match to the $remoteId.
         [ -n "$actualRemoteBranch" ] && return 0
         # else:
-        return 1
+
+        if [ -n "$verbose" ]; then
+            echo "$noRemoteErr  \"$remoteId\""
+        fi
+        return 2
     fi
     # else:
     # Check for an exact match.
 
     [ "$actualRemoteBranch" = "$remoteId/$branchName" ] && return 0
     # else:
+
+    if [ -n "$verbose" ]; then
+        if [ -n "$actualRemoteBranch" ]; then
+            echo "$noRemoteErr  \"$remoteId\""
+        else
+            echo ">> Remote \"$remoteId\" isn't associated with any"
+            echo ">> branch named \"$branchName\"."
+        fi
+    fi
     return 1
 }
 
@@ -155,10 +136,10 @@ utl_notaGitRepo() {
     local status=1
     if [[ ! -d $path/.git ]] || [[ ! -e $path/.git/config ]]; then
         status=0
-        echo "Error:  not a git-repository:  \"$path\""
+        echo ">> Error:  not a git-repository:  \"$path\""
         if [ -n "$optName" ]; then
-            echo "\"$optName\" requires a git-repo dir."
-            echo ""
+            echo ">> \"$optName\" requires a git-repo dir."
+            echo ">>"
         fi
     fi
 
@@ -237,6 +218,56 @@ utl_git_noisy_merge() {
 }
 
 
+#
+# "Standalone" Functions
+# [i.e. not composed of multiple functions; those have their own sections.]
+#
+
+
+github_git() {
+    local op="$1"
+    shift
+
+    local gitStat=127
+    case "$op" in
+        clone)
+            local repos="$1"
+            shift
+            git clone ${GitHub_BaseURL}/$repos
+            gitStat=$?
+            ;;
+        *)
+            echo "Supported: git clone <repos>"
+            ;;
+    esac
+
+    return $gitStat
+}
+
+
+git_tester() {
+    if [[ ! -d $GIT_TESTER_DIR ]]; then
+        mkdir -v $GIT_TESTER_DIR || return $?
+    fi
+
+    if [[ ! -d $GIT_TESTER_DIR/.git ]]; then
+        git init $GIT_TESTER_DIR || return $?
+    fi
+
+    pushd $GIT_TESTER_DIR
+
+    if [[ ! -e README.tmp ]]; then
+        echo "This git repo is for testing git commands." >README.tmp
+        echo "" >>README.tmp
+        echo "" >>README.tmp
+        echo "And this README file is merely a placeholder." >>README.tmp
+        echo "" >>README.tmp
+        git add -- README.tmp
+        git commit -m "Creating test repos" -q -- README.tmp
+    fi
+}
+
+
 git_unique_tag() {
     local theTag showUsage_retval
 
@@ -308,6 +339,12 @@ git_unique_tag() {
     # Create the new tag, with the specified args as passed.
     git tag "$@"
 }
+
+
+#
+# 'git_patchpull'
+# [It's a large function]
+#
 
 
 git_patchpull() {
@@ -568,129 +605,319 @@ git_patchpull() {
 }
 
 
-utl_git_subtree_viaMerge_sync() {
-    local targBranch="master"
+#
+# 'git_subtree_*' Functions
+#
 
-    if [ -z "$1" ]; then
-        echo ">> At least one source git 'tree-ish' must be specified."
-        echo ">> "
-        return 127
-    fi
 
-    if utl_notaGitRepo "$PWD"; then
-        echo ">> This command must be run from inside of a git-repo."
-        echo ">> "
-        return 127
-    fi
+utl_gitSubtree_prefix2remote() {
+    local prefix="$1"
+    shift
 
-    local remote gitStat ready2sync
-    while [ -n "$1" ]; do
-        ready2sync=y
-
-        case "$1" in
-            -b|--branch)
-                shift
-                targBranch="$1"
-                ready2sync=''
-
-                if [ -z "$targBranch" ]; then
-                    echo -n ">> \"-b\" option requires the name of a target "
-                    echo "branch."
-                    echo ">>"
-                    return 127
-                fi
-
-                if [ -z "$2" ]; then
-                    echo -n ">> \"-b\" option can't be the last on the "
-                    echo "commandline."
-                    echo ">>"
-                    return 127
-                fi
-                ;;
-
-            -s|--source)
-                shift
-                remote="$1"
-                ;;
-
-            -*)
-                echo ">> Unsupported option:  \"$1\""
-                echo ">>"
-                return 127
-                ;;
-
-            *)
-                remote="$1"
-                ;;
-        esac
-        shift
-
-        # Perform the sync if we're ready.
-        #
-        if [ -n "$ready2sync" ]; then
-            if [ -z "$remote" ]; then
-                echo ">> The source git 'tree-ish' cannot be \"\"!"
-                echo ">>"
-                return 127
-            elif utl_isaRemoteBranch $remote; then
-                :
-            else
-                echo ">> This git-repo contains no remote called \"$remote\""
-                echo ">>"
-                return 127
-            fi
-
-            echo ">> Syncing \"$remote\" to \"$targBranch\"."
-            git pull -v -s subtree "$remote" "$targBranch"
-            gitStat=$?
-
-            if [ $gitStat -ne 0 ]; then
-                return $gitStat
-            fi
-
-            git add --all .subtrees && \
-                git commit -m "Updating subtree info for \"$remote\"" .subtrees
-            gitStat=$?
-            if [ $gitStat -ne 0 ]; then
-                return $gitStat
-            fi
+    local remote="subtree._${prefix//\/._}"
+    if [ "$1" = "--verify" ]; then
+        if [[ ! -d "$prefix" ]]; then
+            echo -n ">> Prefix doesn't match any existing " 1>&2
+            echo "subdirectory:  \"$prefix\"" 1>&2
+            return 2
         fi
-    done
+        # else
 
-    return $gitStat
+        if utl_isaRemoteBranch "$remote" --; then
+            :
+        else
+            echo -n ">> Prefix doesn't match any known " 1>&2
+            echo "subtree remote:  \"$prefix\"" 1>&2
+            echo ">> Cannot convert to a valid remote." 1>&2
+            return 3
+        fi
+        # else
+    fi
+
+    echo "$remote"
 }
 
 
-utl_git_subtree_modifyRemotePullURLs() {
+utl_gitSubtree_remote2prefix() {
+    local remote="$1"
+    shift
+
+    local pseudoPrefix="${remote#subtree._}"
+    local prefix="${pseudoPrefix//._/\/}"
+    if [ "$1" = "--verify" ]; then
+        if utl_isaRemoteBranch "$remote" --; then
+            :
+        else
+            echo -n ">> No such remote:  \"$remote\"" 1>&2
+            echo ">> Cannot convert to a valid prefix." 1>&2
+            return 3
+        fi
+        # else
+
+        if [[ ! -d "$prefix" ]]; then
+            echo ">> Converted remote, \"$prefix\"," 1>&2
+            echo ">> doesn't match any existing subdirectory." 1>&2
+            echo ">> Remote \"$remote\" doesn't convert " 1>&2
+            echo ">> to a valid prefix." 1>&2
+            return 2
+        fi
+        # else
+    fi
+
+    echo "$prefix"
+}
+
+
+utl_gitSubtree_saveState() {
+    local prefix="$1"
+    shift
+    local addCmdArgs="$1"
+    shift
+
+    # Error Handling
+    if utl_notaGitRepo "."; then
+        echo ">> Error:  This command must be run from inside of a git repo."
+        return 127
+    fi
+    if [ -z "$prefix" ]; then
+        echo ">> Internal Error:  No subtree prefix specified."
+        return 11
+    fi
+
+    # If there's no subtree state at all, set up the common files.
+    if [[ ! -d .subtrees ]]; then
+        mkdir -p .subtrees || return $?
+        git add .subtrees
+    fi
+
+    local gitStat
+
+    # Store configuration info about our subtrees.  Do it every time so that
+    # we capture any changes.
+    git config --get-regexp 'subtree\._' | \
+        perl -p -e 's/^([^\s]+)\s(.+)$/git config \x27$1\x27 \x27$2\x27/;' \
+        >.subtrees/remotes
+    gitStat=$?
+    if [ $gitStat -ne 0 ]; then
+        echo ">>"
+        echo ">> Failed to save subtree-remotes."
+        return $gitStat
+    fi
+
+    if [ -n "$addCmdArgs" ]; then
+        local addCmdFile=.subtrees/${prefix}-addCmd
+        echo "# Subtree \"$prefix\" added with:" >${addCmdFile}
+        echo "    git subtree add --prefix=$prefix $addCmdArgs" \
+            >>${addCmdFile}
+    fi
+
+    git add --all .subtrees
+    gitStat=$?
+    if [ $gitStat -eq 0 ]; then
+        git commit -m "Saving subtree info for \"$prefix\"" .subtrees
+        gitStat=$?
+    fi
+    if [ $gitStat -ne 0 ]; then
+        echo ">>"
+        echo ">> Failed to commit subtree information."
+        return $gitStat
+    fi
+
+    return 0
+}
+
+
+git_subtree_restoreState() {
+    local noPull showUsage_retval
+    case "$1" in
+        --no[-_][pP]ull)
+            noPull=y
+            ;;
+        --help|-h)
+            showUsage_retval=0
+            ;;
+        *)
+            echo "Unknown option:  \"$1\""
+            showUsage_retval=1
+            ;;
+    esac
+    shift
+    if [ -n "$*" ]; then
+        echo "Extra args: $@"
+        showUsage_retval=1
+    fi
+
+    #
+    # Usage:
+    #
+
+    if [ -n "$showUsage_retval" ]; then
+        [ $showUsage_retval -ne 0 ] && echo ""
+
+        echo "usage:  git_subtree_restoreState [--no-pull]"
+        echo ""
+        echo "The \"--no-pull\" option disables the 'git subtree pull' stage."
+        echo "Normally, 'git_subtree_restoreState' does a"
+        echo "'git_subtree_sync --all' after restoring all of the subtree"
+        echo "remotes."
+
+        return $showUsage_retval
+    fi
+
+    #
+    # The actual steps
+    #
+
+    . .subtrees/remotes
+    [ -n "$noPull" ] && return 0
+
+    git_subtree_sync --all
+    local remote prefix
+    for remote in $(git branch -r | grep 'subtree\._'); do
+        prefix="$(utl_gitSubtree_remote2prefix $remote --verify)" 2>&1
+        [ -z "$prefix" ] && continue
+
+        if [[ -d $prefix ]]; then
+            git subtree pull -P "$prefix" "$remote" HEAD
+        fi
+    done
+}
+
+
+git_subtree_modifyRemotes() {
     local cmd="$1"
     shift
 
-    local errmsgPre errmsgPost
+    #
+    # Option Processing
+    #
+
+    local errmsgPre errmsgPost showUsage_retval
     case "$cmd" in
-        ro)
+        ro|readonly|read[-_]only)
             errmsgPre=">> Error while resetting the pull-URL of \""
             errmsgPost="\"."
             ;;
 
-        reset)
+        reset|reset[-_]push)
             errmsgPre=">> Error while making \""
             errmsgPost="\" non-pullable."
             ;;
 
+        help|--help|-h)
+            showUsage_retval=0
+            ;;
+
         *)
-            echo "!!! Internal Error in 'git_subtree'!!!"
-            echo "!!! Aborting !!!"
-            return 11
+            if [ -z "$cmd" ]; then
+                echo "No command specified!"
+            else
+                echo "Unknown/Unsupported Command:  \"$cmd\""
+            fi
+            echo ""
+            showUsage_retval=11
             ;;
     esac
 
+    local isPrefix=y
+    case "$1" in
+        -r)
+            shift
+            isPrefix=''
+            ;;
+        --help|-h)
+            showUsage_retval=0
+            ;;
+    esac
+    if [ -z "$1" ]; then
+        echo "At least one \"<prefixOrRemote>\" must be specified."
+        echo ""
+        showUsage_retval=1
+    fi
+
+    #
+    # Usage:
+    #
+
+    if [ -n "$showUsage_retval" ]; then
+        local myName="${UTL_FN_USG_NAME:-git_subtree_modifyRemotes <cmd>}"
+        echo "usage: ${myName} [-r] <prefixOrRemote> \\"
+        echo "              [<prefixOrRemote>...]"
+        echo ""
+
+        if [ -z "$UTL_FN_USG_NAME" ]; then
+            echo "<cmd> can be:"
+            echo "    readonly"
+            echo "    read-only"
+            echo "    reset-push"
+            echo "    help"
+            echo ""
+        fi
+
+        if [ $showUsage_retval -ne 0 ]; then
+            echo "Rerun with \"--help\" for the full documentation."
+            return 0
+        fi
+
+        echo "-r"
+        echo "    Normally, the \"<prefixOrRemote>\" arg(s) are the prefixes"
+        echo "    you specified to 'git subtree add -P <prefix>'."
+        echo "    This option changes how the \"<prefixOrRemote>\" arg(s) are"
+        echo "    handled.  When present, the \"<prefixOrRemote>\" become"
+        echo "    the names of the remote sources [as seen in a"
+        echo "    'git branch -r']."
+        echo ""
+        echo "    This option must appear on the commandline in the position"
+        echo "    shown.  You typically won't need it."
+        echo ""
+
+        echo "Modifies the target-URL used by a 'git push <remoteName>' or"
+        echo "'git subtree push -P <prefix>', making \"<remoteName\" [or"
+        echo "\"<prefix>\"] effectively read-only."
+        echo ""
+        echo "If you want to only pull changes *into* a subtree *from* its"
+        echo "source, use the 'readonly' command [or the relevant alias]."
+        echo "It will erase all ofthe pull-URLs of \"<prefixOrRemote>\","
+        echo "setting the lonepull-URL to a bogus local path.  [Note:  You"
+        echo "cannot completely remove all of the push-URLs from a remote."
+        echo "There must be at least one.]"
+        echo ""
+        echo "To re-enable 'git push <remoteName>' [and "
+        echo "'git subtree push -P <prefix>'] use the 'reset-push' command"
+        echo "[or the relevant alias].  It restores the default push-URL"
+        echo "[which is the same as the pull-URL]."
+        echo ""
+        echo "Remember:  'readonly' erases ALL of your push-URLs.  If you had"
+        echo "any custom push-URLs, you'll lose them.  'reset-push' can't"
+        echo "restore them."
+        echo ""
+        echo "You can specify more than one \"<prefixOrRemote>\" to these"
+        echo "two subcommands to perform them in-bulk."
+        echo ""
+
+        return $showUsage_retval
+    fi
+
+    #
+    # The Code-Proper
+    #
+
     local cantContinue=">> Cannot continue."
-    local remote hasErr
-    for remote in "$@"; do
-        if utl_isaRemoteBranch $remote; then
-            :
+    local prefix remote hasErr
+    for prefix in "$@"; do
+        if [ -n "$isPrefix" ]; then
+            remote="$prefix"
+
+            if utl_isaRemoteBranch $remote; then
+                :
+            else
+                echo ">> This git-repo contains no remote called \"$remote\""
+            fi
         else
-            echo ">> This git-repo contains no remote called \"$remote\""
+            remote="$(utl_gitSubtree_prefix2remote $prefix --verify)" 2>&1
+        fi
+
+        if [ -z "$remote" ]; then
             echo ">> Ignoring..."
             continue
         fi
@@ -716,194 +943,480 @@ utl_git_subtree_modifyRemotePullURLs() {
         fi
     done
 }
+g_s_mR='UTL_FN_USG_NAME=git_subtree_readonly git_subtree_modifyRemotes'
+alias git_subtree_readonly="$g_s_mR readonly"
+g_s_mR='UTL_FN_USG_NAME=git_subtree_reset_push git_subtree_modifyRemotes'
+alias git_subtree_reset_push="$g_s_mR reset-push"
+unset g_s_mR
 
 
-utl_git_subtree_viaMerge_add() {
-    local srcRepos="${1%/}"
-    shift
-    local destRepos="${1%/}"
-    shift
-    local subtreeDir="${1%/}"
-    shift
-
-    local srOpt=${calledAsSubroutine:+--srcRepos}
-    if utl_notaGitRepo "$srcRepos" $srOpt; then
-        return 127
-    fi
-
-    local drOpt=${calledAsSubroutine:+--destRepos}
-    if utl_notaGitRepo "$destRepos" $drOpt; then
-        return 127
+git_subtree_sync() {
+    if utl_notaGitRepo "$PWD"; then
+        echo ">> This command must be run from inside of a git-repo."
+        echo ">> "
+        return 1
     fi
 
     #
-    # The actual code
+    # Arg processing
     #
 
-    local srcModule="${srcRepos##*/}"
-    if [ -z "$subtreeDir" ]; then
-        subtreeDir="$srcModule"
-    else
-        # Make sure $subtreeDir is a relative path.
-        case "$subtreeDir" in
-            [/~]*|../*|*/../*)
-                echo "Invalid subtree dir:  \"$subtreeDir\"."
-                echo "\"<subtreeDir>\" must be a relative path and cannot"
-                echo "contain any '..' upreferences."
+    local targBranch="HEAD"
+    local remote prefix showUsage_retval optname prbList
+    while [ -n "$1" -a -z "$showUsage_retval" ]; do
+        case "$1" in
+            -b|--branch)
+                shift
+                targBranch="$1"
+                if [ -z "$targBranch" ]; then
+                    echo "Option \"-b\" requires the name of a target branch."
+                    showUsage_retval=1
+                fi
+                ;;
+
+            -r|--remote)
+                shift
+                remote="$1"
+                if [ -z "$remote" ]; then
+                    echo "Option \"-r\" requires a value."
+                    showUsage_retval=1
+                else
+                    prefix="$(utl_gitSubtree_remote2prefix $remote)"
+                fi
+                ;;
+
+            --all)
+                prbList=''
+                for remote in $(git branch -r | grep 'subtree\._'); do
+                    prefix="$(utl_gitSubtree_remote2prefix $remote --verify)" \
+                        2>&1
+
+                    if [ -z "$prefix" ]; then
+                        echo ">>"
+                        echo ">> Ignoring..."
+                        continue
+                    fi
+
+                    prbList="${prbList}${prbList:+|}${prefix}|${remote}|HEAD"
+                done
+
+                break
+                ;;
+
+            -h|--help)
+                showUsage_retval=0
+                ;;
+
+            -P|--prefix|[^-]*)
+                # Get the prefix, saving how it was passed.
+                # We'll use the latter info for constructing error mesgs.
+                optname="$1"
+                [ "$optname" = '--prefix' ] && optname='-P'
+                if [ "$optname" = '-P' ]; then
+                    shift
+                    prefix="$1"
+                else
+                    prefix="$optname"
+                    optname=''
+                fi
+
+                # Process
+                if [ -z "$prefix" ]; then
+                    if [ -n "$optname" ]; then
+                        echo "Option \"$optname\" requires a value."
+                    else
+                        echo "Cannot pass \"\" as a prefix."
+                    fi
+                    showUsage_retval=1
+                else
+                    remote="$(utl_gitSubtree_prefix2remote $prefix)"
+                fi
+                ;;
+
+            -*)
+                echo "Unknown option:  \"$1\""
                 echo ""
-                return 127
+                showUsage_retval=1
                 ;;
         esac
+        shift
+
+        if [ -n "$remote" -a -n "$prefix" ]; then
+            prbList="${prbList}${prbList:+|}${prefix}|${remote}|$targBranch}"
+
+            remote=''
+            prefix=''
+        fi
+    done
+
+    #
+    # Usage:
+    #
+
+    if [ -n "$showUsage_retval" ]; then
+        echo "usage: git_subtree_sync --all"
+        echo -n "       git_subtree_sync [--branch <targBranch>] "
+        echo "{subtreeSpec} \\"
+        echo "           [{subtreeSpec}|--branch <targBranch>} ...]"
+        echo ""
+
+        echo "Options and their short-forms:"
+        echo "    --remote -r"
+        echo "    --prefix -P"
+        echo "    --branch -b"
+        echo ""
+
+        echo "{subtreeSpec} is one of the following:"
+        echo "    --remote <remote>"
+        echo "    --prefix <prefix>"
+        echo "    <prefix>"
+        echo "Note that the \"--prefix\" [or \"-P\"] flag is optional."
+        echo "You can specify either the subtree prefix, or the remote ID"
+        echo "that the subtree is attached to.  'git_subtree_sync' will"
+        echo "use whichever you specify to look up the other."
+        echo ""
+
+        echo "Normally, you will sync from the 'HEAD' branch of each"
+        echo "subtree's source repo.  If, however, you need to sync against"
+        echo "a different branch, pass a \"--branch\" option on the"
+        echo "commandline.  HOWEVER:  note that the \"<targBranch>\" you"
+        echo "specify remains active FOR EVERY {subtreeSpec} THEREAFTER!"
+        echo ""
+
+        return $showUsage_retval
     fi
 
-    local remoteBranch="subtree._$srcModule"
+    #
+    # The Code-Proper
+    #
 
-    # Make sure $srcRepos an absolute-path before changing to the $destRepos.
-    case "$srcRepos" in
-        [^/~]*)
-            srcRepos="$PWD/$srcRepos"
+    # Load our triplets into the arglist.
+    local oIFS="$IFS"
+    IFS='|'
+    set -- $prbList
+    IFS="$oIFS"
+
+    if [ $# -lt 3 ]; then
+        echo ">> At least one subtree must be specified."
+        echo ">>"
+
+        git_subtree_sync --help
+        return 1
+    fi
+
+
+    local cowardErrmsg=">> Cowardly refusing to continue."
+    local hasErrs
+    while [ $# -ge 3 ]; do
+        prefix="$1"
+        shift
+        remote="$1"
+        shift
+        targBranch="$1"
+        shift
+
+        # Validate.  Abort if there's any problems.
+
+        if [[ ! -d $prefix ]]; then
+            echo ">>"
+            echo "$cowardErrmsg"
+            return 1
+        fi
+
+        if [ "$targBranch" != "HEAD" ]; then
+            utl_isaRemoteBranch -v $remote $targBranch || hasErrs=y
+        else
+            utl_isaRemoteBranch -v $remote -- || hasErrs=y
+        fi
+
+        if [ -n "$hasErrs" ]; then
+            echo ">>"
+            echo "$cowardErrmsg"
+            return 1
+        fi
+
+        # Perform the sync steps.
+
+        echo ">> Syncing subtree \"$prefix\" from \"$remote/$targBranch\"."
+        git subtree pull -P "$prefix" "$remote" HEAD || hasErrs=y
+        if [ -n "$hasErrs" ]; then
+            echo ">>"
+            echo ">> Pull failed.  Cannot continue."
+            return 1
+        fi
+
+        git add --all .subtrees || hasErrs=y
+        if [ -n "$hasErrs" ]; then
+            echo ">>"
+            echo "$cowardErrmsg"
+            return 1
+        fi
+
+        git commit -m "Updating subtree info for \"$remote\"" .subtrees \
+            || hasErrs=y
+        if [ -n "$hasErrs" ]; then
+            echo ">>"
+            echo "Commit failed.  Any remaining syncs won't be performed."
+            return 1
+        fi
+        # else
+
+        echo ">>"
+        echo ">> Subtree \"$prefix\" successfully synced."
+        echo ">>"
+    done
+
+    return $gitStat
+}
+
+
+utl_gitSubtree_single_add() {
+    local prefix="${1%/}"
+    shift
+    local srcRepos="${1%/}"
+    shift
+
+    if utl_notaGitRepo "$srcRepos" --srcRepos; then
+        return 127
+    fi
+
+    if [[ -d $prefix ]]; then
+        echo ">> Invalid prefix: \"$prefix\""
+        echo ">> Directory already exists!  Cannot re-add a subtree!"
+        echo ">>"
+        return 127
+    fi
+
+    # Make sure $subtreeDir is a relative path.
+    case "$prefix" in
+        [/~]*|../*|*/../*|./*|*/./*)
+            echo ">> Invalid prefix:  \"$prefix\"."
+            echo ">> Cannot be an absolute path or contain any '.' or '..'"
+            echo ">> components."
+            echo ">>"
+            return 127
             ;;
     esac
-    pushd $destRepos >/dev/null 2>&1
 
+    # Convert the $srcRepos to an absolute path.
+    case "$srcRepos" in
+        [/~]*|../*|*/../*|./*|*/./*)
+            pushd $srcRepos >/dev/null 2>&1
+            srcRepos="$PWD"
+            popd >/dev/null 2>&1
+            ;;
+    esac
+
+    # Add it:
+
+    local remoteId="$(utl_gitSubtree_prefix2remote $prefix)" 2>&1
     local hasErrs
     local cowardErrmsg=">>\n>> Cowardly refusing to continue."
 
-    git remote add -f $remoteBranch $srcRepos || hasErrs=y
+    git remote add -f $remoteId $srcRepos || hasErrs=y
+    echo ">>"
     if [ -n "$hasErrs" ]; then
-        echo ">>"
         echo ">> Failed to add \"$srcRepos\" as a remote-branch!"
         echo -e "$cowardErrmsg"
         return 3
+    else
+        echo ">> Added new remote:  \"$remoteId\""
+        echo ">> Use this as the remote-id for the \"prefix\" subtree's"
+        echo ">> source git-repo."
+        echo ">>"
     fi
 
-    git merge -s ours --no-commit $remoteBranch/master || hasErrs=y
+    git subtree add --prefix="$prefix" "$remoteId" master || hasErrs=y
     if [ -n "$hasErrs" ]; then
         echo ">>"
-        echo -n ">> Failed to prepare for the merge/read-tree of the "
-        echo "remote-branch"
-        echo ">> \"$remoteBranch/master\"."
-        echo -e "$cowardErrmsg"
+        echo ">> Failed to add the new subtree \"$prefix\""
+        echo ">> from the remote repository \"$remoteId\"."
         return 4
     fi
 
-    git read-tree --prefix=$subtreeDir/ -u $remoteBranch/master || hasErrs=y
-    if [ -n "$hasErrs" ]; then
-        echo ">>"
-        echo ">> Failed to read the remote-branch \"$remoteBranch/master\""
-        echo ">> into the subdirectory, \"$subtreeDir\"."
-        echo -e "$cowardErrmsg"
-        return 5
-    fi
-
-    local commitMesg="Merged \"$srcRepos\" as a new subtree"
-    commitMesg="$commitMesg in the \"$subtreeDir\" subdirectory."
-    commitMesg="$commitMesg  [Subtree source is \"$remoteBranch\".]"
-    git commit -m "$commitMesg" || hasErrs=y
-    if [ -n "$hasErrs" ]; then
-        echo ">>"
-        echo ">> Could not commit the new subtree in \"$subtreeDir\"!"
-        echo -e "$cowardErrmsg"
-        return 6
-    fi
-
-    utl_git_subtree_saveState "$remoteBranch" || hasErrs=y
+    utl_gitSubtree_saveState "$prefix" "\"$remoteId\" master" || hasErrs=y
 
     popd >/dev/null 2>&1
     [ -n "$hasErrs" ] && return 1
     #else
+
     return 0
 }
 
 
-utl_git_subtree_saveState() {
-    local remoteBranch="$1"
-    shift
+git_subtree_add() {
+    local showUsage_retval destRepos
+    local prefix srcRepos psRList
+    while [ -n "$1" -a -z "$showUsage_retval" ]; do
+        case "$1" in
+            -d|--destRepos|--dest[-_]repos)
+                shift
+                if [ -z "$destRepos" ]; then
+                    destRepos="$1"
+                else
+                    echo -n ">> Cannot override \"--destRepos\".  Ignoring "
+                    echo "(attempted) new value:"
+                    echo ">> \"$1\""
+                fi
+                ;;
 
-    # FIXME:  This whole thing needs better error handling.
+            -s|--srcRepos|--src[-_]repos)
+                shift
+                if [ -n "$srcRepos" ]; then
+                    echo ""
+                    echo "Error:  back-to-back  \"--srcRepos\" options."
+                    echo ""
+                    showUsage_retval=3
+                fi
+                srcRepos="$1"
+                ;;
 
-    # Error Handling
-    if utl_notaGitRepo "."; then
-        return 127
-    fi
-    if [ -z "$remoteBranch" ]; then
-        return 127
-    fi
+            -[pP]|--prefix)
+                shift
+                if [ -n "$srcRepos" ]; then
+                    echo ""
+                    echo "Error:  back-to-back  \"--prefix\" options."
+                    echo ""
+                    showUsage_retval=3
+                fi
+                prefix="$1"
+                ;;
 
-    # If there's no subtree state at all, set up the common files.
-    if [[ ! -d .subtrees ]]; then
-        mkdir -p .subtrees || return $?
-        git add .subtrees
-    fi
+            -h|--help)
+                showUsage_retval=0
+                ;;
 
-    pushd .subtrees >/dev/null 2>&1
+            -*)
+                echo "Unknown option:  \"$1\""
+                echo ""
+                showUsage_retval=1
+                ;;
 
-    # Store configuration info about our subtrees.  Do it every time so that
-    # we capture any changes.
-    git config --get-regexp 'subtree\._' | \
-        perl -p -e 's/^([^\s]+)\s(.+)$/\x27$1\x27 \x27$2\x27/;' \
-        >config || return $?
+            *)
+                echo "Mystery Bare Argument:  \"$1\""
+                echo "[Missing something?]"
+                echo ""
+                showUsage_retval=1
+                ;;
+        esac
+        shift
 
-    # Stash the refs for this remote.
-    local refsDir="refs/remotes/$remoteBranch"
-    if [[ ! -d $refsDir ]]; then
-        mkdir -vp $refsDir || return $?
-    fi
+        if [ -n "$remote" -a -n "$srcRepos" ]; then
+            prbList="${prbList}${prbList:+|}${remote}|${srcRepos}}"
 
-    local fatalErrA="!!! FATAL ERROR!  Not a file:  "
-    local fatalErrB="!!! This should never occur.  "
-    fatalErr="${fatalErrB}There's a bug in the tool.\n"
-    fatalErr="${fatalErrB}!!!"
-
-    local f bf
-
-    pushd $refsDir >/dev/null 2>&1
-    for f in ../../../../.git/$refsDir/*; do
-        if [[ ! -e $f ]]; then
-            echo "${fatalErrA}\"$f\""
-            echo -e "$fatalErrB"
-            return 11
+            remote=''
+            srcRepos=''
         fi
-
-        bf=${f##*/}
-        [[ -e $bf ]] || ln -v $f .
     done
-    popd >/dev/null 2>&1
 
-    # Now stash the logs/refs for this remote.
-    if [[ ! -d logs/$refsDir ]]; then
-        mkdir -vp logs/$refsDir || return $?
+    if utl_notaGitRepo "$destRepos" --destRepos; then
+        showUsage_retval=2
     fi
-    pushd logs/$refsDir >/dev/null 2>&1
-    for f in ../../../../../.git/logs/$refsDir/*; do
-        if [[ ! -e $f ]]; then
-            echo "${fatalErrA}\"$f\""
-            echo -e "$fatalErrB"
+
+    #
+    # Usage:
+    #
+
+    if [ -n "$showUsage_retval" ]; then
+        echo "usage: git_subtree_add <Options>"
+
+        echo "Add one or more subtree(s) to a target 'git'-repo."
+        echo "You can pass the options in any order [within reason; see"
+        echo "below]."
+        echo ""
+
+        echo "<Options>:"
+        echo ""
+        echo "  \"-d <dest_gitReposDir>\""
+        echo "  \"--destRepos <dest_gitReposDir>\""
+        echo "        This option specifies the target 'git'-repo."
+        echo "        \"<dest_gitReposDir>\" must be a directory containing"
+        echo "        a 'git' repository."
+        echo "        If you're already in your target 'git'-repo, just pass"
+        echo "        \".\" as the \"<dest_gitReposDir>\""
+        echo ""
+        echo "        You must specify this option *once*.  Repeat instances"
+        echo "        will be ignored."
+        echo ""
+
+        echo "  \"-s <src_gitReposDir>\""
+        echo "  \"--srcRepos <src_gitReposDir>\""
+        echo "        This option specifies each remote 'git'-repo to add"
+        echo "        to the \"--destRepos\" as a subtree."
+        echo ""
+        echo "        You must specify this together with a \"--prefix\", in"
+        echo "        pairs.  The order within a pair doesn't matter."
+        echo ""
+
+        echo "  \"-P <prefix>\""
+        echo "  \"-p <prefix>\""
+        echo "  \"--prefix <prefix>\""
+        echo "        This option specifies the \"prefix\" of the new"
+        echo "        subtree.  to the \"--destRepos\" as a subtree."
+        echo ""
+        echo "        You must specify this together with a \"--srcRepos\","
+        echo "        in pairs.  The order within a pair doesn't matter."
+        echo ""
+
+        echo "Be careful when specifying the \"--prefix\" and \"--srcRepos\""
+        echo "that you pass them *in* *pairs*!  Accidently passing one of"
+        echo "these \"back-to-back\" is an error."
+        echo ""
+
+        return $showUsage_retval
+    fi
+
+    #
+    # The Code-Proper
+    #
+
+    # Load our triplets into the arglist.
+    local oIFS="$IFS"
+    IFS='|'
+    set -- $prbList
+    IFS="$oIFS"
+
+    if [ $# -lt 2 ]; then
+        echo ">> At least one (<prefix>, <srcRepo>) pair must be specified."
+        echo ">>"
+
+        git_subtree_add --help
+        return 1
+    fi
+
+    [ "$destRepos" != "." ] && pushd $destRepos >/dev/null 2>&1
+
+    local cowardErrmsg=">> Cowardly refusing to continue."
+    local retval
+    while [ $# -ge 2 ]; do
+        remote="$1"
+        shift
+        srcRepos="$1"
+        shift
+
+        utl_gitSubtree_single_add "$prefix" "$srcRepos"
+        retval=$?
+
+        if [ $retval -ne 0 ]; then
+            if [ $retval -eq 127 ]; then
+                git_subtree --help
+                retval=1
+            else
+                echo ">> "
+                echo ">> Subtree add failed for:"
+                echo ">>     prefix=\"$prefix\""
+                echo ">>     srcRepos=\"$srcRepos\""
+                echo ">>     destRepos=\"$destRepos\""
+                echo ">> "
+                echo ">> Cowardly refusing to continue."
+            fi
+
+            return $retval
         fi
-
-        bf=${f##*/}
-        [[ -e $bf ]] || ln -v $f .
     done
-    popd >/dev/null 2>&1
 
-    # pop out of '.subtrees'
-    popd >/dev/null 2>&1
-
-    git add --all .subtrees && \
-        git commit -m "Saving subtree  for \"$remoteBranch\"" .subtrees
-    # FIXME:  Add Error Handling
-}
-
-
-utl_git_subtree_restoreState() {
-    # FIXME:  This is just a bare-prototype.
-
-    perl -p -e 's/^/git config --add/;' .subtrees/config \
-        >restore-subtrees-config.sh
-
-    . restore-subtrees-config.sh
-
-
+    [ "$destRepos" != "." ] && popd >/dev/null 2>&1
+    return 0
 }
 
 
@@ -911,44 +1424,33 @@ git_subtree_viaMerge() {
     local cmd="$1"
     shift
 
-    local v showUsage_retval showFullUsage
+    local showUsage_retval cmd_retval
     case "$cmd" in
         sync)
-            utl_git_subtree_viaMerge_sync "$@"
-            local retval=$?
-            if [ $retval -eq 127 ]; then
-                showUsage_retval=1
-            else
-                return $retval
-            fi
-            ;;
-
-        readonly|read[-_]only)
-            utl_git_subtree_modifyRemotePullURLs ro "$@"
-            local retval=$?
-            if [ $retval -eq 127 ]; then
-                showUsage_retval=1
-            else
-                return $retval
-            fi
-            ;;
-
-        reset[-_]push)
-            utl_git_subtree_modifyRemotePullURLs reset "$@"
-            local retval=$?
-            if [ $retval -eq 127 ]; then
-                showUsage_retval=1
-            else
-                return $retval
-            fi
+            git_subtree_sync "$@"
+            cmd_retval=$?
             ;;
 
         add)
-            if [ -z "$*" ]; then
-                echo "Nothing to add!"
-                echo ""
-                showUsage_retval=1
-            fi
+            git_subtree_add "$@"
+            cmd_retval=$?
+            ;;
+
+        readonly|read[-_]only)
+            UTL_FN_USG_NAME="git_subtree readonly" \
+                git_subtree_modifyRemotes readonly "$@"
+            cmd_retval=$?
+            ;;
+
+        reset[-_]push)
+            UTL_FN_USG_NAME="git_subtree readonly" \
+                git_subtree_modifyRemotes reset-push "$@"
+            cmd_retval=$?
+            ;;
+
+        restore[-_][sState])
+            git_subtree_restoreState "$@"
+            cmd_retval=$?
             ;;
 
         -h|--help|help)
@@ -963,298 +1465,27 @@ git_subtree_viaMerge() {
             ;;
     esac
 
-    if [ -n "$showUsage_retval" ]; then
-        echo "usage: git_subtree_viaMerge {-h|--help}"
-        echo ""
+    [ -z "$showUsage_retval" ] && return $cmd_retval
+    # else:
 
-        echo -n "       git_subtree_viaMerge add  {-s|--srcRepos} "
-        echo "<gitReposDir> \\"
-        echo -n "            {-d|--destRepos} <gitReposDir> "
-        echo "[--subtreeDir <name>] \\"
-        echo "            [{--srcRepos|--subtreeDir} ...]"
-        echo ""
+    echo "usage: git_subtree {-h|--help}"
+    echo "       git_subtree add {--help|<otherOpts>}"
+    echo "       git_subtree sync {--help|<otherOpts>}"
+    echo "       git_subtree readonly {--help|<otherOpts>}"
+    echo "       git_subtree reset-push {--help|<otherOpts>}"
+    echo "       git_subtree restore-state {--help|<otherOpts>}"
 
-        echo -n "       git_subtree_viaMerge sync [-b <targBranch>] "
-        echo "<sourceName> \\"
-        echo "            [<sourceName> ...]"
-        echo ""
-
-        echo -n "       git_subtree_viaMerge readonly <subtree_remoteName>"
-        echo " [<subtree_remoteName> ...]"
-        echo -n "       git_subtree reset-push <subtree_remoteName>"
-        echo " [<subtree_remoteName> ...]"
-        echo ""
-
-        if [ -z "$showFullUsage" ]; then
+    # FIXME:  Everything below can go
+    if [ -z "$showFullUsage" ]; then
             # Stop now
 
-            echo "Use the \"--help\" option to see the full usage message."
-            return $showUsage_retval
-        fi
+        echo "Use the \"--help\" option to see the full usage message."
+        return $showUsage_retval
+    fi
         # else:
         # Show the full usage message.
 
-        echo "There are 4 supported subcommands to 'git_subtree'."
-        echo ""
-        echo ""
-
-        echo "The 'sync' subcommand must be run from *inside* of a"
-        echo "'git' repos directory that you previously used"
-        echo "'git_subtree add' on."
-        echo ""
-        echo "  \"-b <targBranch>\""
-        echo "        By default, each source is pulled onto the "
-        echo "        \"master\" branch. This option lets you specify a"
-        echo "        different branch to merge onto."
-        echo "        You MUST pass this option *first*, or it "
-        echo "        won't work correctly."
-        echo ""
-        echo "  \"<sourceName>\""
-        echo "        One or more git-\"tree-ish\"es to perform"
-        echo "        the subtree-pull on."
-        echo ""
-        echo ""
-
-        echo "The 'add' subcommand connects one or more remote 'git'-repos to"
-        echo "subtree(s) in a target 'git'-repo.  [See"
-        echo "http://help.github.com/articles/working-with-subtree-merge"
-        echo "for the detailed steps.]"
-        echo "The options can be passed to this subcommand in any order, but"
-        echo "there are some restrictions.  [E.g.:  until you pass the"
-        echo "\"--destRepos\", nothing will happen.]"
-        echo ""
-
-        echo "  \"--destRepos <dest_gitReposDir>\""
-        echo "        This option specifies the target 'git'-repo."
-        echo "        \"<dest_gitReposDir>\" must be a directory containing"
-        echo "        a 'git' repository."
-        echo ""
-        echo "        You must specify this option *once*.  Repeat instances"
-        echo "        will be ignored."
-        echo "        *Until* you specify this option, nothing will happen."
-        echo "        If you don't pass this parameter first, then as soon"
-        echo "        as this function sees the \"--destRepos\", it uses"
-        echo "        either the next \"--srcRepos\" and/or \"--subtreeDir\""
-        echo "        seen [whichever wasn't passed earlier], or the"
-        echo "        *most-receont* one(s)."
-        echo ""
-
-        echo "  \"--srcRepos <src_gitReposDir>\""
-        echo "        This option specifies each remote 'git'-repo to add"
-        echo "        to the \"--destRepos\" as a subtree."
-        echo ""
-        echo "        You can specify this option more than once ... but all"
-        echo "        but the first must follow the \"--destRepos\" option"
-        echo "        on the commandline."
-        echo ""
-
-        echo "  \"--subtreeDir <subdirName>\""
-        echo "        This is an optional parameter.  It lets you specify the"
-        echo "        \"<dest_gitReposDir>\" subdirectory that a source"
-        echo "        git-repo is pulled into."
-        echo "        \"<subdirName>\" cannot be ''."
-        echo ""
-        echo "        You can specify one of these for each \"--srcRepos\" and"
-        echo "        can come either before or after it on the commandline"
-        echo "        [though you probably want to specify the \"--srcRepos\""
-        echo "        then its \"--subtreeDir\", as this reads better]."
-        echo "        Each \"--subtreeDir\" on the commandline is used only"
-        echo "        *once*.  After each subtree-add, the previous"
-        echo "        \"-subtreeDir\" is cleared back to the default."
-        echo ""
-        echo "        The default destination subdirectory is the "
-        echo "        base-pathname of the \"<src_gitReposDir>\"."
-        echo ""
-
-        echo -n "The first group of [\"--destRepos\", \"--srcRepos\", "
-        echo "\"--subtreeDir\"]"
-        echo "options fires off the subtree-add.  The order doesn't matter,"
-        echo "and the \"--subtreeDir\" can be omitted.  Each subsequent "
-        echo "[\"--srcRepos\", \"--subtreeDir\"] pair or lone \"--srcRepos\""
-        echo "forms a subtree-add.  Again, you can swap the order of the"
-        echo "[\"--srcRepos\", \"--subtreeDir\"] pair.  The clustering is"
-        echo "what matters."
-        echo ""
-        echo ""
-
-        echo "The subcommands 'readonly' and 'reset-push' each modify the"
-        echo "target-URL used by a 'git push <subtree_remoteName>'."
-        echo ""
-        echo "If you want to only pull changes *into* a subtree *from* its"
-        echo "source, use the 'readonly' subcommand.  It will erase all of"
-        echo "the pull-URLs of '<subtree_remoteName>', setting the lone"
-        echo "pull-URL to a bogus local path.  [Note:  You cannot completely"
-        echo "remove all of the push-URLs from a remote.  There must be at"
-        echo "least one.]"
-        echo ""
-        echo "To re-enable 'git push' for a '<subtree_remoteName>', use the"
-        echo "'reset-push' subcommand.  It restores the default push-URL"
-        echo "[which is the same as the pull-URL]."
-        echo ""
-        echo "Remember:  'readonly' erases ALL of your push-URLs.  If you had"
-        echo "any custom push-URLs, you'll lose them.  'reset-push' can't"
-        echo "restore them."
-        echo ""
-        echo "You can specify more than one '<subtree_remoteName>' to these"
-        echo "two subcommands to perform them in-bulk."
-
-        echo ""
-        echo ""
-
-        return $showUsage_retval
-    fi
-
-    #
-    # We only reach here if we're doing an 'add'
-    #
-
-    local srcRepos destRepos subtreeDir
-    local srcDestReady ready2add
-    while [ -n "$1" ]; do
-        if [ -n "$srcRepos" -a -n "$destRepos" ]; then
-            srcDestReady=y
-        else
-            srcDestReady=''
-        fi
-
-        case "$1" in
-            -d|--dest|--destRepos|--dest[-_]repos)
-                shift
-                if [ -z "$destRepos" ]; then
-                    destRepos="$1"
-                else
-                    echo -n ">> Cannot override \"--destRepos\".  Ignoring "
-                    echo "(attempted) new value:"
-                    echo ">> \"$1\""
-                fi
-                shift
-                ;;
-
-            -s|--src|--srcRepos|--src[-_]repos)
-                if [ -n "$srcDestReady" ]; then
-                    # There's a new value of '--srcRepos' at the ready.
-                    # Ignore it for now and trigger a
-                    # 'utl_git_subtree_viaMerge_add' with the args we have
-                    # now.
-                    ready2add=y
-                else
-                    shift
-                    if [ -n "$srcRepos" ]; then
-                        echo -n ">> No \"--destRepos\" specified yet.  "
-                        echo "Tossing old \"--srcRepos\":"
-                        echo ">> \"$srcRepos\""
-                    fi
-
-                    srcRepos="$1"
-                    shift
-                fi
-                ;;
-
-            --subtreeDir|--subtree[-_]dir)
-                if [ -z "$subtreeDir" -o -z "$srcDestReady" ]; then
-                    shift
-                    if [ -z "$1" ]; then
-                        echo "Option \"--subtreeDir\" requires a value."
-                        echo ""
-                        git_subtree --help
-                        return 1
-                    else
-                        subtreeDir="$1"
-                    fi
-                    shift
-                fi
-
-                if [ -n "$srcDestReady" ]; then
-                    # If we have a source and destination repository, an
-                    # explicit '--subtreeDir' triggers a
-                    # 'utl_git_subtree_viaMerge_add' using that '--subtreeDir'
-                    # arg.
-                    ready2add=y
-                fi
-                ;;
-
-            -*)
-                echo "Unknown option:  \"$1\""
-                echo ""
-                git_subtree --help
-                return 1
-                ;;
-
-            *)
-                echo "Mystery Bare Argument:  \"$1\""
-                echo "[Missing something?]"
-                echo ""
-                git_subtree --help
-                return 1
-                ;;
-        esac
-
-        # Now that we've processed the next argument, we need to check if
-        # we've consumed all of the args.  That, too, must trigger a
-        # 'utl_git_subtree_viaMerge_add' using whatever parameters we have.
-        if [ -z "$1" -a -z "$ready2add" ]; then
-            local missing dangling
-
-            if [ -n "$srcRepos" -a -n "$destRepos" ]; then
-                ready2add=y
-            else
-                if [ -z "$srcRepos" ]; then
-                    missing="$missing \"--srcRepos\""
-                else
-                    dangling="$dangling\n>>\t--srcRepos=\"$srcRepos\""
-                fi
-                if [ -z "$destRepos" ]; then
-                    missing="$missing \"--destRepos\""
-                else
-                    dangling="$dangling\n>>\t--destRepos=\"$destRepos\""
-                fi
-                if [ -n "$subtreeDir" ]; then
-                    dangling="$dangling\n>>\t--subtreeDir=\"$subtreeDir\""
-                fi
-
-                echo -n ">> Error!  Ran out of args before we could do "
-                echo "the [next]"
-                echo -n ">> add.  Missing: $missing"
-                echo -e ">> Leftover parameters:$dangling"
-
-                git_subtree --help
-                retval=3
-            fi
-        fi
-
-        # Now perform the 'utl_git_subtree_viaMerge_add':
-        if [ -n "$ready2add" ]; then
-            utl_git_subtree_viaMerge_add \
-                "$srcRepos" "$destRepos" "$subtreeDir"
-            local retval=$?
-
-            if [ $retval -ne 0 ]; then
-                if [ $retval -eq 127 ]; then
-                    git_subtree --help
-                    retval=1
-                else
-                    echo ">> "
-                    echo ">> Subtree add failed for:"
-                    echo ">>     srcRepos=\"$srcRepos\""
-                    echo ">>     destRepos=\"$destRepos\""
-                    [ -n "$subtreeDir" ] && \
-                        echo ">>     subtreeDir=\"$subtreeDir\""
-                    echo ">> Cowardly refusing to continue."
-                fi
-
-                return $retval
-            fi
-
-            # Clear all of the control flags and transient values.
-            ready2add=''
-            srcRepos=''
-            subtreeDir=''
-        fi
-
-        # N.B.:  No 'shift' done here.  That has to take place inside of the
-        # 'case'-statements, since we'll sometimes skip option processing
-        # altogether.
-    done
+    return $showUsage_retval
 }
 
 
@@ -1282,13 +1513,6 @@ git_helpers_help() {
                     'git am' the patch into a branch in the target
                     git-repos.
 
-    git_subtree - This is probably what you want to use instead of
-                  'git_patchpull'.  It connects multiple external git
-                  repositories to subtrees in a target git-repos.
-
-                  You can use it to sync an existing subtree as well as add a
-                  new one.  See the help-message for details.
-
     git_tester - Create a testing-repos in \$GIT_TESTER_DIR and "pushd" into
                  it.
                  [Skips any of the repo-creation steps it doesn't need.]
@@ -1300,11 +1524,39 @@ git_helpers_help() {
                      with an error message otherwise.  This helper-function
                      does the opposite.
 
+    git_subtree_modifyRemotes - Lets you make a remote associated with a
+                                subtree read-only, or "pushable".
+                                You usually won't call this function, but one
+                                of its aliases instead.
+
+    git_subtree_restoreState - Restore subtree info from a new clone of a
+                               GitHub repo.
+                               Some of the subtree info, such as the remotes
+                               created by 'git_subtree_add' aren't pushed to
+                               GitHub.  So we need to save metadata about
+                               them in committable files for later
+                               restoration.
+
+    git_subtree_add - Adds a new subtree to a repository, saving subtree
+                      metadata for future use.
+                      Also creates 'git remote's for each subtree, using a
+                      remote name constructed from the subtree prefix.
+                      Can add multiple subtrees at once.
+
+    git_subtree_sync - Does a 'git subtree pull' with some standard args,
+                       using either a prefix or a remote-name.
+                       Can update multiple subtrees at once.
+
+    git_subtree - Convenience-wrapper around the primary 'git_subtree_*'
+                  functions.
+
 
     Aliases:
     --------
 
-    None so far.
+    git_subtree_readonly - Calls 'git_subtree_modifyRemotes readonly'.
+
+    git_subtree_reset_push - Calls 'git_subtree_modifyRemotes reset-push'.
 
 
     Envvars:
