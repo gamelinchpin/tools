@@ -1,0 +1,2 @@
+# Subtree "sh.scripts" added with:
+    git subtree add --prefix=sh.scripts /home/candide/src/github/svn.tools.staging/sh.scripts master

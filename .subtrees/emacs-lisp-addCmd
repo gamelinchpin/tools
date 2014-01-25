@@ -1,0 +1,2 @@
+# Subtree "emacs-lisp" added with:
+    git subtree add --prefix=emacs-lisp /home/candide/src/github/svn.tools.staging/emacs-lisp master

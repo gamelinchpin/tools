@@ -1,0 +1,2 @@
+# Subtree "perl" added with:
+    git subtree add --prefix=perl /home/candide/src/github/svn.tools.staging/perl master
