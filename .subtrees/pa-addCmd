@@ -1,0 +1,2 @@
+# Subtree "pa" added with:
+    git subtree add --prefix=pa "subtree._pa" master
