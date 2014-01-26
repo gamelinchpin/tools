@@ -993,6 +993,9 @@ git_subtree_modifyRemotes() {
             fi
         fi
     done
+
+    # Pass a dummy-prefix; we're just saving the remotes.
+    utl_gitSubtree_saveState "<all subtrees>"
 }
 g_s_mR='UTL_FN_USG_NAME=git_subtree_readonly git_subtree_modifyRemotes'
 alias git_subtree_readonly="$g_s_mR readonly"
