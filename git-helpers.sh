@@ -1212,7 +1212,7 @@ git_subtree_sync() {
             || hasErrs=y
         if [ -n "$hasErrs" ]; then
             echo ">>"
-            echo "Commit failed.  Any remaining syncs won't be performed."
+            echo ">> Commit failed.  Any remaining syncs won't be performed."
             return 1
         fi
         # else
