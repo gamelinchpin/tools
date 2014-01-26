@@ -160,6 +160,16 @@ utl_notaGitRepo() {
 }
 
 
+utl_gitRepo_hasChanges() {
+    local statInf="$(git status --porcelain "$@" | \
+                     grep -v '^\([?!]\|.[?!]\)')"
+
+    [ -n "$statInf" ] && return 0
+    # else
+    return 1
+}
+
+
 utl_git_noisy_checkout() {
     local checkoutOpts
     local nuBranch
@@ -1194,28 +1204,35 @@ git_subtree_sync() {
         # Perform the sync steps.
 
         echo ">> Syncing subtree \"$prefix\" from \"$remote/$targBranch\"."
-        git subtree pull -P "$prefix" "$remote" "$targBranch" || hasErrs=y
+        git subtree pull -m "Updating subtree \"$remote\" from upstream." \
+            -P "$prefix" "$remote" "$targBranch" || hasErrs=y
         if [ -n "$hasErrs" ]; then
             echo ">>"
             echo ">> Pull failed.  Cannot continue."
             return 1
         fi
 
-        git add --all .subtrees || hasErrs=y
-        if [ -n "$hasErrs" ]; then
-            echo ">>"
-            echo "$cowardErrmsg"
-            return 1
-        fi
+        if utl_gitRepo_hasChanges .subtrees; then
+            # Only try to commit '.subtrees' if something has changed.
+            # 'git commit' will exit with nonzero status otherwise.
 
-        git commit -m "Updating subtree info for \"$remote\"" .subtrees \
-            || hasErrs=y
-        if [ -n "$hasErrs" ]; then
-            echo ">>"
-            echo ">> Commit failed.  Any remaining syncs won't be performed."
-            return 1
-        fi
+            git add --all .subtrees || hasErrs=y
+            if [ -n "$hasErrs" ]; then
+                echo ">>"
+                echo "$cowardErrmsg"
+                return 1
+            fi
+
+            git commit -m "Updating subtree info for \"$remote\"" \
+                .subtrees || hasErrs=y
+            if [ -n "$hasErrs" ]; then
+                echo ">>"
+                echo -n ">> Commit failed.  Any remaining syncs won't be "
+                echo "performed."
+                return 1
+            fi
         # else
+        fi
 
         echo ">>"
         echo ">> Subtree \"$prefix\" successfully synced."
@@ -1282,7 +1299,10 @@ utl_gitSubtree_single_add() {
         echo ">>"
     fi
 
-    git subtree add --prefix="$prefix" "$remoteId" master || hasErrs=y
+    local commitMsg="Adding new subtree \"$prefix\""
+    commitMsg="${commitMsg} from the remote repository \"$remoteId\"."
+    git subtree add -m "$commitMsg" -P "$prefix" "$remoteId" master \
+        || hasErrs=y
     if [ -n "$hasErrs" ]; then
         echo ">>"
         echo ">> Failed to add the new subtree \"$prefix\""
