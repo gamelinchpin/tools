@@ -55,6 +55,20 @@ LS=ls
 #
 
 
+utl_get_gitBranch_r() {
+    local regex="$1"
+    shift
+
+    if [ -z "$regex" ]; then
+        git branch -r | awk '{ print $1 }'
+        return
+    fi
+    # else
+
+    git branch -r | awk '{ print $1 }' | grep "${regex}"
+}
+
+
 utl_isaRemoteBranch() {
     local verbose
     if [ "$1" = "-v" ]; then
@@ -68,9 +82,8 @@ utl_isaRemoteBranch() {
 
     [ -z "$branchName" ] && branchName="master"
 
-    local actualRemoteBranch="$(git branch -r | \
-                                grep $remoteId | \
-                                sed -e 's/^  *//' -e 's/  *$//')"
+
+    local actualRemoteBranch="$(utl_get_gitBranch_r "^${remoteId}/")"
 
     local noRemoteErr=">> No such remote:"
 
@@ -92,10 +105,10 @@ utl_isaRemoteBranch() {
 
     if [ -n "$verbose" ]; then
         if [ -n "$actualRemoteBranch" ]; then
-            echo "$noRemoteErr  \"$remoteId\""
-        else
             echo ">> Remote \"$remoteId\" isn't associated with any"
             echo ">> branch named \"$branchName\"."
+        else
+            echo "$noRemoteErr  \"$remoteId\""
         fi
     fi
     return 1
@@ -610,17 +623,28 @@ git_patchpull() {
 #
 
 
+utl_gitSubtree_verifyPrefix() {
+    local prefix="$1"
+    shift
+
+    if [[ ! -d $prefix ]]; then
+        echo -n ">> Prefix doesn't match any existing subdirectory:  "
+        echo "\"$prefix\""
+        return 2
+    fi
+
+    return 0
+}
+
+
 utl_gitSubtree_prefix2remote() {
     local prefix="$1"
     shift
 
     local remote="subtree._${prefix//\/._}"
     if [ "$1" = "--verify" ]; then
-        if [[ ! -d "$prefix" ]]; then
-            echo -n ">> Prefix doesn't match any existing " 1>&2
-            echo "subdirectory:  \"$prefix\"" 1>&2
-            return 2
-        fi
+        utl_gitSubtree_verifyPrefix "$prefix" 1>&2 \
+            || return 2
         # else
 
         if utl_isaRemoteBranch "$remote" --; then
@@ -648,17 +672,16 @@ utl_gitSubtree_remote2prefix() {
         if utl_isaRemoteBranch "$remote" --; then
             :
         else
-            echo -n ">> No such remote:  \"$remote\"" 1>&2
+            echo ">> No such remote:  \"$remote\"" 1>&2
             echo ">> Cannot convert to a valid prefix." 1>&2
             return 3
         fi
         # else
 
-        if [[ ! -d "$prefix" ]]; then
-            echo ">> Converted remote, \"$prefix\"," 1>&2
-            echo ">> doesn't match any existing subdirectory." 1>&2
-            echo ">> Remote \"$remote\" doesn't convert " 1>&2
-            echo ">> to a valid prefix." 1>&2
+        utl_gitSubtree_verifyPrefix "$prefix"
+        if [ $? -ne 0 ]; then
+            echo ">> Remote \"$remote\" doesn't convert to a valid prefix." \
+                1>&2
             return 2
         fi
         # else
@@ -737,8 +760,10 @@ git_subtree_restoreState() {
             showUsage_retval=0
             ;;
         *)
-            echo "Unknown option:  \"$1\""
-            showUsage_retval=1
+            if [ -n "$1" ]; then
+                echo "Unknown option:  \"$1\""
+                showUsage_retval=1
+            fi
             ;;
     esac
     shift
@@ -772,14 +797,18 @@ git_subtree_restoreState() {
     [ -n "$noPull" ] && return 0
 
     git_subtree_sync --all
-    local remote prefix
-    for remote in $(git branch -r | grep 'subtree\._'); do
-        prefix="$(utl_gitSubtree_remote2prefix $remote --verify)" 2>&1
-        [ -z "$prefix" ] && continue
+}
 
-        if [[ -d $prefix ]]; then
-            git subtree pull -P "$prefix" "$remote" HEAD
-        fi
+
+git_subtree_list_remotes() {
+    if [ "$1" != "--" ]; then
+        echo "# Run 'git branch -r' for the full list of remote branches."
+        echo "#"
+    fi
+
+    local r
+    for r in $(utl_get_gitBranch_r '^subtree\._'); do
+        echo ${r%/*}
     done
 }
 
@@ -797,6 +826,8 @@ git_subtree_modifyRemotes() {
         ro|readonly|read[-_]only)
             errmsgPre=">> Error while resetting the pull-URL of \""
             errmsgPost="\"."
+            # Force this:
+            cmd=ro
             ;;
 
         reset|reset[-_]push)
@@ -814,7 +845,6 @@ git_subtree_modifyRemotes() {
             else
                 echo "Unknown/Unsupported Command:  \"$cmd\""
             fi
-            echo ""
             showUsage_retval=11
             ;;
     esac
@@ -831,7 +861,6 @@ git_subtree_modifyRemotes() {
     esac
     if [ -z "$1" ]; then
         echo "At least one \"<prefixOrRemote>\" must be specified."
-        echo ""
         showUsage_retval=1
     fi
 
@@ -840,6 +869,8 @@ git_subtree_modifyRemotes() {
     #
 
     if [ -n "$showUsage_retval" ]; then
+        [ $showUsage_retval -ne 0 ] && echo ""
+
         local myName="${UTL_FN_USG_NAME:-git_subtree_modifyRemotes <cmd>}"
         echo "usage: ${myName} [-r] <prefixOrRemote> \\"
         echo "              [<prefixOrRemote>...]"
@@ -906,15 +937,25 @@ git_subtree_modifyRemotes() {
     local prefix remote hasErr
     for prefix in "$@"; do
         if [ -n "$isPrefix" ]; then
+            remote="$(utl_gitSubtree_prefix2remote $prefix --verify)" 2>&1
+
+        else
             remote="$prefix"
 
-            if utl_isaRemoteBranch $remote; then
-                :
+            if utl_isaRemoteBranch "$remote" --; then
+                # Validate the prefix:
+                prefix="$(utl_gitSubtree_remote2prefix $prefix)" \
+                    2>&1
+
+                if [[ ! -d $prefix ]]; then
+                    echo -n ">> The remote \"$remote\" doesn't match any "
+                    echo "subtree in this git-repo."
+                    remote=''
+                fi
             else
                 echo ">> This git-repo contains no remote called \"$remote\""
+                remote=''
             fi
-        else
-            remote="$(utl_gitSubtree_prefix2remote $prefix --verify)" 2>&1
         fi
 
         if [ -z "$remote" ]; then
@@ -951,12 +992,6 @@ unset g_s_mR
 
 
 git_subtree_sync() {
-    if utl_notaGitRepo "$PWD"; then
-        echo ">> This command must be run from inside of a git-repo."
-        echo ">> "
-        return 1
-    fi
-
     #
     # Arg processing
     #
@@ -987,7 +1022,7 @@ git_subtree_sync() {
 
             --all)
                 prbList=''
-                for remote in $(git branch -r | grep 'subtree\._'); do
+                for remote in $(git_subtree_list_remotes --); do
                     prefix="$(utl_gitSubtree_remote2prefix $remote --verify)" \
                         2>&1
 
@@ -1035,14 +1070,13 @@ git_subtree_sync() {
 
             -*)
                 echo "Unknown option:  \"$1\""
-                echo ""
                 showUsage_retval=1
                 ;;
         esac
         shift
 
         if [ -n "$remote" -a -n "$prefix" ]; then
-            prbList="${prbList}${prbList:+|}${prefix}|${remote}|$targBranch}"
+            prbList="${prbList}${prbList:+|}${prefix}|${remote}|${targBranch}"
 
             remote=''
             prefix=''
@@ -1054,6 +1088,8 @@ git_subtree_sync() {
     #
 
     if [ -n "$showUsage_retval" ]; then
+        [ $showUsage_retval -ne 0 ] && echo ""
+
         echo "usage: git_subtree_sync --all"
         echo -n "       git_subtree_sync [--branch <targBranch>] "
         echo "{subtreeSpec} \\"
@@ -1070,6 +1106,13 @@ git_subtree_sync() {
         echo "    --remote <remote>"
         echo "    --prefix <prefix>"
         echo "    <prefix>"
+
+        if [ $showUsage_retval -ne 0 ]; then
+            echo ""
+            echo "Rerun with \"--help\" for the full documentation."
+            return 0
+        fi
+
         echo "Note that the \"--prefix\" [or \"-P\"] flag is optional."
         echo "You can specify either the subtree prefix, or the remote ID"
         echo "that the subtree is attached to.  'git_subtree_sync' will"
@@ -1083,12 +1126,24 @@ git_subtree_sync() {
         echo "specify remains active FOR EVERY {subtreeSpec} THEREAFTER!"
         echo ""
 
+        echo "The special option \"--all\" syncs all of the subtrees of the"
+        echo "current git repo from the 'HEAD' branch of their sources.  The"
+        echo "subtrees are gleaned from a 'git branch -r'."
+
         return $showUsage_retval
     fi
 
     #
     # The Code-Proper
     #
+
+    # Check that we're in a git-repo ... but only after we've handled the
+    # '--help' option.
+    if utl_notaGitRepo "$PWD"; then
+        echo ">> This command must be run from inside of a git-repo."
+        echo ">> "
+        return 1
+    fi
 
     # Load our triplets into the arglist.
     local oIFS="$IFS"
@@ -1117,16 +1172,17 @@ git_subtree_sync() {
 
         # Validate.  Abort if there's any problems.
 
-        if [[ ! -d $prefix ]]; then
+        utl_gitSubtree_verifyPrefix "$prefix"
+        if [ $? -ne 0 ]; then
             echo ">>"
             echo "$cowardErrmsg"
             return 1
         fi
 
-        if [ "$targBranch" != "HEAD" ]; then
-            utl_isaRemoteBranch -v $remote $targBranch || hasErrs=y
-        else
+        if [ "$targBranch" = "HEAD" ]; then
             utl_isaRemoteBranch -v $remote -- || hasErrs=y
+        else
+            utl_isaRemoteBranch -v $remote $targBranch || hasErrs=y
         fi
 
         if [ -n "$hasErrs" ]; then
@@ -1138,7 +1194,7 @@ git_subtree_sync() {
         # Perform the sync steps.
 
         echo ">> Syncing subtree \"$prefix\" from \"$remote/$targBranch\"."
-        git subtree pull -P "$prefix" "$remote" HEAD || hasErrs=y
+        git subtree pull -P "$prefix" "$remote" "$targBranch" || hasErrs=y
         if [ -n "$hasErrs" ]; then
             echo ">>"
             echo ">> Pull failed.  Cannot continue."
@@ -1236,7 +1292,6 @@ utl_gitSubtree_single_add() {
 
     utl_gitSubtree_saveState "$prefix" "\"$remoteId\" master" || hasErrs=y
 
-    popd >/dev/null 2>&1
     [ -n "$hasErrs" ] && return 1
     #else
 
@@ -1245,8 +1300,8 @@ utl_gitSubtree_single_add() {
 
 
 git_subtree_add() {
-    local showUsage_retval destRepos
-    local prefix srcRepos psRList
+    local showUsage_retval
+    local destRepos prefix srcRepos psRList
     while [ -n "$1" -a -z "$showUsage_retval" ]; do
         case "$1" in
             -d|--destRepos|--dest[-_]repos)
@@ -1257,29 +1312,44 @@ git_subtree_add() {
                     echo -n ">> Cannot override \"--destRepos\".  Ignoring "
                     echo "(attempted) new value:"
                     echo ">> \"$1\""
+                    echo ""
+                fi
+
+                # Check the new value.
+                if [ -z "$destRepos" ]; then
+                    echo "Option \"--destRepos\" requires a value."
+                    showUsage_retval=4
                 fi
                 ;;
 
             -s|--srcRepos|--src[-_]repos)
                 shift
                 if [ -n "$srcRepos" ]; then
-                    echo ""
                     echo "Error:  back-to-back  \"--srcRepos\" options."
-                    echo ""
                     showUsage_retval=3
                 fi
+
                 srcRepos="$1"
+                # Check the new value.
+                if [ -z "$srcRepos" ]; then
+                    echo "Option \"--srcRepos\" requires a value."
+                    showUsage_retval=4
+                fi
                 ;;
 
             -[pP]|--prefix)
                 shift
-                if [ -n "$srcRepos" ]; then
-                    echo ""
+                if [ -n "$prefix" ]; then
                     echo "Error:  back-to-back  \"--prefix\" options."
-                    echo ""
                     showUsage_retval=3
                 fi
+
                 prefix="$1"
+                # Check the new value.
+                if [ -z "$prefix" ]; then
+                    echo "Option \"--prefix\" requires a value."
+                    showUsage_retval=4
+                fi
                 ;;
 
             -h|--help)
@@ -1288,29 +1358,34 @@ git_subtree_add() {
 
             -*)
                 echo "Unknown option:  \"$1\""
-                echo ""
                 showUsage_retval=1
                 ;;
 
             *)
                 echo "Mystery Bare Argument:  \"$1\""
                 echo "[Missing something?]"
-                echo ""
                 showUsage_retval=1
                 ;;
         esac
         shift
 
-        if [ -n "$remote" -a -n "$srcRepos" ]; then
-            prbList="${prbList}${prbList:+|}${remote}|${srcRepos}}"
+        if [ -n "$prefix" -a -n "$srcRepos" ]; then
+            psRList="${psRList}${psRList:+|}${prefix}|${srcRepos}"
 
             remote=''
             srcRepos=''
         fi
     done
 
-    if utl_notaGitRepo "$destRepos" --destRepos; then
-        showUsage_retval=2
+    # Argument Validation:
+    # [Only check this if we're not printing the usage already.]
+    if [ -z "$showUsage_retval" ]; then
+        if [ -z "$destRepos" ]; then
+            echo "Missing \"--destRepos\" option!"
+            showUsage_retval=1
+        elif utl_notaGitRepo "$destRepos" --destRepos; then
+            showUsage_retval=2
+        fi
     fi
 
     #
@@ -1318,6 +1393,8 @@ git_subtree_add() {
     #
 
     if [ -n "$showUsage_retval" ]; then
+        [ $showUsage_retval -ne 0 ] && echo ""
+
         echo "usage: git_subtree_add <Options>"
 
         echo "Add one or more subtree(s) to a target 'git'-repo."
@@ -1373,12 +1450,12 @@ git_subtree_add() {
     # Load our triplets into the arglist.
     local oIFS="$IFS"
     IFS='|'
-    set -- $prbList
+    set -- $psRList
     IFS="$oIFS"
 
     if [ $# -lt 2 ]; then
-        echo ">> At least one (<prefix>, <srcRepo>) pair must be specified."
-        echo ">>"
+        echo "At least one (<prefix>, <srcRepo>) pair must be specified."
+        echo ""
 
         git_subtree_add --help
         return 1
@@ -1389,7 +1466,7 @@ git_subtree_add() {
     local cowardErrmsg=">> Cowardly refusing to continue."
     local retval
     while [ $# -ge 2 ]; do
-        remote="$1"
+        prefix="$1"
         shift
         srcRepos="$1"
         shift
@@ -1399,7 +1476,7 @@ git_subtree_add() {
 
         if [ $retval -ne 0 ]; then
             if [ $retval -eq 127 ]; then
-                git_subtree --help
+                git_subtree_add --help
                 retval=1
             else
                 echo ">> "
@@ -1420,7 +1497,7 @@ git_subtree_add() {
 }
 
 
-git_subtree_viaMerge() {
+git_subtree() {
     local cmd="$1"
     shift
 
@@ -1437,19 +1514,24 @@ git_subtree_viaMerge() {
             ;;
 
         readonly|read[-_]only)
-            UTL_FN_USG_NAME="git_subtree readonly" \
+            UTL_FN_USG_NAME="git_subtree_readonly" \
                 git_subtree_modifyRemotes readonly "$@"
             cmd_retval=$?
             ;;
 
         reset[-_]push)
-            UTL_FN_USG_NAME="git_subtree readonly" \
+            UTL_FN_USG_NAME="git_subtree_reset_push" \
                 git_subtree_modifyRemotes reset-push "$@"
             cmd_retval=$?
             ;;
 
-        restore[-_][sState])
+        restore[-_][sS]tate)
             git_subtree_restoreState "$@"
+            cmd_retval=$?
+            ;;
+
+        list|list[-_][rR]emotes)
+            git_subtree_list_remotes
             cmd_retval=$?
             ;;
 
@@ -1459,7 +1541,11 @@ git_subtree_viaMerge() {
             ;;
 
         *)
-            echo "Unknown command:  \"$cmd\""
+            if [ -z "$cmd" ]; then
+                echo "No command specified!"
+            else
+                echo "Unknown command:  \"$cmd\""
+            fi
             echo ""
             showUsage_retval=9
             ;;
@@ -1474,16 +1560,15 @@ git_subtree_viaMerge() {
     echo "       git_subtree readonly {--help|<otherOpts>}"
     echo "       git_subtree reset-push {--help|<otherOpts>}"
     echo "       git_subtree restore-state {--help|<otherOpts>}"
+    echo "       git_subtree {list|list-remotes}"
+    echo ""
 
-    # FIXME:  Everything below can go
-    if [ -z "$showFullUsage" ]; then
-            # Stop now
+    echo "This function is a simple wrapper around a group of related tools."
+    echo "Run the appropriate command with the \"--help\" option for the"
+    echo "usage statement of that command."
 
-        echo "Use the \"--help\" option to see the full usage message."
-        return $showUsage_retval
-    fi
-        # else:
-        # Show the full usage message.
+    echo "[The 'list-remotes' command has no usage message, as it is"
+    echo " self-explanatory.]"
 
     return $showUsage_retval
 }
