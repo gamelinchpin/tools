@@ -170,6 +170,26 @@ utl_gitRepo_hasChanges() {
 }
 
 
+utl_gitConfig_restorable() {
+    local namePattern="$1"
+    shift
+
+    case "$namePattern" in
+        --get|--get-all|--get-regexp)
+            :
+            ;;
+        *)
+            echo "ERROR" 1>&2
+            return 1
+            ;;
+    esac
+
+    git config "$namePattern" | \
+        perl -p -e 's/^([^\s]+)\s(.+)$/git config \x27$1\x27 \x27$2\x27/;'
+    return $?
+}
+
+
 utl_git_noisy_checkout() {
     local checkoutOpts
     local nuBranch
@@ -288,6 +308,22 @@ git_tester() {
         git add -- README.tmp
         git commit -m "Creating test repos" -q -- README.tmp
     fi
+}
+
+
+git_source_info() {
+    local repo="${1:-.}"
+
+    if [ "$repo" = "-h" -o "$repo" = "--help" ]; then
+        echo "usage:  git_source_info [<git-repo-path>]"
+        echo ""
+        echo "Prints out information about the specified <git-repo-path>, or"
+        echo "about the  current directory if called with no args."
+        return 0
+    fi
+
+    utl_gitConfig_restorable \
+        --get-regexp='^(ignore|include|remote|svn-remote)\.'
 }
 
 
@@ -727,9 +763,7 @@ utl_gitSubtree_saveState() {
 
     # Store configuration info about our subtrees.  Do it every time so that
     # we capture any changes.
-    git config --get-regexp 'subtree\._' | \
-        perl -p -e 's/^([^\s]+)\s(.+)$/git config \x27$1\x27 \x27$2\x27/;' \
-        >.subtrees/remotes
+    utl_gitConfig_restorable 'subtree\._' >.subtrees/remotes
     gitStat=$?
     if [ $gitStat -ne 0 ]; then
         echo ">>"
@@ -1531,6 +1565,19 @@ git_subtree() {
             cmd_retval=$?
             ;;
 
+        sync[-_][Gg]it[Hh]ub|syncGit[Hh]ub)
+            git_subtree_sync "$@"
+            cmd_retval=$?
+            if [ $cmd_retval -eq 0 ]; then
+                echo ">> Pushing changes to GitHub..."
+                echo ">>"
+                git push -v --progress --all origin
+                cmd_retval=$?
+                echo ">>"
+                [ $cmd_retval -eq 0 ] && echo ">> ...Done."
+            fi
+            ;;
+
         add)
             git_subtree_add "$@"
             cmd_retval=$?
@@ -1585,13 +1632,22 @@ git_subtree() {
     echo "       git_subtree restore-state {--help|<otherOpts>}"
     echo "       git_subtree {list|list-remotes}"
     echo ""
+    echo "       git_subtree sync-GitHub {--help|<otherOpts>}"
+    echo ""
 
     echo "This function is a simple wrapper around a group of related tools."
     echo "Run the appropriate command with the \"--help\" option for the"
     echo "usage statement of that command."
 
-    echo "[The 'list-remotes' command has no usage message, as it is"
-    echo " self-explanatory.]"
+    echo ""
+    echo "1) The 'list-remotes' command has no usage message, as it is"
+    echo "   self-explanatory."
+    echo ""
+    echo "2) The 'sync-GitHub' command first invokes the 'sync' command, then"
+    echo "   performs a 'git push' to GitHub.  It therefore passes all of its"
+    echo "   arguments & options to the 'sync' command."
+    echo "   [Note:  You can lowercase the 'G' or 'H' in this command's "
+    echo "    name.]"
 
     return $showUsage_retval
 }
@@ -1624,6 +1680,8 @@ git_helpers_help() {
     git_tester - Create a testing-repos in \$GIT_TESTER_DIR and "pushd" into
                  it.
                  [Skips any of the repo-creation steps it doesn't need.]
+
+    git_source_info - Print out the config-info for a git-repos.
 
     git_unique_tag - Silently do nothing if adding a non-unique tag name.
 
