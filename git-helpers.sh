@@ -205,7 +205,7 @@ utl_gitConfig_restorable() {
             ;;
     esac
 
-    git config "$namePattern" "$@" | \
+    git config "$namePatternOpt" "$@" | \
         perl -p -e 's/^([^\s]+)\s(.+)$/git config \x27$1\x27 \x27$2\x27/;'
     return $?
 }
@@ -810,7 +810,7 @@ utl_gitSubtree_saveState() {
 
         echo "# Subtree \"$prefix\" added with:" >${addCmdFile}
         echo -n "    git subtree add --prefix=$prefix" >>${addCmdFile}
-        echo "${addCmdFile:+--} $addCmdArgs" >>${addCmdFile}
+        echo "${addCmdFile:+ --} $addCmdArgs" >>${addCmdFile}
     fi
 
     git add --all .subtrees
