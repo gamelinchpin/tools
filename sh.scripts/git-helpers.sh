@@ -55,6 +55,26 @@ LS=ls
 #
 
 
+utl_toAbspath() {
+    case "$1" in
+        [^/~]*|../*|*/../*|./*|*/./*)
+            if [[ -d "$1" ]]; then
+                pushd "$1" >/dev/null 2>&1
+                echo "$PWD"
+                popd >/dev/null 2>&1
+                return 0
+            else
+                return 2
+            fi
+            ;;
+    esac
+    # else:
+
+    echo "$1"
+    return 0
+}
+
+
 utl_get_gitBranch_r() {
     local regex="$1"
     shift
@@ -171,20 +191,21 @@ utl_gitRepo_hasChanges() {
 
 
 utl_gitConfig_restorable() {
-    local namePattern="$1"
+    local namePatternOpt="$1"
     shift
 
-    case "$namePattern" in
+    case "$namePatternOpt" in
         --get|--get-all|--get-regexp)
             :
             ;;
         *)
-            echo "ERROR" 1>&2
+            echo "!!! INTERNAL ERROR:  'utl_gitConfig_restorable'" 1>&2
+            echo "!!! doesn't support the option: \"$namePattern\"." 1>&2
             return 1
             ;;
     esac
 
-    git config "$namePattern" | \
+    git config "$namePatternOpt" "$@" | \
         perl -p -e 's/^([^\s]+)\s(.+)$/git config \x27$1\x27 \x27$2\x27/;'
     return $?
 }
@@ -323,7 +344,7 @@ git_source_info() {
     fi
 
     utl_gitConfig_restorable \
-        --get-regexp='^(ignore|include|remote|svn-remote)\.'
+        --get-regexp '^(ignore|include|remote|svn-remote)\.'
 }
 
 
@@ -683,11 +704,19 @@ utl_gitSubtree_verifyPrefix() {
 }
 
 
+utl_gitSubtree_depath_prefix() {
+    local prefix="$1"
+    shift
+
+    echo "${prefix//\//._}"
+}
+
+
 utl_gitSubtree_prefix2remote() {
     local prefix="$1"
     shift
 
-    local remote="subtree._${prefix//\/._}"
+    local remote="subtree._$(utl_gitSubtree_depath_prefix $prefix)"
     if [ "$1" = "--verify" ]; then
         utl_gitSubtree_verifyPrefix "$prefix" 1>&2 \
             || return 2
@@ -713,7 +742,8 @@ utl_gitSubtree_remote2prefix() {
     shift
 
     local pseudoPrefix="${remote#subtree._}"
-    local prefix="${pseudoPrefix//._/\/}"
+    # No need to escape a '/' in the replace-string
+    local prefix="${pseudoPrefix//._//}"
     if [ "$1" = "--verify" ]; then
         if utl_isaRemoteBranch "$remote" --; then
             :
@@ -763,7 +793,7 @@ utl_gitSubtree_saveState() {
 
     # Store configuration info about our subtrees.  Do it every time so that
     # we capture any changes.
-    utl_gitConfig_restorable 'subtree\._' >.subtrees/remotes
+    utl_gitConfig_restorable --get-regexp 'subtree\._' >.subtrees/remotes
     gitStat=$?
     if [ $gitStat -ne 0 ]; then
         echo ">>"
@@ -772,10 +802,15 @@ utl_gitSubtree_saveState() {
     fi
 
     if [ -n "$addCmdArgs" ]; then
-        local addCmdFile=.subtrees/${prefix}-addCmd
+        # We need to remove any path-seps from the prefix to create the
+        # "add-command"-file:
+        local addCmdFile=".subtrees/"
+        addCmdFile="${addCmdFile}$(utl_gitSubtree_depath_prefix ${prefix})"
+        addCmdFile="${addCmdFile}-addCmd"
+
         echo "# Subtree \"$prefix\" added with:" >${addCmdFile}
-        echo "    git subtree add --prefix=$prefix $addCmdArgs" \
-            >>${addCmdFile}
+        echo -n "    git subtree add --prefix=$prefix" >>${addCmdFile}
+        echo "${addCmdFile:+ --} $addCmdArgs" >>${addCmdFile}
     fi
 
     git add --all .subtrees
@@ -1242,7 +1277,7 @@ git_subtree_sync() {
 
         echo ">> Syncing subtree \"$prefix\" from \"$remote/$targBranch\"."
         git subtree pull -m "Updating subtree \"$remote\" from upstream." \
-            -P "$prefix" "$remote" "$targBranch" || hasErrs=y
+            -P "$prefix" -- "$remote" "$targBranch" || hasErrs=y
         if [ -n "$hasErrs" ]; then
             echo ">>"
             echo ">> Pull failed.  Cannot continue."
@@ -1283,7 +1318,8 @@ git_subtree_sync() {
 utl_gitSubtree_single_add() {
     local prefix="${1%/}"
     shift
-    local srcRepos="${1%/}"
+    # Convert the $srcRepos to an absolute path.
+    local srcRepos="$(utl_toAbspath "${1%/}")"
     shift
 
     if utl_notaGitRepo "$srcRepos" --srcRepos; then
@@ -1308,21 +1344,13 @@ utl_gitSubtree_single_add() {
             ;;
     esac
 
-    # Convert the $srcRepos to an absolute path.
-    case "$srcRepos" in
-        [/~]*|../*|*/../*|./*|*/./*)
-            pushd $srcRepos >/dev/null 2>&1
-            srcRepos="$PWD"
-            popd >/dev/null 2>&1
-            ;;
-    esac
-
     # Add it:
 
     local remoteId="$(utl_gitSubtree_prefix2remote $prefix)" 2>&1
     local hasErrs
     local cowardErrmsg=">>\n>> Cowardly refusing to continue."
 
+    echo ">> ----"
     git remote add -f $remoteId $srcRepos || hasErrs=y
     echo ">>"
     if [ -n "$hasErrs" ]; then
@@ -1338,7 +1366,9 @@ utl_gitSubtree_single_add() {
 
     local commitMsg="Adding new subtree \"$prefix\""
     commitMsg="${commitMsg} from the remote repository \"$remoteId\"."
-    git subtree add -m "$commitMsg" -P "$prefix" "$remoteId" master \
+    echo ">> ----"
+    git status -s
+    git subtree add -m "$commitMsg" -P "$prefix" -- "$remoteId" master \
         || hasErrs=y
     if [ -n "$hasErrs" ]; then
         echo ">>"
@@ -1386,12 +1416,19 @@ git_subtree_add() {
                     showUsage_retval=3
                 fi
 
-                srcRepos="$1"
-                # Check the new value.
-                if [ -z "$srcRepos" ]; then
+                # Because 'utl_toAbspath' can return '' in the event of an
+                # invalid path-name, we need to check "$1" before converting
+                # it.
+                if [ -z "$1" ]; then
                     echo "Option \"--srcRepos\" requires a value."
                     showUsage_retval=4
+                elif utl_notaDirArg "$1" "--srcRepos"; then
+                    # 'utl_notaDirArg' prints its own error message.
+                    showUsage_retval=2
                 fi
+
+                # *Now* we store the value, converted to an abs-path.
+                srcRepos="$(utl_toAbspath "${1%/}")"
                 ;;
 
             -[pP]|--prefix)
@@ -1429,7 +1466,7 @@ git_subtree_add() {
         if [ -n "$prefix" -a -n "$srcRepos" ]; then
             psRList="${psRList}${psRList:+|}${prefix}|${srcRepos}"
 
-            remote=''
+            prefix=''
             srcRepos=''
         fi
     done
@@ -1486,7 +1523,7 @@ git_subtree_add() {
         echo "  \"-p <prefix>\""
         echo "  \"--prefix <prefix>\""
         echo "        This option specifies the \"prefix\" of the new"
-        echo "        subtree.  to the \"--destRepos\" as a subtree."
+        echo "        subtree."
         echo ""
         echo "        You must specify this together with a \"--srcRepos\","
         echo "        in pairs.  The order within a pair doesn't matter."
@@ -1550,6 +1587,16 @@ git_subtree_add() {
     done
 
     [ "$destRepos" != "." ] && popd >/dev/null 2>&1
+
+    if [ -n "$1" ]; then
+        echo "!!!"
+        echo "!!! INTERNAL ERROR:  Dangling arg(s):"
+        echo "!!!     $@"
+        echo "!!! Function 'git_subtree_add' requires repairs."
+        echo "!!!"
+        return 1
+    fi
+
     return 0
 }
 
@@ -1648,6 +1695,10 @@ git_subtree() {
     echo "   arguments & options to the 'sync' command."
     echo "   [Note:  You can lowercase the 'G' or 'H' in this command's "
     echo "    name.]"
+    echo "   :"
+    echo "   If you just want to just push the subtree to GitHub, using the"
+    echo "   same args as this command does, just run the following:"
+    echo "       git push -v --progress --all origin"
 
     return $showUsage_retval
 }
