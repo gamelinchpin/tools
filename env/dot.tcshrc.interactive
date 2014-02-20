@@ -231,6 +231,6 @@ setenv INTERACTIVE "ran"
 
 #####################
 # Local Variables:
-# sh-shell: tcsh
 # mode: shell-script
+# eval: (sh-set-shell "tcsh" nil nil)
 # End:

@@ -369,5 +369,5 @@ fi
 ##################
 # Local Variables:
 # mode: Shell-script
-# sh-shell: bash
+# eval: (sh-set-shell "bash" nil nil)
 # End:

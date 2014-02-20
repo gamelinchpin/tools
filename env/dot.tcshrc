@@ -26,7 +26,7 @@ else
                     setenv LD_LIBRARY_PATH "${LD_LIBRARY_PATH}:${d}/lib"
                 endif
                 end
-            endif 
+            endif
             set d="${HOME}/local/${OSTYPE}-${MACHTYPE}"
             if ($?myHOME) then
                 set d="${myHOME}/local/${OSTYPE}-${MACHTYPE}"
@@ -84,6 +84,6 @@ endif
 
 #####################
 # Local Variables:
-# sh-shell: tcsh
 # mode: shell-script
+# eval: (sh-set-shell "tcsh" nil nil)
 # End:
