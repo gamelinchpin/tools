@@ -1,0 +1,15 @@
+# -*- mode: sh; fill-column: 56 -*-
+
+# Commands for "full-versions" of 'bash':
+if [ -n "$BASH_VERSION" ]; then
+
+ PS1=${PS1#*@\\h}
+ PS1=${oPS1/ \\w/\\w}
+ PS1=${oPS1/ \\w/\\W}
+ export PS1
+
+else
+
+ export PS1='\W \$\ '
+
+fi

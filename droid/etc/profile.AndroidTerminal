@@ -1,20 +1,26 @@
+# -*- mode: sh; fill-column: 56 -*-
+
 # First Things First:  Fix the PATH
 PATH=/system/xbin:${PATH/:?system?xbin/}
+if [ -d /data/local/bin ]; then
+ PATH=/data/local/bin:$PATH
+fi
 export PATH
 
-# Make sure this was set someplace.
-if [ -z "$HOME" ]; then HOME=/sdcard; fi
 
-# Set the KBOX location, if not running under it.
+# Set the KBOX location if this envvar is missing.
 if [ -z "$KBOX" ]; then
+
  if [ -e /sdcard/ext/bin/kbox_shell ]; then
   KBOX=/sdcard/ext
- elif [ -e /data/sdext2/base.dir/bin/kbox_shell ]; then
-  KBOX=/data/sdext2/base.dir
- elif [ -e /sd-ext/bin/kbox_shell ]; then
-  KBOX=/sd-ext
  elif [ -d /data/local/kbox ]; then
   KBOX=/data/local/kbox
+ elif [ -e /sd-ext/bin/kbox_shell ]; then
+  KBOX=/sd-ext
+ elif [ -e /data/sdext2/bin/kbox_shell ]; then
+  KBOX=/data/sdext2
+ elif [ -e /data/sdext2/base.dir/bin/kbox_shell ]; then
+  KBOX=/data/sdext2/base.dir
  elif [ -d /data/data/jackpal.androidterm/kbox ]; then
   KBOX=/data/data/jackpal.androidterm/kbox
  fi
@@ -26,27 +32,47 @@ fi
 if [ -n $KBOX ]; then
  export KBOX
 
- HOME_KBOX=$HOME
  PATH=$KBOX/sbin:$KBOX/usr/sbin:$PATH
  PATH=$KBOX/sbin:$KBOX/usr/sbin:$PATH
  PATH=$KBOX/usr/bin:$PATH
 
+ [ -n "$HOME" ] && HOME_KBOX=$HOME
+
  if [ -z "$TERM" ]; then TERM=linux; fi
 
  TERMINFO=$KBOX/etc/terminfo
- export PS1 TERM TERMINFO HOME HOME_KBOX BASHRC PATH
+ export TERM TERMINFO HOME_KBOX
+fi
+unset oldHOME
+
+
+if [ -z "$USER" ]; then
+ USER=shell
+
+ if [ "$UID" = "0" ]; then
+  USER=root
+ fi
 fi
 
 
-#BASHRC=$KBOX/etc/bash.bashrc
-#sbrc() {
-# . $BASHRC
-#}
-PS1=\\W$\
+# Look for HOME in one of the standard places:
+for d in /sdcard /sd-ext /sdcard/ext /data/sdext2; do
+ if [ -d $d/home/$USER ]; then
+  HOME=/sdcard/home/$USER
+  break
+ fi
+done
+
+# If it's still not set, then set it to "/sdcard":
+[ -z "$HOME" ] && HOME=/sdcard
+alias use_sdcard_as_home='export HOME=/sdcard'
+export HOME
 
 
 # Common Interactive Commands, All Shells
 case $- in *i*)
+ stty erase ^H
+
  alias ls='ls -F'
  alias la='ls -a'
  alias lsa='ls -a'
@@ -57,14 +83,52 @@ case $- in *i*)
 
  alias fv='less'
  alias v='less'
+
  alias envv='set | less'
  alias cdlast='cd $OLDPWD'
  alias dfltop=/system/bin/top
  alias showmounts='mount | grep -v asec'
  alias dfm='df -m | grep -v asec'
 
+ etc_dir=.
  if [ -n "$KBOX" ]; then
-  . $KBOX/etc/profile.interactive
+  etc_dir=$KBOX/etc
+
+  alias cdkboxhome='cd $HOME_KBOX'
+  alias cd_kbox='cd $KBOX'
+
+  if [ -e $HOME_KBOX/.bashrc ]; then
+   . $HOME_KBOX/.bashrc
+  fi
  fi
+
+ if [ -r $etc_dir/profile.interactive ]; then
+  . $etc_dir/profile.interactive
+ fi
+
+ if [ "$SHELL" = "bash" ]; then
+  # 'bash'-Specific Interactive rc-Files
+  export BASHRC=$etc_dir/bashrc
+
+  if [ -r $BASHRC ]; then
+   . $BASHRC
+  fi
+
+  # Look for a personal 'profile'.
+  if [ -e $HOME/.bashrc ]; then
+   . $HOME/.bashrc
+  fi
+
+ else
+  # Customize the prompt:
+  PS1="\\W \$\ "
+
+  if [ -e $HOME/.profile ]; then
+   # For non-bash shells, look for a personal 'profile'.
+   . $HOME/.profile
+  fi
+ fi
+
+ export PS1
  ;;
 esac

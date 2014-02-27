@@ -1,12 +1,46 @@
-alias fv='less'
-alias v='less'
-alias envv='set | less'
-alias cdlast='cd $OLDPWD'
-alias cdkboxhome='cd $HOME_KBOX'
-alias cd_kbox='cd $KBOX'
-alias dfltop=/system/bin/top
-alias showmounts='mount | grep -v asec'
-alias dfm='df -m | grep -v asec'
+# -*- mode: sh; fill-column: 56 -*-
+
+
+# Set the "$SHELL" envvar
+if [ -z "$SHELL" ]; then
+ if [ -n "$BASH_VERSION" ]; then
+  SHELL=bash
+ else
+  # We have more work to check if this is 'bash' or if
+  # it's some other shell.
+  case "`let 2>&1`" in
+   bash:*) SHELL=bash ;;
+   ash:*) SHELL=ash ;;
+   dash:*) SHELL=dash ;;
+   ksh:*) SHELL=ksh ;;
+  esac
+ fi
+
+ export SHELL
+fi
+
+
+# Let's alias 'vim' appropriately.
+unalias vim
+vim_bin=`type vim`
+vim_bin="${vim_bin##* }"
+if [ -x $vim_bin ]; then
+ if [ -n "$KBOX" ]; then
+  vimrc=$KBOX/etc/vimrc
+ else
+  vimrc=$HOME/.vimrc
+ fi
+
+ if [ -r $vimrc ]; then
+  alias vim="$vim_bin -u $vimrc"
+ fi
+else
+ alias vim=vi
+fi
+unset vim_bim vimrc
+
+
+##### Functions:  'help' Command
 
 
 [ -z "$SHELL_FUNCTIONS" ] && SHELL_FUNCTIONS=" "
@@ -16,18 +50,18 @@ alias dfm='df -m | grep -v asec'
 add_help() {
   local nuShFn="$1"
   shift
-  
+
   local fnm l
   for fnm in $SHELL_FUNCTIONS; do
     [ "$fnm" = "$nuShFn" ] && return 1
   done
-  
+
   SHELL_FUNCTIONS="$SHELL_FUNCTIONS $nuShFn"
-  
+
   SH_FN_HELP="$SH_FN_HELP
 ${nuShFn}() $1"
   shift
-  
+
   for l in "$@"; do
     SH_FN_HELP="$SH_FN_HELP
 $l"
@@ -40,7 +74,7 @@ print_help() {
 
   echo "| Shell Functions:"
   echo "|"
-  
+
   IFS="
 "
   local l
@@ -56,10 +90,26 @@ print_help() {
   for l in $(alias); do
     echo -e "|    $l"
   done
-  
+
   IFS="$oIFS"
 }
 alias help='print_help | less'
+
+
+##### Functions:  Tools
+
+
+topn () {
+ top -n1 | head -n $((4 + $1))
+}
+add_help topn "<N>"
+
+
+dfltopn () {
+ test -n "$2" && so="-s $2"
+ /system/bin/top -n 1 -m $1 $so | tail -n +4
+}
+add_help dfltopn() "<N> [<cpu|vss|rss|thr>]"
 
 
 zv() {
@@ -104,6 +154,96 @@ add_help zv \
   "<*.gz|*.bz|*.bz2|*.lzo|*.lzma|*.xz> \\" \
   "     [<*.gz|...> ...]"
 
+
+tls() {
+  local tarfile="$1"
+  shift
+
+  local ct
+  if [ -n "$1" ]; then
+    ct=$tarfile
+    tarfile="$1"
+  else
+    case "${tarfile%%**.}" in
+      gz|tgz)
+        ct=-z
+        ;;
+      bz2|tbz)
+        ct=-j
+        ;;
+      lzma)
+        ct=-a
+        ;;
+    esac
+  fi
+
+  tar $ct -tvf "$tarfile" | less
+}
+add_help tls "[-z|-j|-a] <tarfile>"
+
+
+alias tzv='tls -z'
+alias tbv='tls -j'
+
+
+safe_rm() {
+  if [ $# -eq 0 ]; then
+    return 0
+  fi
+
+  local tmpDir=/mnt/sdcard/tmp
+
+  if [[ -d /mnt/sdcard/ext/tmp ]]; then
+    tmpDir=/mnt/sdcard/ext/tmp
+  fi
+
+  local purgeDir=$tmpDir/.purged
+  if [[ ! -d $purgeDir ]]; then
+    mkdir $purgeDir || return 1
+  fi
+
+  mv "$@" $purgeDir
+}
+add_help safe_rm "<files>"
+
+alias saferm='safe_rm'
+
+
+mkln_s() {
+  local orig="$1"
+  shift
+  local targlink="$1"
+  shift
+
+  if [ -z "$orig" -o -z "$targlink" ]; then
+    echo "usage:  mkln_s <srcFile> <destLink>"
+    return 1
+  fi
+
+  local origBase=`basename "$orig"`
+
+  if [[ -d $targlink ]]; then
+    targlink="${targlink%%/}/${origBase}"
+  fi
+
+  if [[ -e $targlink ]]; then
+    echo "File exists:  \"$targlink\""
+    echo "Move it out of the way first."
+    return 2
+  fi
+
+  mv "$orig" "$targlink" && ln -s "$targlink" "$orig"
+}
+add_help mkln_s "<file> <destSymlink>"
+
+alias mvlns='mkln_s'
+
+
+##### Functions:  'cd'-Stack
+
+
+# Only needed for certain shells.
+if [ -z "$BASH_VERSION" ]; then
 
 dirs() {
     if [ "$1" = "--clear_all" ]; then
@@ -219,87 +359,5 @@ add_help pushd "{[-n] <+N>|<-N>}|<nuDir>" \
 add_help popd "[<nuDir>]"
 add_help dirs "[--clear_all]"
 
-
-tls() {
-  local tarfile="$1"
-  shift
-
-  local ct
-  if [ -n "$1" ]; then
-    ct=$tarfile
-    tarfile="$1"
-  else
-    case "${tarfile%%**.}" in
-      gz|tgz)
-        ct=-z
-        ;;
-      bz2|tbz)
-        ct=-j
-        ;;
-      lzma)
-        ct=-a
-        ;;
-    esac
-  fi
- 
-  tar $ct -tvf "$tarfile" | less
-}
-add_help tls "[-z|-j|-a] <tarfile>"
-
-
-alias tzv='tls -z'
-alias tbv='tls -j'
-
-
-safe_rm() {
-  if [ $# -eq 0 ]; then
-    return 0
-  fi
-
-  local tmpDir=/mnt/sdcard/tmp
-  
-  if [[ -d /mnt/sdcard/ext/tmp ]]; then
-    tmpDir=/mnt/sdcard/ext/tmp
-  fi
- 
-  local purgeDir=$tmpDir/.purged
-  if [[ ! -d $purgeDir ]]; then
-    mkdir $purgeDir || return 1
-  fi
-
-  mv "$@" $purgeDir
-}
-add_help safe_rm "<files>"
-
-alias saferm='safe_rm'
-
-
-mkln_s() {
-  local orig="$1"
-  shift
-  local targlink="$1"
-  shift
-  
-  if [ -z "$orig" -o -z "$targlink" ]; then
-    echo "usage:  mkln_s <srcFile> <destLink>"
-    return 1
-  fi
-  
-  local origBase=`basename "$orig"`
-  
-  if [[ -d $targlink ]]; then
-    targlink="${targlink%%/}/${origBase}"
-  fi
-  
-  if [[ -e $targlink ]]; then
-    echo "File exists:  \"$targlink\""
-    echo "Move it out of the way first."
-    return 2
-  fi
-  
-  mv "$orig" "$targlink" && ln -s "$targlink" "$orig"
-}
-add_help mkln_s "<file> <destSymlink>"
-
-alias mvlns='mkln_s'
-
+fi
+# end:  if [ -z "$BASH_VERSION" ...
