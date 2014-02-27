@@ -51,13 +51,14 @@ done
 if [ "$SHELL0" = "bash" ]; then
  if [ -n "$SHELL_DIR" ]; then
   if [ -L $SHELL_DIR/bash ]; then
-   bash_is_bb=`ls -l $SHELL_DIR/bin/bash | grep busybox`
+   bash_is_bb=`ls -l $SHELL_DIR/bin/bash 2>&1 | grep busybox`
   fi
 
   if [ -n "$bash_is_bb" ]; then
    # We found 'bash', but it's a symlink to busybox.
    # Perform the fallback-scan.
    SHELL_DIR=''
+  fi
  fi
 fi
 

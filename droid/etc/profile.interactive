@@ -21,7 +21,7 @@ fi
 
 
 # Let's alias 'vim' appropriately.
-unalias vim
+unalias vim >/dev/null 2>&1
 vim_bin=`type vim`
 vim_bin="${vim_bin##* }"
 if [ -x $vim_bin ]; then
@@ -37,7 +37,7 @@ if [ -x $vim_bin ]; then
 else
  alias vim=vi
 fi
-unset vim_bim vimrc
+unset vim_bin vimrc
 
 
 ##### Functions:  'help' Command
@@ -109,7 +109,7 @@ dfltopn () {
  test -n "$2" && so="-s $2"
  /system/bin/top -n 1 -m $1 $so | tail -n +4
 }
-add_help dfltopn() "<N> [<cpu|vss|rss|thr>]"
+add_help dfltopn "<N> [<cpu|vss|rss|thr>]"
 
 
 zv() {
