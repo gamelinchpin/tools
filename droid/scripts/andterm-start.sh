@@ -51,13 +51,17 @@ done
 if [ "$SHELL0" = "bash" ]; then
  if [ -n "$SHELL_DIR" ]; then
   if [ -L $SHELL_DIR/bash ]; then
-   bash_is_bb=`ls -l $SHELL_DIR/bin/bash 2>&1 | grep busybox`
+   bash_is_bb=`ls -l $SHELL_DIR/bash 2>&1 | grep busybox`
   fi
 
   if [ -n "$bash_is_bb" ]; then
    # We found 'bash', but it's a symlink to busybox.
    # Perform the fallback-scan.
    SHELL_DIR=''
+  else
+   # Set this envvar, which we'll use when we start the shell
+   BASH_ENV=$ENV
+   export BASH_ENV
   fi
  fi
 fi
@@ -74,11 +78,18 @@ if [ -z "$SHELL_DIR" ]; then
     break
    fi
   done
+
+  if [ -n "$SHELL_DIR" ]; then
+    break
+  fi
  done
 fi
 
+SHELL=$SHELL_DIR/$SHELL0
+export SHELL
+
 if [ -n "$SHELL_DIR" ]; then
- exec $SHELL_DIR/$SHELL0
+ exec $SHELL ${BASH_ENV:+--rcfile} ${BASH_ENV}
 fi
 
 # else:

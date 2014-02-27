@@ -8,6 +8,11 @@ fi
 export PATH
 
 
+if [ -z "$TERM" ]; then TERM=linux; fi
+TERMINFO=$KBOX/etc/terminfo
+export TERM TERMINFO
+
+
 # Set the KBOX location if this envvar is missing.
 if [ -z "$KBOX" ]; then
 
@@ -37,13 +42,8 @@ if [ -n $KBOX ]; then
  PATH=$KBOX/usr/bin:$PATH
 
  [ -n "$HOME" ] && HOME_KBOX=$HOME
-
- if [ -z "$TERM" ]; then TERM=linux; fi
-
- TERMINFO=$KBOX/etc/terminfo
- export TERM TERMINFO HOME_KBOX
+ export HOME_KBOX
 fi
-unset oldHOME
 
 
 if [ -z "$USER" ]; then
@@ -55,7 +55,8 @@ if [ -z "$USER" ]; then
 fi
 
 
-# Look for HOME in one of the standard places:
+# Look for HOME in one of the standard places.
+# Do this *after* setting up HOME_KBOX.
 for d in /sdcard /sd-ext /sdcard/ext /data/sdext2; do
  if [ -d $d/home/$USER ]; then
   HOME=/sdcard/home/$USER
@@ -72,6 +73,12 @@ export HOME
 # Common Interactive Commands, All Shells
 case $- in *i*)
  stty erase ^H
+
+ SHELL_TYPE=${SHELL##*/}
+ if [ "$SHELL_TYPE" = "kbox_shell" ]; then
+  SHELL_TYPE=bash
+ fi
+ export SHELL_TYPE
 
  alias ls='ls -F'
  alias la='ls -a'
@@ -91,6 +98,8 @@ case $- in *i*)
  alias dfm='df -m | grep -v asec'
 
  etc_dir=.
+ [ -n "$ENV" ] && etc_dir=${ENV%/profile}
+
  if [ -n "$KBOX" ]; then
   etc_dir=$KBOX/etc
 
@@ -102,15 +111,15 @@ case $- in *i*)
   fi
  fi
 
- if [ -r $etc_dir/profile.interactive ]; then
+ if [ -e $etc_dir/profile.interactive ]; then
   . $etc_dir/profile.interactive
  fi
 
- if [ "$SHELL" = "bash" ]; then
+ if [ "$SHELL_TYPE" = "bash" ]; then
   # 'bash'-Specific Interactive rc-Files
   export BASHRC=$etc_dir/bashrc
 
-  if [ -r $BASHRC ]; then
+  if [ -e $BASHRC ]; then
    . $BASHRC
   fi
 
@@ -121,7 +130,7 @@ case $- in *i*)
 
  else
   # Customize the prompt:
-  PS1="\\W \$\ "
+  PS1="\\W \$ "
 
   if [ -e $HOME/.profile ]; then
    # For non-bash shells, look for a personal 'profile'.
@@ -130,5 +139,7 @@ case $- in *i*)
  fi
 
  export PS1
+
+ unset f d etc_dir
  ;;
 esac

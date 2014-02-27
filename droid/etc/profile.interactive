@@ -1,21 +1,26 @@
 # -*- mode: sh; fill-column: 56 -*-
 
 
-# Set the "$SHELL" envvar
-if [ -z "$SHELL" ]; then
+# Set the "$SHELL_TYPE" envvar, if missing.
+if [ -z "$SHELL_TYPE" ]; then
  if [ -n "$BASH_VERSION" ]; then
-  SHELL=bash
+  SHELL_TYPE=bash
  else
   # We have more work to check if this is 'bash' or if
   # it's some other shell.
   case "`let 2>&1`" in
-   bash:*) SHELL=bash ;;
-   ash:*) SHELL=ash ;;
-   dash:*) SHELL=dash ;;
-   ksh:*) SHELL=ksh ;;
+   bash:*) SHELL_TYPE=bash ;;
+   ash:*) SHELL_TYPE=ash ;;
+   dash:*) SHELL_TYPE=dash ;;
+   ksh:*) SHELL_TYPE=ksh ;;
   esac
  fi
 
+ export SHELL_TYPE
+fi
+
+if [ -z "$SHELL" ]; then
+ SHELL=$SHELL_TYPE
  export SHELL
 fi
 
