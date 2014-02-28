@@ -40,11 +40,11 @@ del_from_PATH() {
 # hasn't been done already
 case "$PATH" in */system/bin*/system/xbin*)
  del_from_PATH /system/xbin
- PATH=/system/xbin:${xbinPre}${xbinPost}
+ PATH=/system/xbin:${PATH}
  ;;
 esac
 # Add this:
-[ -d /data/local/bin ] && add_to_PATH data/local/bin
+[ -d /data/local/bin ] && add_to_PATH /data/local/bin
 export PATH
 
 
@@ -68,14 +68,13 @@ if [ -z "$KBOX" ]; then
   KBOX=/data/data/jackpal.androidterm/kbox
  fi
 
- add_to_PATH "$KBOX/bin"
 fi
 
 
 if [ -n $KBOX ]; then
  export KBOX
 
- add_to_PATH "$KBOX/usr/bin" "$KBOX/sbin" "$KBOX/usr/sbin"
+ add_to_PATH "$KBOX/bin" "$KBOX/usr/bin" "$KBOX/sbin" "$KBOX/usr/sbin"
 
  [ -n "$HOME" ] && HOME_KBOX=$HOME
  export HOME_KBOX
@@ -118,8 +117,6 @@ export HOME
 
 # Common Interactive Commands, All Shells
 case $- in *i*)
- stty erase ^H
-
  # Set up the TERM
  if [ -z "$TERM" ]; then TERM=linux; fi
  export TERM
