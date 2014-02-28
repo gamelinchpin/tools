@@ -1,16 +1,54 @@
 # -*- mode: sh; fill-column: 56 -*-
 
-# First Things First:  Fix the PATH
-PATH=/system/xbin:${PATH/:?system?xbin/}
-if [ -d /data/local/bin ]; then
- PATH=/data/local/bin:$PATH
-fi
+# First Things First:  We need a function that only adds
+# something to PATH if it's not already in there:
+add_to_PATH() {
+ local chk_for_p='case "$PATH" in'
+ chk_for_p="${chk_for_p} *:\${p}|*:\${p}:*|\${p}:*)"
+ chk_for_p="${chk_for_p} echo \"y\" ;; esac"
+
+ local p contains_p
+ for p in "$@"; do
+  contains_p=`eval $chk_for_p`
+  if [ -z "$contains_p" ]; then
+    PATH="${p}:$PATH"
+  fi
+ done
+}
+
+# We also need a function that removes an element from
+# the PATH.
+del_from_PATH() {
+ local prune="$1"
+
+ local oIFS="$IFS"
+ IFS=':'
+ local p newpath
+ for p in $PATH; do
+  if [ "$p" != "$prune" ]; then
+   newpath="${newpath}:$p"
+  fi
+ done
+ IFS="$oIFS"
+
+ PATH="${newpath#:}"
+}
+
+
+# Now we can do some initial PATH setup:
+# Move /system/xbin in front of /system/bin, if that
+# hasn't been done already
+case "$PATH" in */system/bin*/system/xbin*)
+ del_from_PATH /system/xbin
+ PATH=/system/xbin:${xbinPre}${xbinPost}
+ ;;
+esac
+# Add this:
+[ -d /data/local/bin ] && add_to_PATH data/local/bin
 export PATH
 
 
-if [ -z "$TERM" ]; then TERM=linux; fi
-TERMINFO=$KBOX/etc/terminfo
-export TERM TERMINFO
+####################
 
 
 # Set the KBOX location if this envvar is missing.
@@ -30,21 +68,26 @@ if [ -z "$KBOX" ]; then
   KBOX=/data/data/jackpal.androidterm/kbox
  fi
 
- PATH=$KBOX/bin:${PATH}
+ add_to_PATH "$KBOX/bin"
 fi
 
 
 if [ -n $KBOX ]; then
  export KBOX
 
- PATH=$KBOX/sbin:$KBOX/usr/sbin:$PATH
- PATH=$KBOX/sbin:$KBOX/usr/sbin:$PATH
- PATH=$KBOX/usr/bin:$PATH
+ add_to_PATH "$KBOX/usr/bin" "$KBOX/sbin" "$KBOX/usr/sbin"
 
  [ -n "$HOME" ] && HOME_KBOX=$HOME
  export HOME_KBOX
 fi
 
+
+####################
+
+
+if [ -z "$UID" ]; then
+ ls /root >/dev/null 2>&1 && UID=0
+fi
 
 if [ -z "$USER" ]; then
  USER=shell
@@ -70,16 +113,30 @@ alias use_sdcard_as_home='export HOME=/sdcard'
 export HOME
 
 
+####################
+
+
 # Common Interactive Commands, All Shells
 case $- in *i*)
  stty erase ^H
 
+ # Set up the TERM
+ if [ -z "$TERM" ]; then TERM=linux; fi
+ export TERM
+
+ #----------
+
+ # Determine what kind of shell we're running.
+ SHELL="$0"
  SHELL_TYPE=${SHELL##*/}
  if [ "$SHELL_TYPE" = "kbox_shell" ]; then
   SHELL_TYPE=bash
  fi
  export SHELL_TYPE
 
+ #----------
+
+ # Some aliases to use in all shells
  alias ls='ls -F'
  alias la='ls -a'
  alias lsa='ls -a'
@@ -97,6 +154,10 @@ case $- in *i*)
  alias showmounts='mount | grep -v asec'
  alias dfm='df -m | grep -v asec'
 
+ #----------
+
+ # Find and source other setup files, depending on the
+ # shell in use.
  etc_dir=.
  [ -n "$ENV" ] && etc_dir=${ENV%/profile}
 
@@ -106,10 +167,15 @@ case $- in *i*)
   alias cdkboxhome='cd $HOME_KBOX'
   alias cd_kbox='cd $KBOX'
 
-  if [ -e $HOME_KBOX/.bashrc ]; then
-   . $HOME_KBOX/.bashrc
-  fi
+  # Set up the TERMINFO
+  TERMINFO=$KBOX/etc/terminfo
+ else
+  # Set up the TERMINFO
+  TERMINFO=/system/etc/terminfo
  fi
+ export TERMINFO
+
+ #----------
 
  if [ -e $etc_dir/profile.interactive ]; then
   . $etc_dir/profile.interactive
@@ -123,14 +189,27 @@ case $- in *i*)
    . $BASHRC
   fi
 
-  # Look for a personal 'profile'.
+  # Look for a personal 'profile' in a couple of locations.
   if [ -e $HOME/.bashrc ]; then
    . $HOME/.bashrc
+  fi
+
+  if [ "$HOME" != "$HOME_KBOX" ]; then
+   if [ -e $HOME_KBOX/.bashrc ]; then
+    . $HOME_KBOX/.bashrc
+   fi
   fi
 
  else
   # Customize the prompt:
   PS1="\\W \$ "
+  if [ "$SHELL_TYPE" = "sh" ]; then
+   if [ "$USER" = "root" ]; then
+    PS1="# "
+   else
+    PS1="$ "
+   fi
+  fi
 
   if [ -e $HOME/.profile ]; then
    # For non-bash shells, look for a personal 'profile'.
@@ -143,3 +222,5 @@ case $- in *i*)
  unset f d etc_dir
  ;;
 esac
+
+cd $HOME
