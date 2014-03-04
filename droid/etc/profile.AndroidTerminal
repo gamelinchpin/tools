@@ -1,37 +1,65 @@
-# -*- mode: sh; fill-column: 56 -*-
+# -*- mode: sh; fill-column: 56; sh-basic-offset: 2 -*-
 
-# First Things First:  We need a function that only adds
+
+# Top-Level Variables used by the 'profile's
+
+SD_EXT_MOUNTPTS="/sdcard/ext /sd-ext /system/sd /data/sdext2"
+
+
+####################
+
+
+# First Things First:  Source the original KBOX
+# 'profile', if still there.
+etc_dir=.
+# Find where this file is sitting, or try a fallback.
+if [ -n "$ENV" ]; then
+  etc_dir=${ENV%/profile}
+elif [ -n "$KBOX" ]; then
+  etc_dir=$KBOX/etc
+fi
+[ -e $etc_dir/profile.orig_kbox ] && \
+  . $etc_dir/profile.orig_kbox
+
+
+####################
+
+
+# Next:  We need a function that only adds
 # something to PATH if it's not already in there:
 add_to_PATH() {
- local chk_for_p='case "$PATH" in'
- chk_for_p="${chk_for_p} *:\${p}|*:\${p}:*|\${p}:*)"
- chk_for_p="${chk_for_p} echo \"y\" ;; esac"
+  local chk_for_p='case "$PATH" in'
+  chk_for_p="${chk_for_p} *:\${p}|*:\${p}:*|\${p}:*)"
+  chk_for_p="${chk_for_p} echo \"y\" ;; esac"
 
- local p contains_p
- for p in "$@"; do
-  contains_p=`eval $chk_for_p`
-  if [ -z "$contains_p" ]; then
-    PATH="${p}:$PATH"
-  fi
- done
+  local p contains_p
+  for p in "$@"; do
+    contains_p=`eval $chk_for_p`
+    if [ -z "$contains_p" ]; then
+      if [ -e $p ]; then
+        PATH="${p}:$PATH"
+      fi
+    fi
+  done
 }
+
 
 # We also need a function that removes an element from
 # the PATH.
 del_from_PATH() {
- local prune="$1"
+  local prune="$1"
 
- local oIFS="$IFS"
- IFS=':'
- local p newpath
- for p in $PATH; do
-  if [ "$p" != "$prune" ]; then
-   newpath="${newpath}:$p"
-  fi
- done
- IFS="$oIFS"
+  local oIFS="$IFS"
+  IFS=':'
+  local p newpath
+  for p in $PATH; do
+    if [ "$p" != "$prune" ]; then
+      newpath="${newpath}:$p"
+    fi
+  done
+  IFS="$oIFS"
 
- PATH="${newpath#:}"
+  PATH="${newpath#:}"
 }
 
 
@@ -39,9 +67,9 @@ del_from_PATH() {
 # Move /system/xbin in front of /system/bin, if that
 # hasn't been done already
 case "$PATH" in */system/bin*/system/xbin*)
- del_from_PATH /system/xbin
- PATH=/system/xbin:${PATH}
- ;;
+  del_from_PATH /system/xbin
+  PATH=/system/xbin:${PATH}
+  ;;
 esac
 # Add this:
 [ -d /data/local/bin ] && add_to_PATH /data/local/bin
@@ -51,59 +79,93 @@ export PATH
 ####################
 
 
-# Set the KBOX location if this envvar is missing.
+# Set the KBOX location ... if this envvar is missing.
 if [ -z "$KBOX" ]; then
 
- if [ -e /sdcard/ext/bin/kbox_shell ]; then
-  KBOX=/sdcard/ext
- elif [ -d /data/local/kbox ]; then
-  KBOX=/data/local/kbox
- elif [ -e /sd-ext/bin/kbox_shell ]; then
-  KBOX=/sd-ext
- elif [ -e /data/sdext2/bin/kbox_shell ]; then
-  KBOX=/data/sdext2
- elif [ -e /data/sdext2/base.dir/bin/kbox_shell ]; then
-  KBOX=/data/sdext2/base.dir
- elif [ -d /data/data/jackpal.androidterm/kbox ]; then
-  KBOX=/data/data/jackpal.androidterm/kbox
- fi
+  for d in $SD_EXT_MOUNTPTS /data/local \
+    /data/data/jackpal.androidterm
+  do
 
+    if [ -e $d/bin/kbox_shell ]; then
+      KBOX=$d
+      break
+    elif [ -e $d/kbox/bin/kbox_shell ]; then
+      KBOX=$d/kbox
+      break
+    elif [ -e $d/kbox2/bin/kbox_shell ]; then
+      KBOX=$d/kbox2
+      break
+    fi
+
+  done
+fi
+
+if [ -z "$KBOX" ]; then
+  # One final check for the bundled v1 KBOX.
+  [ -d /data/data/kevinboone.androidterm/kbox ] && \
+    KBOX=/data/data/kevinboone.androidterm/kbox
 fi
 
 
 if [ -n $KBOX ]; then
- export KBOX
+  export KBOX
 
- add_to_PATH "$KBOX/bin" "$KBOX/usr/bin" "$KBOX/sbin" "$KBOX/usr/sbin"
+  add_to_PATH "$KBOX/bin" "$KBOX/usr/bin" "$KBOX/sbin" "$KBOX/usr/sbin"
 
- [ -n "$HOME" ] && HOME_KBOX=$HOME
- export HOME_KBOX
+  [ -n "$HOME" ] && HOME_KBOX=$HOME
+  export HOME_KBOX
 fi
 
 
 ####################
 
 
-if [ -z "$UID" ]; then
- ls /root >/dev/null 2>&1 && UID=0
-fi
+if [ -n "$USERNAME" -a -z "$USER" ]; then
+  USER=$USERNAME
+elif which whoami >/dev/null 2>&1; then
+  USER=`whoami 2>&1`
+  if [ $? -ne 0 ]; then
+    if [ -z "$UID" ]; then
+      last=''
 
-if [ -z "$USER" ]; then
- USER=shell
+      for w in $USER; do
+        if [ "$last" = "uid" ]; then
+          UID=$w
+          break
+        fi
 
- if [ "$UID" = "0" ]; then
-  USER=root
- fi
+        # else:
+        last=$w
+      done
+
+      unset last w
+    fi
+
+    USER="unknown_$UID"
+  fi
+else
+  if [ -z "$UID" ]; then
+    ls /root >/dev/null 2>&1 && UID=0
+  fi
+
+  if [ -z "$USER" ]; then
+    USER=shell
+
+    if [ "$UID" = "0" ]; then
+      USER=root
+    fi
+  fi
 fi
+export USER USERNAME UID
 
 
 # Look for HOME in one of the standard places.
 # Do this *after* setting up HOME_KBOX.
-for d in /sdcard /sd-ext /sdcard/ext /data/sdext2; do
- if [ -d $d/home/$USER ]; then
-  HOME=/sdcard/home/$USER
-  break
- fi
+for d in /sdcard $SD_EXT_MOUNTPTS; do
+  if [ -d $d/home/$USER ]; then
+    HOME=/sdcard/home/$USER
+    break
+  fi
 done
 
 # If it's still not set, then set it to "/sdcard":
@@ -117,107 +179,126 @@ export HOME
 
 # Common Interactive Commands, All Shells
 case $- in *i*)
- # Set up the TERM
- if [ -z "$TERM" ]; then TERM=linux; fi
- export TERM
+  # Set up the TERM
+  if [ -z "$TERM" ]; then TERM=linux; fi
+  export TERM
 
- #----------
+  #----------
 
- # Determine what kind of shell we're running.
- SHELL="$0"
- SHELL_TYPE=${SHELL##*/}
- if [ "$SHELL_TYPE" = "kbox_shell" ]; then
-  SHELL_TYPE=bash
- fi
- export SHELL_TYPE
+  # Determine what kind of shell we're running.
+  SHELL="$0"
+  SHELL_TYPE=${SHELL##*/}
+  if [ "$SHELL_TYPE" = "kbox_shell" ]; then
+    SHELL_TYPE=bash
+  fi
+  export SHELL_TYPE
 
- #----------
+#  Alternate version:
+#  if [ -z "$SHELL_TYPE" ]; then
+#    if [ -n "$BASH_VERSION" ]; then
+#      SHELL_TYPE=bash
+#    else
+#      # We have more work to check if this is 'bash' or if
+#      # it's some other shell.
+#      case "`let 2>&1`" in
+#        bash:*) SHELL_TYPE=bash ;;
+#        ash:*) SHELL_TYPE=ash ;;
+#        dash:*) SHELL_TYPE=dash ;;
+#        ksh:*) SHELL_TYPE=ksh ;;
+#      esac
+#    fi
+#
+#    export SHELL_TYPE
+#  fi
+#  if [ -z "$SHELL" ]; then
+#    SHELL=$SHELL_TYPE
+#    export SHELL
+#  fi
 
- # Some aliases to use in all shells
- alias ls='ls -F'
- alias la='ls -a'
- alias lsa='ls -a'
- alias ll='ls -l'
- alias lla='ls -la'
- alias dir='ls -lh'
- alias dira='dir -a'
 
- alias fv='less'
- alias v='less'
+  #----------
 
- alias envv='set | less'
- alias cdlast='cd $OLDPWD'
- alias dfltop=/system/bin/top
- alias showmounts='mount | grep -v asec'
- alias dfm='df -m | grep -v asec'
+  # Some aliases to use in all shells
+  alias ls='ls -F'
+  alias la='ls -a'
+  alias lsa='ls -a'
+  alias ll='ls -l'
+  alias lla='ls -la'
+  alias dir='ls -lh'
+  alias dira='dir -a'
 
- #----------
+  alias fv='less'
+  alias v='less'
 
- # Find and source other setup files, depending on the
- # shell in use.
- etc_dir=.
- [ -n "$ENV" ] && etc_dir=${ENV%/profile}
+  alias envv='set | less'
+  alias cdlast='cd $OLDPWD'
+  alias dfltop=/system/bin/top
+  alias showmounts='mount | grep -v asec'
+  alias dfm='df -m | grep -v asec'
 
- if [ -n "$KBOX" ]; then
-  etc_dir=$KBOX/etc
+  #----------
 
-  alias cdkboxhome='cd $HOME_KBOX'
-  alias cd_kbox='cd $KBOX'
+  # Find and source other setup files, depending on the
+  # shell in use.
 
-  # Set up the TERMINFO
-  TERMINFO=$KBOX/etc/terminfo
- else
-  # Set up the TERMINFO
-  TERMINFO=/system/etc/terminfo
- fi
- export TERMINFO
+  if [ -n "$KBOX" ]; then
+    alias cdkboxhome='cd $HOME_KBOX'
+    alias cd_kbox='cd $KBOX'
 
- #----------
+    # Set up the TERMINFO
+    TERMINFO=$KBOX/etc/terminfo
+  else
+    # Set up the TERMINFO
+    TERMINFO=/system/etc/terminfo
+  fi
+  export TERMINFO
 
- if [ -e $etc_dir/profile.interactive ]; then
-  . $etc_dir/profile.interactive
- fi
+  #----------
 
- if [ "$SHELL_TYPE" = "bash" ]; then
-  # 'bash'-Specific Interactive rc-Files
-  export BASHRC=$etc_dir/bashrc
-
-  if [ -e $BASHRC ]; then
-   . $BASHRC
+  if [ -e $etc_dir/profile.interactive ]; then
+    . $etc_dir/profile.interactive
   fi
 
-  # Look for a personal 'profile' in a couple of locations.
-  if [ -e $HOME/.bashrc ]; then
-   . $HOME/.bashrc
+  if [ "$SHELL_TYPE" = "bash" ]; then
+    # 'bash'-Specific Interactive rc-Files
+    export BASHRC=$etc_dir/bashrc
+
+    if [ -e $BASHRC ]; then
+      . $BASHRC
+    fi
+
+    # Look for a personal 'bashrc' in a couple of locations.
+    if [ -e $HOME/.bashrc ]; then
+      . $HOME/.bashrc
+    fi
+
+    if [ "$HOME" != "$HOME_KBOX" ]; then
+      if [ -e $HOME_KBOX/.bashrc ]; then
+        . $HOME_KBOX/.bashrc
+      fi
+    fi
+
+  else
+    # Customize the prompt:
+    PS1="\\W \$ "
+    if [ "$SHELL_TYPE" = "sh" ]; then
+      if [ "$USER" = "root" ]; then
+        PS1="# "
+      else
+        PS1="$ "
+      fi
+    fi
+
+    if [ -e $HOME/.profile ]; then
+      # For non-bash shells, look for a personal 'profile'.
+      . $HOME/.profile
+    fi
   fi
 
-  if [ "$HOME" != "$HOME_KBOX" ]; then
-   if [ -e $HOME_KBOX/.bashrc ]; then
-    . $HOME_KBOX/.bashrc
-   fi
-  fi
+  export PS1
 
- else
-  # Customize the prompt:
-  PS1="\\W \$ "
-  if [ "$SHELL_TYPE" = "sh" ]; then
-   if [ "$USER" = "root" ]; then
-    PS1="# "
-   else
-    PS1="$ "
-   fi
-  fi
-
-  if [ -e $HOME/.profile ]; then
-   # For non-bash shells, look for a personal 'profile'.
-   . $HOME/.profile
-  fi
- fi
-
- export PS1
-
- unset f d etc_dir
- ;;
+  unset f d etc_dir SD_EXT_MOUNTPTS
+  ;;
 esac
 
 cd $HOME

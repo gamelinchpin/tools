@@ -1,28 +1,4 @@
-# -*- mode: sh; fill-column: 56 -*-
-
-
-# Set the "$SHELL_TYPE" envvar, if missing.
-if [ -z "$SHELL_TYPE" ]; then
- if [ -n "$BASH_VERSION" ]; then
-  SHELL_TYPE=bash
- else
-  # We have more work to check if this is 'bash' or if
-  # it's some other shell.
-  case "`let 2>&1`" in
-   bash:*) SHELL_TYPE=bash ;;
-   ash:*) SHELL_TYPE=ash ;;
-   dash:*) SHELL_TYPE=dash ;;
-   ksh:*) SHELL_TYPE=ksh ;;
-  esac
- fi
-
- export SHELL_TYPE
-fi
-
-if [ -z "$SHELL" ]; then
- SHELL=$SHELL_TYPE
- export SHELL
-fi
+# -*- mode: sh; fill-column: 56; sh-basic-offset: 2 -*-
 
 
 # Let's alias 'vim' appropriately.
@@ -30,17 +6,17 @@ unalias vim >/dev/null 2>&1
 vim_bin=`type vim`
 vim_bin="${vim_bin##* }"
 if [ -x $vim_bin ]; then
- if [ -n "$KBOX" ]; then
-  vimrc=$KBOX/etc/vimrc
- else
-  vimrc=$HOME/.vimrc
- fi
+  if [ -n "$KBOX" ]; then
+    vimrc=$KBOX/etc/vimrc
+  else
+    vimrc=$HOME/.vimrc
+  fi
 
- if [ -r $vimrc ]; then
-  alias vim="$vim_bin -u $vimrc"
- fi
+  if [ -r $vimrc ]; then
+    alias vim="$vim_bin -u $vimrc"
+  fi
 else
- alias vim=vi
+  alias vim=vi
 fi
 unset vim_bin vimrc
 
@@ -105,55 +81,58 @@ alias help='print_help | less'
 
 
 topn () {
- top -n1 | head -n $((4 + $1))
+  top -n1 | head -n $((4 + $1))
 }
 add_help topn "<N>"
 
 
 dfltopn () {
- test -n "$2" && so="-s $2"
- /system/bin/top -n 1 -m $1 $so | tail -n +4
+  test -n "$2" && so="-s $2"
+  /system/bin/top -n 1 -m $1 $so | tail -n +4
 }
 add_help dfltopn "<N> [<cpu|vss|rss|thr>]"
 
 
 zv() {
-    local opts f cmd
-    while [ -n "$1" ]; do
-        case "$1" in
-            -*)
-                opts="$opts $1"
-                shift
-                ;;
-            *)
-                break
-                ;;
-        esac
-    done
+  local opts f cmd
+  while [ -n "$1" ]; do
+    case "$1" in
+      -*)
+        opts="$opts $1"
+        shift
+        ;;
+      *)
+        break
+        ;;
+    esac
+  done
 
-    for f in "$@"; do
-        case "$f" in
-            *.gz|*.Z)
-                cmd=zcat
-                ;;
-            *.bz|*.bz2)
-                cmd=bzcat
-                ;;
-            *.lzo)
-                cmd=lzopcat
-                ;;
-            *.lzma|*.7z)
-                cmd=lzcat
-                ;;
-            *.xz)
-                cmd=xzcat
-                ;;
-        esac
-       (echo "========================================";\
-        echo "=== File:  $f";\
-        echo "========================================";\
-        $cmd "$f" 2>/dev/null) | less $opts
-    done
+  for f in "$@"; do
+    case "$f" in
+      *.gz|*.Z)
+        cmd=zcat
+        ;;
+      *.bz|*.bz2)
+        cmd=bzcat
+        ;;
+      *.lzo)
+        cmd=lzopcat
+        ;;
+      *.lzma|*.7z)
+        cmd=lzcat
+        ;;
+      *.xz)
+        cmd=xzcat
+        ;;
+    esac
+
+    {
+      echo "========================================"
+      echo "=== File:  $f"
+      echo "========================================"
+      $cmd "$f" 2>/dev/null
+    } | less $opts
+  done
 }
 add_help zv \
   "<*.gz|*.bz|*.bz2|*.lzo|*.lzma|*.xz> \\" \
@@ -189,6 +168,9 @@ add_help tls "[-z|-j|-a] <tarfile>"
 
 alias tzv='tls -z'
 alias tbv='tls -j'
+
+
+##### Functions:  Extended file-tools
 
 
 safe_rm() {
@@ -244,117 +226,152 @@ add_help mkln_s "<file> <destSymlink>"
 alias mvlns='mkln_s'
 
 
+ln_sf() {
+  local origFile="$1"
+  shift
+  local targlink="$1"
+  shift
+
+  if [ -z "$origFile" -o -z "$targlink" ]; then
+    echo "usage:  ln_sf <srcFile> <destLink>"
+    return 1
+  fi
+
+  if [ ! -e $origFile ]; then
+    echo "Error:  No such file:  \"$origFile\""
+    return 1
+  fi
+
+  if [ -d $targlink ]; then
+    targlink="${targlink%%/}/${origFile##*/}"
+  fi
+
+  local retVal
+
+  if [ -L $targlink ]; then
+    rm $targlink || return $?
+  elif [ -e $targlink ]; then
+    mv $targlink ${targlink}.~bak~ || return $?
+  fi
+
+  # At this point, there should be nothing left in the way
+  ln -s "$targlink" "$origFile" || return $?
+}
+add_help ln_sf "<srcFile> <destSymlink>"
+
+
 ##### Functions:  'cd'-Stack
 
 
-# Only needed for certain shells.
-if [ -z "$BASH_VERSION" ]; then
+# Create the directory-stack functions for shells
+# that don't have them [which is most of them].
+if type pushd >/dev/null 2>&1; then : ; else
 
 dirs() {
-    if [ "$1" = "--clear_all" ]; then
-        DIRSTACK=""
-    fi
-    echo $PWD $DIRSTACK
+  if [ "$1" = "--clear_all" ]; then
+    DIRSTACK=""
+  fi
+  echo $PWD $DIRSTACK
 }
 
 popd() {
-    set -- $DIRSTACK
-    if [ -n "$1" ]; then
-        cd "$1"
-        shift
-        DIRSTACK="$*"
-        dirs
-    else
-        echo "popd():  Directory stack empty."
-    fi
+  set -- $DIRSTACK
+  if [ -n "$1" ]; then
+    cd "$1"
+    shift
+    DIRSTACK="$*"
+    dirs
+  else
+    echo "popd():  Directory stack empty."
+  fi
 }
 
 
 pushd() {
-    local do_cd='y'
-    local rotLeftN=''
-    local rotRightN=''
-    local nuDir=''
+  local do_cd='y'
+  local rotLeftN=''
+  local rotRightN=''
+  local nuDir=''
 
-    if [ "$1" = "-n" ]; then
-        do_cd=""
-        shift
-    fi
+  if [ "$1" = "-n" ]; then
+    do_cd=""
+    shift
+  fi
 
-    if [ -z "$*" ]; then
+  if [ -z "$*" ]; then
 
-        set -- $DIRSTACK
-        if [ -n "$1" ]; then
-            nuDir="$1"
-            shift
-            do_cd='y'
-            if [ -n "$*" ]; then
-                DIRSTACK="$PWD $*"
-            else
-                DIRSTACK="$PWD"
-            fi
-        else
-            DIRSTACK="$oldFirst"
-            echo "pushd():  No other directory."
-            return 1
-        fi
-
+    set -- $DIRSTACK
+    if [ -n "$1" ]; then
+      nuDir="$1"
+      shift
+      do_cd='y'
+      if [ -n "$*" ]; then
+        DIRSTACK="$PWD $*"
+      else
+        DIRSTACK="$PWD"
+      fi
     else
-
-        case "$1" in
-            +[0-9]*)
-                rotLeftN="${1#+}"
-                ;;
-            -[0-9]*)
-                rotRightN="${1#-}"
-                ;;
-            *)
-                nuDir="$1"
-                ;;
-        esac
-
-        if [ -n "$rotLeftN" ]; then
-            if [ $rotLeftN -eq 0 ]; then
-                dirs
-                return 0
-            fi
-        fi
-
-        if [ -n "$rotLeftN$rotRightN" ]; then
-
-            if [ -n "$rotRightN" ]; then
-                local N=0
-                local d
-                for d in "$PWD" $DIRSTACK; do
-                    N=$((N + 1))
-                done
-                rotLeftN=$((N - rotRightN - 1))
-            fi
-
-            set -- $PWD $DIRSTACK
-
-            local stacktail=''
-            while [ -n "$*" -a $rotLeftN -gt 0 ]; do
-                stacktail="$stacktail $1"
-                shift
-                rotLeftN=$((rotLeftN - 1))
-            done
-
-            if [ -z "$nuDir" ]; then
-                nuDir="$1"
-                shift
-            fi
-            DIRSTACK="$* $stacktail"
-        else
-            DIRSTACK="$PWD $DIRSTACK"
-        fi
-
+      DIRSTACK="$oldFirst"
+      echo "pushd():  No other directory."
+      return 1
     fi
 
-    if [ -n "$do_cd" -a -n "$nuDir" ]; then
-        cd $nuDir
+  else
+
+    case "$1" in
+      +[0-9]*)
+        rotLeftN="${1#+}"
+        ;;
+      -[0-9]*)
+        rotRightN="${1#-}"
+        ;;
+      *)
+        nuDir="$1"
+        ;;
+    esac
+
+    if [ -n "$rotLeftN" ]; then
+      if [ $rotLeftN -eq 0 ]; then
+        dirs
+        return 0
+      fi
     fi
-    dirs
+
+    if [ -n "$rotLeftN$rotRightN" ]; then
+
+      if [ -n "$rotRightN" ]; then
+        local N=0
+        local d
+        for d in "$PWD" $DIRSTACK; do
+          N=$((N + 1))
+        done
+        rotLeftN=$((N - rotRightN - 1))
+      fi
+
+      set -- $PWD $DIRSTACK
+
+      local stacktail=''
+      while [ -n "$*" -a $rotLeftN -gt 0 ]; do
+        stacktail="$stacktail $1"
+        shift
+        rotLeftN=$((rotLeftN - 1))
+      done
+
+      if [ -z "$nuDir" ]; then
+        nuDir="$1"
+        shift
+      fi
+      DIRSTACK="$* $stacktail"
+    else
+      DIRSTACK="$PWD $DIRSTACK"
+    fi
+
+  fi
+
+  if [ -n "$do_cd" -a -n "$nuDir" ]; then
+    cd $nuDir
+  fi
+  dirs
 }
 alias pd=pushd
 
@@ -364,5 +381,4 @@ add_help pushd "{[-n] <+N>|<-N>}|<nuDir>" \
 add_help popd "[<nuDir>]"
 add_help dirs "[--clear_all]"
 
-fi
-# end:  if [ -z "$BASH_VERSION" ...
+fi # end:  if pushd...
