@@ -1,4 +1,4 @@
-# -*- mode: sh; fill-column: 56 -*-
+# -*- mode: sh; fill-column: 56; sh-basic-offset: 2 -*-
 #
 # This file should be sourced.
 
@@ -20,15 +20,15 @@ KBOX_TARBALL=${KBOX_TARBALL:-$PWD/kbox-bundle.tar.bz2}
 
 TAR_BIN=./tar
 for d in xbin bin; do
- if [ -e /system/$d/tar ]; then
-  TAR_BIN=/system/$d/tar
-  USING_SYSTEM_TAR=y
-  break
- fi
+  if [ -e /system/$d/tar ]; then
+    TAR_BIN=/system/$d/tar
+    USING_SYSTEM_TAR=y
+    break
+  fi
 done
 
 if [ -z "$UID" ]; then
- ls /root >/dev/null 2>&1 && UID=0 || UID=32768
+  ls /root >/dev/null 2>&1 && UID=0 || UID=32768
 fi
 
 export TAR_BIN TARGDIR KBOX_TARBALL
@@ -42,45 +42,76 @@ MSG_JACKPAL_APP_NAME="\"Android Terminal Emulator\""
 ####################
 
 
+ln_sf() {
+  local origFile="$1"
+  shift
+  local targlink="$1"
+  shift
+
+  if [ -z "$origFile" -o -z "$targlink" ]; then
+    echo "usage:  ln_sf <srcFile> <destLink>"
+    return 1
+  fi
+
+  if [ ! -e $origFile ]; then
+    echo "Error:  No such file:  \"$origFile\""
+    return 1
+  fi
+
+  if [ -d $targlink ]; then
+    targlink="${targlink%%/}/${origFile##*/}"
+  fi
+
+  if [ -L $targlink ]; then
+    rm $targlink || return $?
+  elif [ -e $targlink ]; then
+    mv $targlink ${targlink}.~bak~ || return $?
+  fi
+
+  # At this point, there should be nothing left in the way
+  ln -s "$targlink" "$origFile" || return $?
+}
+
+
 kbx__init() {
   if [ ! -d /sdcard/home ]; then
-   echo "Creating:  /sdcard/home"
-   mkdir /sdcard/home || return $?
+    echo "Creating:  /sdcard/home"
+    mkdir /sdcard/home || return $?
   fi
 
   for d in shell root etc scripts; do
-   if [ ! -d /sdcard/home/$d ]; then
-    echo "Creating:  /sdcard/home/$d"
-    mkdir /sdcard/home/$d || return $?
-   fi
+    if [ ! -d /sdcard/home/$d ]; then
+      echo "Creating:  /sdcard/home/$d"
+      mkdir /sdcard/home/$d || return $?
+    fi
   done
 
 
   if [ -e /sdcard/home/andterm-start.sh ]; then
-   echo -n "Already exists: "
-   echo "/sdcard/home/andterm-start.sh"
-   echo "Not overwriting.  If you want to use the newer"
-   echo "file, execute the following:"
-   echo "  cp $PWD/cp andterm-start.sh /sdcard/home/"
+    echo -n "Already exists: "
+    echo "/sdcard/home/andterm-start.sh"
+    echo "Not overwriting.  If you want to use the newer"
+    echo "file, execute the following:"
+    echo "  cp $PWD/cp andterm-start.sh /sdcard/home/"
   elif [ -e andterm-start.sh ]; then
     echo "cp:  andterm-start.sh -> /sdcard/home/"
     cp andterm-start.sh /sdcard/home/ || return $?
   else
-   echo "Error:  Could not copy \"andterm-start.sh\""
-   echo "to \"/sdcard/home/\"."
-   echo "You will need to do this manually."
+    echo "Error:  Could not copy \"andterm-start.sh\""
+    echo "to \"/sdcard/home/\"."
+    echo "You will need to do this manually."
   fi
 
   if [ ! -e $TAR_BIN ]; then
-   echo "Error:  Can't find \"tar\" anywhere."
-   echo "Make sure you're sourcing this script from the"
-   echo "same directory that contains \"tar\"."
-   echo ""
-   echo "Alternatively, you can set the \$TAR_BIN"
-   echo "environment variable to point to the \"tar\""
-   echo "executable."
+    echo "Error:  Can't find \"tar\" anywhere."
+    echo "Make sure you're sourcing this script from the"
+    echo "same directory that contains \"tar\"."
+    echo ""
+    echo "Alternatively, you can set the \$TAR_BIN"
+    echo "environment variable to point to the \"tar\""
+    echo "executable."
 
-   return 1
+    return 1
   fi
 
   case "$KBOX_TARBALL" in
@@ -95,17 +126,17 @@ kbx__init() {
   esac
 
   if [ ! -e $KBOX_TARBALL ]; then
-   echo "Error:  Cannot find file:  \"$KBOX_TARBALL\""
-   echo "Without this tar-file, this script can't"
-   echo "do ANYTHING."
-   echo ""
-   echo "Make sure you're sourcing this script from the"
-   echo "same directory containing \"$KBOX_TARBALL\"."
-   echo "Alternatively, you can set the environment"
-   echo "variable \$KBOX_TARBALL to point to the "
-   echo "\"kbox-bundle.tar.bz2\" file [or whatever you"
-   echo "might have renamed it to]."
-   return 1
+    echo "Error:  Cannot find file:  \"$KBOX_TARBALL\""
+    echo "Without this tar-file, this script can't"
+    echo "do ANYTHING."
+    echo ""
+    echo "Make sure you're sourcing this script from the"
+    echo "same directory containing \"$KBOX_TARBALL\"."
+    echo "Alternatively, you can set the environment"
+    echo "variable \$KBOX_TARBALL to point to the "
+    echo "\"kbox-bundle.tar.bz2\" file [or whatever you"
+    echo "might have renamed it to]."
+    return 1
   fi
 }
 
@@ -133,100 +164,95 @@ kbx__cfg_data_local() {
   echo -n "cp:  /sdcard/home/andterm-star.sh "
   echo "-> /data/local/bin/"
   cp /sdcard/home/andterm-star.sh /data/local/bin/ \
-      || return $?
+    || return $?
 
   echo "Setting mode:  /data/local/bin/andterm-star.sh"
   chmod 0644 /data/local/bin/andterm-star.sh \
-      || return $?
+    || return $?
 }
 
 
 kbx__extract() {
-  if [ -z "$USING_SYSTEM_TAR" ]; then
-   if [ ! -e $TARGDIR/$TAR_BIN ]; then
-    echo "Putting the package-provided \"tar\" binary"
-    echo "someplace where we can execute it."
-    cp $TAR_BIN $TARGDIR || return $?
+  local copied_tar has_err
 
-    copied_tar=y
-   fi
+  if [ -z "$USING_SYSTEM_TAR" ]; then
+    if [ ! -e $TARGDIR/$TAR_BIN ]; then
+      echo "Putting the package-provided \"tar\" binary"
+      echo "someplace where we can execute it."
+      cp $TAR_BIN $TARGDIR || return $?
+
+      copied_tar=y
+    fi
   fi
 
   echo "Changing to the target-directory."
   cd $TARGDIR || has_err=y
 
   if [ -z "$has_err" ]; then
-   echo "Unarchiving KBOX..."
-   tar -jxf $KBOX_TARBALL || has_err=y
-   echo "...Done!"
+    echo "Unarchiving KBOX..."
+    tar -jxf $KBOX_TARBALL || has_err=y
+    echo "...Done!"
   fi
 
   if [ -n "$copied_tar" ]; then
-   rm $TARGDIR/$TAR_BIN
+    rm $TARGDIR/$TAR_BIN
   fi
 
-  # We don't know that the shell supports the 'local'
-  # keyword, so we'll unset the vars we used.
-  unset copied_tar
+  [ -n "$has_err" ] && return 1
+}
 
-  # Unfortunately, we need to use the value of $has_err
-  # to determine the return-value.  Which means that we
-  # can't unset it from a central location.  :(
-  if [ -n "$has_err" ]; then
-   unset has_err
-   return 1
-  fi
 
-  unset has_err
-  return 0
+kbx__overlay_new_busybox() {
 }
 
 
 kbx__usage() {
- for l in "$@"; do
-  echo "$l"
- done
- unset l
+  local l
 
- echo ""
- echo "Usage:"
- echo "    . setup-kbox.sh defaults"
- echo "$MSG_RUN_ROOTLESS"
- echo -n "    . setup-kbox.sh --targ <targdir> "
- echo "[--pkg <tarball>]"
- echo ""
- echo "The first form uses a set of sane defaults"
- echo "[or whatever you set the environment."
- echo " variables to; see below]."
- echo ""
- echo "The second form is like the first, but it"
- echo "uses the \"/data\"-directory of the"
- echo "$MSG_JACKPAL_APP_NAME app as the"
- echo "installation directory."
- echo ""
- echo "The third form is for manually installing."
- echo ""
- echo " * '-t' is the short-form of '--targ'"
- echo " * \"<targdir>\" is where you want to install"
- echo "   the KBOX environment."
- echo " * \"<tarball>\" is the \"kbox-bundle.tar.bz2\""
- echo "   file [or whatever you might have renamed it"
- echo "   to]."
- echo ""
- echo "There are also environment variables that you"
- echo "can use to configure the installation:"
- echo "  TARGDIR"
- echo "    The installation directory"
- echo "  KBOX_TARBALL"
- echo "    The location of the \"kbox-bundle.tar.bz2\""
- echo "    file [or whatever you might have renamed it"
- echo "    to]."
- echo "Use the first form of this script if you want to"
- echo "use these environment variables instead of"
- echo "passing arguments on the commandline.  You can"
- echo "also use the second form, but it overrides the"
- echo "value of 'TARGDIR'."
- echo ""
+  for l in "$@"; do
+    echo "$l"
+  done
+  unset l
+
+  echo ""
+  echo "Usage:"
+  echo "    . setup-kbox.sh defaults"
+  echo "$MSG_RUN_ROOTLESS"
+  echo -n "    . setup-kbox.sh --targ <targdir> "
+  echo "[--pkg <tarball>]"
+  echo ""
+  echo "The first form uses a set of sane defaults"
+  echo "[or whatever you set the environment."
+  echo " variables to; see below]."
+  echo ""
+  echo "The second form is like the first, but it"
+  echo "uses the \"/data\"-directory of the"
+  echo "$MSG_JACKPAL_APP_NAME app as the"
+  echo "installation directory."
+  echo ""
+  echo "The third form is for manually installing."
+  echo ""
+  echo " * '-t' is the short-form of '--targ'"
+  echo " * \"<targdir>\" is where you want to install"
+  echo "   the KBOX environment."
+  echo " * \"<tarball>\" is the \"kbox-bundle.tar.bz2\""
+  echo "   file [or whatever you might have renamed it"
+  echo "   to]."
+  echo ""
+  echo "There are also environment variables that you"
+  echo "can use to configure the installation:"
+  echo "  TARGDIR"
+  echo "    The installation directory"
+  echo "  KBOX_TARBALL"
+  echo "    The location of the \"kbox-bundle.tar.bz2\""
+  echo "    file [or whatever you might have renamed it"
+  echo "    to]."
+  echo "Use the first form of this script if you want to"
+  echo "use these environment variables instead of"
+  echo "passing arguments on the commandline.  You can"
+  echo "also use the second form, but it overrides the"
+  echo "value of 'TARGDIR'."
+  echo ""
 }
 
 
@@ -238,49 +264,49 @@ kbx__usage() {
 coward_msg="Cowardly refusing to continue."
 
 if [ -z "$1" ]; do
- has_err=y
- kbx__usage "No arguments specified!"
+  has_err=y
+  kbx__usage "No arguments specified!"
 fi
 
 while [ -n "$1" ]; do
- case "$1" in
-  AndroidTerminal)
-   TARGDIR=$JACKPAL_DATADIR
-   ;;
+  case "$1" in
+    AndroidTerminal)
+      TARGDIR=$JACKPAL_DATADIR
+      ;;
 
-  defaults)
-   :
-   ;;
+    defaults)
+      :
+      ;;
 
-  -t|--targ)
-    if [ -z "$2" ]; then
-     has_err=y
-     kbx__usage \
-       "Option \"--targ\" requires an argument."
-    else
-     shift
-     TARGDIR="$1"
-    fi
-   ;;
+    -t|--targ)
+      if [ -z "$2" ]; then
+        has_err=y
+        kbx__usage \
+          "Option \"--targ\" requires an argument."
+      else
+        shift
+        TARGDIR="$1"
+      fi
+      ;;
 
-  --pkg)
-    if [ -z "$2" ]; then
-     has_err=y
-     kbx__usage \
-       "Option \"--pkg\" requires an argument."
-    else
-     shift
-     KBOX_TARBALL="$1"
-    fi
-   ;;
+    --pkg)
+      if [ -z "$2" ]; then
+        has_err=y
+        kbx__usage \
+          "Option \"--pkg\" requires an argument."
+      else
+        shift
+        KBOX_TARBALL="$1"
+      fi
+      ;;
 
-  *)
-   has_err=y
-   kbx__usage "Unsupported arg:  \"$1\""
-   ;;
- esac
+    *)
+      has_err=y
+      kbx__usage "Unsupported arg:  \"$1\""
+      ;;
+  esac
 
- shift
+  shift
 done
 
 
@@ -301,88 +327,88 @@ esac
 # $TARGDIR
 
 if [ -z "$has_err" -a "$UID" != 0 ]; then
- if kbx__targ_is_jackpal; then
-  :
- else
-  has_err=y
+  if kbx__targ_is_jackpal; then
+    :
+  else
+    has_err=y
 
-  echo "You cannot use \"$TARGDIR\""
-  echo "as the target directory unless you are root."
-  echo ""
-  echo "If you haven't rooted your phone,"
-  echo "1. Install the $MSG_JACKPAL_APP_NAME app [if"
-  echo "   you haven't already]."
-  echo "2. Rerun this script like so:"
-  echo "$MSG_RUN_ROOTLESS"
- fi
+    echo "You cannot use \"$TARGDIR\""
+    echo "as the target directory unless you are root."
+    echo ""
+    echo "If you haven't rooted your phone,"
+    echo "1. Install the $MSG_JACKPAL_APP_NAME app [if"
+    echo "   you haven't already]."
+    echo "2. Rerun this script like so:"
+    echo "$MSG_RUN_ROOTLESS"
+  fi
 fi
 
 # Perform setup steps.
 
 if [ -z "$has_err" ]; then
- if kbx__init; then
+  if kbx__init; then
 
-  if kbx__targ_is_data_local; then
-   kbx__cfg_data_local || has_err=y
+    if kbx__targ_is_data_local; then
+      kbx__cfg_data_local || has_err=y
+    else
+      echo "Setting mode of the \$TARGDIR so that any"
+      echo "terminal emulator app can use it."
+      chmod 0755 $TARGDIR || has_err=y
+    fi
+
+    if [ -n "$has_err" ]; then
+      echo "Failed!"
+      echo ""
+      echo "$coward_msg"
+    fi
+
   else
-   echo "Setting mode of the \$TARGDIR so that any"
-   echo "terminal emulator app can use it."
-   chmod 0755 $TARGDIR || has_err=y
+    has_err=y
+
+    echo ""
+    echo "Please fix the errors and rerun this script."
+    echo ""
+    echo "$coward_msg"
   fi
-
-  if [ -n "$has_err" ]; then
-   echo "Failed!"
-   echo ""
-   echo "$coward_msg"
-  fi
-
- else
-  has_err=y
-
-  echo ""
-  echo "Please fix the errors and rerun this script."
-  echo ""
-  echo "$coward_msg"
- fi
 fi
 
 # Now, if everything else worked, install.
 
 if [ -z "$has_err" ]; then
- if kbx__extract; then
+  if kbx__extract; then
 
-  echo ""
-  echo "Installation succeeded!"
+    echo ""
+    echo "Installation succeeded!"
 
-  echo ""
-  echo "Now, configure $MSG_JACKPAL_APP_NAME"
-  echo "so that the 'Initial Command' preference"
-  echo "contains:"
+    echo ""
+    echo "Now, configure $MSG_JACKPAL_APP_NAME"
+    echo "so that the 'Initial Command' preference"
+    echo "contains:"
 
-  if kbx__targ_is_data_local; then
-   echo "  '. /data/local/bin/andterm-star.sh'"
-   echo "or:"
+    if kbx__targ_is_data_local; then
+      echo "  '. /data/local/bin/andterm-star.sh'"
+      echo "or:"
+    fi
+    echo "  '. /sdcard/home/andterm-star.sh'"
+
+    echo "[removing the surrounding '', of course]."
+
+    echo ""
+    echo "If you're using some other terminal emulator"
+    echo "app, find the equivalent setting and modify"
+    echo "as described above.  If there is no such"
+    echo "setting, you'll have to perform the above"
+    echo "command manually each time you open a terminal."
+
+  else
+
+    echo ""
+    echo "Extraction Failed!"
+    echo ""
+    echo "Please determine the cause of the problem,"
+    echo "try to correct it, then rerun this script."
+
   fi
-  echo "  '. /sdcard/home/andterm-star.sh'"
-
-  echo "[removing the surrounding '', of course]."
-
-  echo ""
-  echo "If you're using some other terminal emulator"
-  echo "app, find the equivalent setting and modify"
-  echo "as described above.  If there is no such"
-  echo "setting, you'll have to perform the above"
-  echo "command manually each time you open a terminal."
-
- else
-
-  echo ""
-  echo "Extraction Failed!"
-  echo ""
-  echo "Please determine the cause of the problem,"
-  echo "try to correct it, then rerun this script."
-
- fi
 fi
 
 
