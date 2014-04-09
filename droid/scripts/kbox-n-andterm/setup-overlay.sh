@@ -8,8 +8,12 @@
 ####################
 
 
+keep_ANDTERM_DATA_DIR=${ANDTERM_DATA_DIR:+y}
 ANDTERM_DATA_DIR=${ANDTERM_DATA_DIR:-/data/data/jackpal.androidterm}
+
+keep_OVERLAY_HOME=${OVERLAY_HOME:+y}
 OVERLAY_HOME=${OVERLAY_HOME:-/sdcard/home}
+
 # Default value of this envvar is '':
 #UNIT_TEST=''
 
@@ -20,12 +24,6 @@ OVERLAY_HOME=${OVERLAY_HOME:-/sdcard/home}
 
 OVERLAY_TARBALL_DEFAULT="$PWD/overlay-bundle.tar.bz2"
 
-TAR_BIN=`sov__find_binary tar`
-CAT_BIN=`sov__find_binary cat`
-SED_BIN=`sov__find_binary sed`
-GREP_BIN=`sov__find_binary grep`
-BB_BIN=`sov__find_binary busybox`
-
 KBOX_STARTER_SCRIPTS="start_bash.sh start_shell.sh"
 KBOX_BASE_DIRS="kbox kbox2"
 
@@ -35,19 +33,15 @@ MSG_RUN_ROOTLESS='    . setup-overlay.sh AndroidTerminal'
 MSG_JACKPAL_APP_NAME="\"Android Terminal Emulator\""
 MSG_COWARD='Cowardly refusing to continue.'
 
-# Conditional var value:
-if [ -z "$UID" ]; then
-  ls /root >/dev/null 2>&1 && UID=0 || UID=32768
-fi
-
-# Conditional var value:
-if [ -n "$UNIT_TEST" ]; then
-  TAR_BIN="echo $TAR_BIN"
-  BB_BIN="echo $BB_BIN"
-fi
+# Placeholders; set before the call to 'sov__main_fn'
+TAR_BIN='echo !!!ERROR!!!'
+CAT_BIN='echo !!!ERROR!!!'
+SED_BIN='echo !!!ERROR!!!'
+GREP_BIN='echo !!!ERROR!!!'
+BB_BIN='echo !!!ERROR!!!'
 
 export OVERLAY_TARBALL_DEFAULT OVERLAY_HOME \
-  TAR_BIN SED_BIN GREP_BIN BB_BIN
+  TAR_BIN CAT_BIN SED_BIN GREP_BIN BB_BIN
 
 
 ########################################
@@ -1177,7 +1171,8 @@ sov__cfg_data_local() {
 }
 
 
-FIXME___sov__usage() {
+# FIXME___sov__usage()
+sov__usage() {
   local l
 
   for l in "$@"; do
@@ -1240,14 +1235,14 @@ FIXME___sov__usage() {
 ####################
 
 
-main__setup_overlay() {
+sov__main_fn() {
   # N.B.
   #
   # For some weird reason, ending this function's name
   # with 'main' causes emacs to autoindent it wrong.
   # Curious...
 
-  if [ -z "$1" ]; do
+  if [ -z "$1" ]; then
     sov__usage "No arguments specified!"
     return 4
   fi
@@ -1504,8 +1499,36 @@ main__setup_overlay() {
 }
 
 
+#----------
+#
+# Startup
+#
+#----------
+
+
+# Initialize various envvars:
+
+if [ -z "$UID" ]; then
+  ls /root >/dev/null 2>&1 && UID=0 || UID=32768
+fi
+
+
+TAR_BIN=`sov__find_binary tar`
+CAT_BIN=`sov__find_binary cat`
+SED_BIN=`sov__find_binary sed`
+GREP_BIN=`sov__find_binary grep`
+BB_BIN=`sov__find_binary busybox`
+
+if [ -n "$UNIT_TEST" ]; then
+  TAR_BIN="echo $TAR_BIN"
+  BB_BIN="echo $BB_BIN"
+fi
+
+
+#
 # Run, using args provided when this was sourced.
-main__setup_overlay "$@"
+#
+sov__main_fn "$@"
 x=$?
 
 
@@ -1516,23 +1539,31 @@ x=$?
 #-------------------
 
 unset UNIT_TEST OVERLAY_TARBALL_DEFAULT \
-  OVERLAY_HOME \
   TAR_BIN CAT_BIN SED_BIN GREP_BIN BB_BIN \
+  KBOX_BASE_DIRS KBOX_STARTER_SCRIPTS \
   CFG_TEMPLATE \
   MSG_RUN_ROOTLESS MSG_JACKPAL_APP_NAME MSG_COWARD
 
+if [ -z "$keep_ANDTERM_DATA_DIR" ]; then
+  unset ANDTERM_DATA_DIR
+fi
+if [ -z "$keep_OVERLAY_HOME" ]; then
+  unset OVERLAY_HOME
+fi
+unset keep_ANDTERM_DATA_DIR keep_OVERLAY_HOME
+
 unset -f sov__maybe_mkdir sov__find_binary \
-  sov__backup_targfile sov__extract_overlay \
-  sov__tweak_kbox_starter sov__resolve_path \
-  sov__tweak_andterm_start sov__overlay_new_busybox \
+  sov__resolve_path sov__getmode \
   sov__has_non_jackpal_targ sov__targAlias2Dirs \
   sov__cfg_data_local sov__has_data_local \
   sov__chkGetArg sov__check_extract \
+  sov__has_kbox_starter sov__tweak_kbox_starter \
+  sov__backup_targfile sov__extract_overlay \
+  sov__update_files \
+  sov__tweak_andterm_start sov__overlay_new_busybox \
   sov__faux_recurse_fix_modes \
-  sov__init main__setup_overlay
-
-
-unset -f FIXME___sov__usage
+  sov__init sov__usage \
+  sov__main_fn
 
 
 # 'x' is the one variable that we can't get rid of, as
