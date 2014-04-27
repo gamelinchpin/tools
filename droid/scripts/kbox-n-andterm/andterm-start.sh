@@ -69,33 +69,44 @@ SCAN_DIRS="/sdcard/ext /data/sdext2/base.dir"
 ############
 
 
-PATH=/data/local/bin:$PATH
-export PATH
+if [ -d /data/local/bin ]; then
+  PATH=/data/local/bin:$PATH
+  export PATH
+fi
 
 
 # Include the user's preferred location.
-for d in /data/local/kbox /data/local /sd-ext \
-  /system/sd /data/sdext2 $SCAN_DIRS \
-  /data/data/jackpal.androidterm/kbox \
-  /data/data/jackpal.androidterm
+for d in /data/local /sd-ext /system/sd /data/sdext2 \
+  $SCAN_DIRS /data/data/jackpal.androidterm
 do
   if [ -d $searchDirs ]; then
     searchDirs="$searchDirs $d"
+  fi
+  if [ -d $searchDirs/kbox ]; then
+    searchDirs="$searchDirs $d/kbox"
+  fi
+  if [ -d $searchDirs/kbox2 ]; then
+    searchDirs="$searchDirs $d/kbox2"
   fi
 done
 
 
 # Look in '$ENV_DIR' first, then continue the scan if
 # that fails.
-for d in $ENV_DIR $searchDirs; do
-  # Make sure we don't end up looking in "${foo}/etc/etc":
-  d=${d%/etc}
+if [ -e $ENV_DIR/profile ]; then
+  etc_profile=$ENV_DIR/profile
+else
+  for d in $ENV_DIR $searchDirs; do
+    # Make sure we don't end up looking in
+    # "${foo}/etc/etc":
+    d=${d%/etc}
 
-  if [ -e $d/etc/profile ]; then
-    etc_profile=$d/etc/profile
-    break
-  fi
-done
+    if [ -e $d/etc/profile ]; then
+      etc_profile=$d/etc/profile
+      break
+    fi
+  done
+fi
 
 if [ -n "$etc_profile" ]; then
   ENV="$etc_profile"
@@ -103,14 +114,30 @@ if [ -n "$etc_profile" ]; then
 fi
 
 
-# Find the directory containing the requested shell
-for d in $searchDirs; do
-  if [ -e $d/bin/$SHELL0 ]; then
-    SHELL_DIR=$d/bin
-    break
-  fi
-done
-# Check for any built-in version of 'bash' & 'ash'.
+# Make sure 'SHELL0' is set to *something*:
+[ -z "$SHELL0" ] && SHELL0='not_a_real_shell'
+
+# Find the directory containing the requested shell.
+if [ -z "$SHELL_DIR" ]; then
+  # ...but only if the user didn't specify a valid
+  # location for one in the config-section.
+
+  for d in $searchDirs; do
+    if [ -e $d/bin/$SHELL0 ]; then
+      SHELL_DIR=$d/bin
+      break
+    fi
+  done
+
+elif [ ! -e $SHELL_DIR/$SHELL0 ]
+  # The configured shell directory doesn't contain the
+  # desired shell.  Force-trigger one of the fallback
+  # scans.
+  SHELL_DIR=''
+
+fi
+
+# Fallback:  Check for any built-in version of 'bash' & 'ash'.
 if [ -z "$SHELL_DIR" -a "$SHELL0" != "kbox_shell" ]; then
   for d in /system/xbin /system/bin; do
     if [ -e $d/$SHELL0 ]; then
@@ -134,7 +161,10 @@ if [ "$SHELL0" = "bash" ]; then
 
     if [ -n "$bash_is_bb" ]; then
       # We found 'bash', but it's a symlink to busybox.
-      # Perform the fallback-scan.
+      # Which means that it's part of a KBOX
+      # installation, not a standalone 'bash'
+      # executable.  So, force the fallback-scan [which
+      # looks for 'kbox_shell' first].
       SHELL_DIR=''
     else
       # Set this envvar, which we'll use when we start the shell
@@ -154,7 +184,7 @@ fi
 
 if [ -z "$SHELL_DIR" ]; then
   # We didn't find the preferred shell.
-  # Perform a fallback-scan:
+  # Perform a fallback-scan to find *some* shell:
 
   for f in kbox_shell ash; do
     for d in $searchDirs; do

@@ -335,12 +335,13 @@ sov__getmode() {
 sov__targAlias2Dirs() {
   local targAlias="$1"
   shift
-  local noKboxSubdirs="$1"
+  local doTargExpansion="$1"
 
   local targDirBase
 
   case "$targAlias" in
     [jJ]ackpal|[Aa]nd*[-_.][Tt]erm*|[Aa]nd*[Tt]erm)
+      doTargExpansion=y
       targDirBase=$ANDTERM_DATA_DIR
       ;;
 
@@ -364,56 +365,68 @@ sov__targAlias2Dirs() {
       ;;
 
     --help)
-      echo "Aliases for installation/overlay targets:"
-      echo ""
-      echo "Jackpal"
-      echo "AndroidTerminal"
-      echo "AndroidTerm"
-      echo "AndTerm"
-      echo "    $ANDTERM_DATA_DIR"
-      echo ""
-      echo "sd2"
-      echo "sdext"
-      echo "sd-ext"
-      echo "    One of the usual mount points for"
-      echo "    the 2nd partition of your SD card."
-      echo "    [There are several; the first one"
-      echo "     found is the one used.]"
-      echo ""
-      echo "local"
-      echo "data-local"
-      echo "    /data/local"
-      echo ""
-      echo "xmount"
-      echo "    The directory, '/sdcard/ext' ... *if*"
-      echo "    you're using it as a cross-mount for"
-      echo "    the 2nd partition of your SD card."
-      echo ""
-      echo "You can lowercase any capital letters in any"
-      echo "of the aliases.  You can also put a '-' '_'"
-      echo "or '.' between each word [i.e. before the"
-      echo "capital letter or in place of the '-' in the"
-      echo "aliases shown above]."
+      echo "  Jackpal"
+      echo "  AndroidTerminal"
+      echo "  AndroidTerm"
+      echo "  AndTerm"
+      echo "      $ANDTERM_DATA_DIR"
+      echo "  "
+      echo "  sd2"
+      echo "  sdext"
+      echo "  sd-ext"
+      echo "      One of the usual mount points for"
+      echo "      the 2nd partition of your SD card."
+      echo "      [There are several; the first one"
+      echo "       found is the one used.]"
+      echo "  "
+      echo "  local"
+      echo "  data-local"
+      echo "      /data/local"
+      echo "  "
+      echo "  xmount"
+      echo "      The directory, '/sdcard/ext' ... *if*"
+      echo "      you're using it as a cross-mount for"
+      echo "      the 2nd partition of your SD card."
+      echo "  "
+      echo "  You can lowercase any capital letters in"
+      echo "  any of the aliases.  You can also put a"
+      echo "  '-' '_' or '.' between each word [i.e."
+      echo "  before the capital letter or in place of"
+      echo "  the '-' in the aliases shown above]."
+      return 0
+      ;;
+
+    -*)
+      echo "!!! Not a valid target or alias:" 1>&2
+      echo "!!!     \"$targAlias\"" 1>&2
+      echo "!!! Ignoring..." 1>&2
+      echo "!!!" 1>&2
+      return 1
       ;;
 
     *)
-      echo $1
+      echo $targAlias
       return 0
       ;;
   esac
 
-  local targs
-  if [ -d $targDirBase ]; then
-    targs="$targs${targs:+ }$targDirBase"
-  fi
+  local targs kd
+  if [ -n "$doTargExpansion" ]; then
 
-  local kd
-  if [ -z "$noKboxSubdirs" ]; then
+    if [ "$doTargExpansion" = "all" ]; then
+      if [ -e $targDirBase/bin ]; then
+        targs="$targs${targs:+ }$targDirBase"
+      fi
+    fi
+
     for kd in $KBOX_BASE_DIRS; do
       if [ -d $targDirBase/$kd ]; then
         targs="$targs${targs:+ }$targDirBase/$kd"
       fi
     done
+
+  elif [ -d $targDirBase ]; then
+    targs="$targs${targs:+ }$targDirBase"
   fi
 
   if [ -z "$targs" ]; then
@@ -630,7 +643,7 @@ sov__update_files() {
     return 2
   fi
 
-  # Split out and verify the targed directory:
+  # Split out and verify the target directory:
 
   local targSubdir="${srcTargSpec##*:}"
   if [ -n "$targSubdir" ]; then
@@ -1110,8 +1123,10 @@ sov__init() {
   # Do some config in the Android Terminal area:
   local kbox_d
   if [ -d $ANDTERM_DATA_DIR ]; then
-    echo "Setting mode of $ANDTERM_DATA_DIR so that"
-    echo "any terminal emulator app can access it."
+    echo "Setting mode of"
+    echo "  $ANDTERM_DATA_DIR"
+    echo "...so that any terminal emulator app can "
+    echo "access it."
     chmod_v 0755 $ANDTERM_DATA_DIR || return $?
 
     # Now we'll also fix the modes of the common places
@@ -1171,8 +1186,7 @@ sov__cfg_data_local() {
 }
 
 
-# FIXME___sov__usage()
-sov__usage() {
+sov__printUsage() {
   local l
 
   for l in "$@"; do
@@ -1180,53 +1194,353 @@ sov__usage() {
   done
   unset l
 
-  # Various stuff about usage:
-  #
-  # 1. Each --targ will also be checked for a 'kbox' or
-  #    'kbox2' subdir(s) and also add those as targets
-  #    if found.
-  #    [I may need to change this.]
-  #
-  # 2. The --ast target, if '/data/local' will actually
-  #    be changed to '/data/local/bin'
-  #
-  # 3. If --ast target list omits '/data/local', a
-  #    default startup using 'ash' will be put in place
-  #    [if no such script exists.  Hmm... should be an option...
-  #
-  # 4. Use the '--update' task only to deploy
-  #    spot-fixes.  It'll force-use '0644' unless you
-  #    specify a '.perms..*' file.
-
   echo ""
   echo "Usage:"
-  echo "    . setup-kbox.sh defaults"
-  echo "$MSG_RUN_ROOTLESS"
-  echo -n "    . setup-kbox.sh --targ <targdir> "
-  echo "[--pkg <tarball>]"
+  echo -n "    . setup-kbox.sh <Options> [--] "
+  echo "[<targ> \\"
+  echo "          [<targ> ...]]"
   echo ""
-  echo "The first form uses a set of sane defaults"
-  echo "[or whatever you set the environment."
-  echo " variables to; see below]."
+  echo "You MUST source this file."
   echo ""
-  echo "The second form is like the first, but it"
-  echo "uses the \"/data\"-directory of the"
-  echo "$MSG_JACKPAL_APP_NAME app as the"
-  echo "installation directory."
+  echo "[In fact, it's designed to be sourced, so that"
+  echo " you can use it from anywhere on the"
+  echo " '/sdcard'.]"
   echo ""
-  echo "The third form is for manually installing."
   echo ""
-  echo " * '-t' is the short-form of '--targ'"
-  echo " * \"<targdir>\" is where you want to install"
-  echo "   the KBOX environment."
-  echo -n " * \"<tarball>\" is the "
-  echo "\"overlay-bundle.tar.bz2\""
-  echo "   file [or whatever you might have renamed it"
-  echo "   to]."
+
+  echo "You can specify targets:"
+  echo "  1) Using the '--targ' option;"
+  echo "  2) As positional parameters after the options"
+  echo "     [or even mixed in with them];"
+  echo "  3) After a '--'."
+  echo "Everything after a '--' that looks like an"
+  echo "option is ignored [and generates a warning]."
   echo ""
+  echo ""
+
+  echo "<Options>"
+  echo ""
+  echo "You can replace the '-' in [almost] all of the"
+  echo "options.  So, the option '--ix-wai' is"
+  echo "equivalent to '--ix_wai' and '--ixWai'."
+
+  echo ""
+  echo "Certain options de/activate actions performed"
+  echo "by this script.  There's a \"default action\""
+  echo "that's activated unless explicitly disabled:"
+  echo "installing the \"overlay-tarball\" to KBox"
+  echo "environments (or other target directories)."
+
+  echo ""
+  echo "--overlay-tarball <file>"
+  echo "  [Alternates:  '-o', '-p', '--pkg',"
+  echo "   '--tarball', '--overlay']"
+  echo "  [Default:  \"$OVERLAY_TARBALL_DEFAULT\"]"
+  echo "    The tarball containing the files to overlay"
+  echo " atop a KBox environment, or any other 'etc'"
+  echo " subdirectory. "
+  echo "    '<file>' is the name of the bzip2-"
+  echo " compressed tar-archive containing the overlay."
+  echo " The *entire* contents of '<file>' will be"
+  echo " extracted to a central location (currently"
+  echo " \"$OVERLAY_HOME\", but"
+  echo " customizable using an environment variable;"
+  echo " see below).  Only the 'etc/*' files are"
+  echo " extracted to the other targets, however."
+
+  echo ""
+  echo "--no-overlay-tarball"
+  echo "  [Alternates:  '+o', '--no-overlay']"
+  echo "  [Default:  N/A]"
+  echo "    An action.  Disables extracting the overlay"
+  echo " tarball."
+  echo "    Use this when you have no overlay tarball"
+  echo " to extract, or you've already installed the"
+  echo " one you have."
+
+  echo ""
+  echo "--update <updtSpec>"
+  echo "  [Alternates:  '-u']"
+  echo "  [Default:  N/A]"
+  echo "    An action.  Update a file (or files), using"
+  echo " the instructions in the '<updtSpec>'."
+  echo "    Automatically adds the '--no-overlay-tarball'"
+  echo " option."
+  echo "    You can specify this action only once."
+  echo "    This action is an alternative to installing"
+  echo " an entire \"overlay-tarball\".  Use it when"
+  echo " you only have a specific file to install."
+  echo " This is why using it also acts like the"
+  echo " '--no-overlay-tarball' option."
+  echo "    The argument that you pass to \"--update\""
+  echo " is more than just a filename.  '<updtSpec>'"
+  echo " has one of the following forms:"
+  echo "     <file2updt>:<targSubdir>"
+  echo "     <srcDir>:<targSubdir>"
+  echo " In all forms, '<targSubdir>' is a subdirectory"
+  echo " of EVERY target you've put on the commandline."
+  echo " (See the '--targ' option, below.)  It MUST"
+  echo " exist under *every* target, or this script"
+  echo " will abort.  The file(s) being updated are"
+  echo " copied to all of these subdirectories."
+  echo " In the first form, you are copying a single"
+  echo " file, '<file2updt>', which can be anything"
+  echo " except a directory.  In the second form, every"
+  echo " *plain* file in the directory, '<srcDir>', is"
+  echo " copied.  If '<srcDir>' is a relative path, it"
+  echo " will be looked for under \"$OVERLAY_HOME\"."
+  echo "    The permissions of all of the copied files"
+  echo " will be '0644' (equivalent to 'u=rw,go=r')."
+  echo " If, however, you need one of the source-files"
+  echo " to have different permissions, you can use a"
+  echo " special \"mode-file\", a file containing only"
+  echo " the *octal* permissions that the copied file"
+  echo " should have.  A file's \"mode-file\" follows"
+  echo " a special naming convention:"
+  echo "     <dir>/.perms..<filename>"
+  echo " ...where '<dir>/<filename>' is the file whose"
+  echo " permissions you're specifying."
+  echo " In short:  if you need to give '<sppfile>'"
+  echo " special permissions, put the octal permissions"
+  echo " in a file named '..perms..<sppfile>' in the"
+  echo " same directory as '<sppfile>'."
+
+  echo ""
+  echo "--busybox <newBBFile>"
+  echo "  [Alternates:  '-b']"
+  echo "  [Default:  N/A]"
+  echo "    "
+  echo ""
+  echo ""
+  echo ""
+  echo ""
+  echo ""
+  echo "  [no default; does nothing if omitted]"
+
+  echo ""
+  echo "--kbox"
+  echo "  [Alternates:  '-k']"
+  echo "  [Default:  N/A]"
+  echo "    "
+  echo ""
+  echo ""
+  echo ""
+  echo ""
+  echo ""
+  echo ""
+  echo ""
+  echo ""
+  echo ""
+
+  echo ""
+  echo "--andterm-start-targ <pathOrAlias>"
+  echo "  [Alternates:  '--atst']"
+  echo "  [Default:  N/A]"
+  echo "    An action.  Installs the \"andterm-start.sh\""
+  echo " script to one or more target paths."
+  echo "    You can pass this option more than once to"
+  echo " install to multiple locations at once."
+  echo "    '<pathOrAlias>' should be either an alias,"
+  echo " or the base path.  The valid aliases are"
+  echo " listed below, under the usage for the '--targ'"
+  echo " option.  There are two special aliases:"
+  echo " 'local' and '/data/local'.  Both are converted"
+  echo " to '/data/local/bin'.  If the directory"
+  echo " '/data/local/bin' doesn't exist, it will be"
+  echo " created."
+  echo "    If this option isn't specified at least"
+  echo " once, the options '--default-shell',"
+  echo " '--default-etc-dir', and '--shell-dir' are"
+  echo " ignored."
+
+  echo ""
+  echo "--default-shell <shellName>"
+  echo "  [Alternates:  '-s', '--shell']"
+  echo "  [Default:  \"ash\"]"
+  echo "    Which shell \"andterm-start.sh\" should"
+  echo " run."
+  echo "    Should be the name of a shell on your"
+  echo " phone, not its full path.  To specify the"
+  echo " shell's path, use the \"--shell-dir\" option"
+  echo " (see below).  Otherwise, \"andterm-start.sh\""
+  echo " will scan several directories for the first"
+  echo " executable named '<shellName>'.  To use the"
+  echo " KBOX environment instead of directly running"
+  echo " a shell, use \"kbox_shell\" as the"
+  echo " '<shellName>'."
+  echo "    Used only by \"--andterm-start-targ\";"
+  echo " ignored if that option's not passed."
+
+  echo ""
+  echo "--default-etc-dir <path>"
+  echo "  [Alternates:  '-e', '--etc-dir'"
+  echo "   Note:  lowercase-only on this option"
+  echo "   and its variants]"
+  echo "    Where \"andterm-start.sh\" should look for"
+  echo " a \"profile\" to pass to the shell."
+  echo "    '<path>' is a directory containing the file"
+  echo " named \"profile\" or \"etc/profile\"."
+  echo " If you omit this option, \"andterm-start.sh\""
+  echo " does its default behavior:  it scans for a"
+  echo " directory containing \"etc/profile\"."
+  echo "    Used only by \"--andterm-start-targ\";"
+  echo " ignored if that option's not passed."
+
+  echo ""
+  echo "--shell-dir <path>"
+  echo "  [Alternates:  '--sd']"
+  echo "    The directory containing the shell that"
+  echo " \"andterm-start.sh\" should run."
+  echo "    Use this option to explicitly specify the"
+  echo " directory containing the '<shellName>' you"
+  echo " passed to the \"--default-shell\" option."
+  echo " If you omit this option, \"andterm-start.sh\""
+  echo " does its default behavior:  it scans several"
+  echo " directories for the shell."
+  echo "    Used only by \"--andterm-start-targ\";"
+  echo " ignored if that option's not passed."
+
+  echo ""
+  echo "--install-default-andterm-start"
+  echo "  [Alternates:  '--idats']"
+  echo "  [Default:  N/A]"
+  echo "    Special action, equivalent to running this"
+  echo " script as:"
+  echo "    . setup-kbox.sh --no-overlay-tarball \\"
+  echo "        --andterm-start-targ local"
+  echo " ...then rerunning the script with all of the"
+  echo " other options you wanted to use."
+  echo "    The result of using this option is an"
+  echo " '/data/local/bin/andterm-start.sh' script that:"
+  echo " (A) Runs the first 'ash' executable it can"
+  echo " find; and (B) Scans for a '*/etc/profile to"
+  echo " use on startup of 'ash'.  Why do this?  It"
+  echo " gives you a way of starting up a more "
+  echo " full-featured shell after becoming root."
+  echo " (What, you thought you could put something in"
+  echo " '/data/local/' on an unrooted phone?)"
+
+  echo ""
+  echo "--targ <pathOrAlias>"
+  echo "  [Alternates:  '-t']"
+  echo "  [Default:  none; required]"
+  echo "    Where to write the overlay or update"
+  echo " files."
+  echo "    You can pass this option more than once to"
+  echo " overlay/update to multiple locations at once."
+  echo "    '<pathOrAlias>' should be either an alias,"
+  echo " or the base path.  If a path, it must contain"
+  echo " an 'etc/' subdirectory (and possibly should"
+  echo " have a 'bin/' one, too).  Aliases are describe"
+  echo " below."
+  echo "    Any positional-parameters behave the same"
+  echo " as using this option."
+  echo "    There is an \"implicit target\" added to"
+  echo " the list of '--targ's.  It's currently"
+  echo " \"$OVERLAY_HOME\", but"
+  echo " can be changed using an environment variable."
+  echo " (See below.)  It's _only_ added if you don't"
+  echo " use the '-update' or '-no-overlay-tarball'"
+  echo " options."
+  echo " -=-=-=-=-"
+  echo "    The valid aliases, and the paths they"
+  echo " represent, are:"
+  sov__targAlias2Dirs --help
+  echo " -=-=-=-=-"
+  echo "    The 'AndroidTerminal' alias [and its"
+  echo " equivalents] always undergoes \"target"
+  echo " expansion\", as described below."
+
+  echo ""
+  echo "--targ-expansion"
+  echo "  [Alternates:  '-x', '--targ-xpansion']"
+  echo "  [Default:  N/A]"
+  echo "    An action.  Enables \"target expansion\" of"
+  echo " aliases in all '--targ's following it on the"
+  echo " commandline."
+  echo "    As a convenience, the path that each target"
+  echo " alias expands to is checked for the subdirs:"
+  echo "    $KBOX_BASE_DIRS"
+  echo " If it has any of these subdirs, those are"
+  echo " added to the list of targets along with the"
+  echo " path that the alias expanded to."
+  echo "    Target expansion is always enabled for the"
+  echo " 'AndroidTerminal' alias [and its alternate"
+  echo " forms].  This is as a convenience, since the"
+  echo " KBox environment *usually* sits in a"
+  echo " subdirectory under Android Terminal's '/data'"
+  echo " directory.  You can always explicitly specify"
+  echo " \"$ANDTERM_DATA_DIR\""
+  echo " directly as a target if you don't want to use"
+  echo " expansion."
+
+  echo ""
+  echo "--targ-conversion"
+  echo "  [Alternates:  '-C']"
+  echo "  [Default:  N/A]"
+  echo "    An action.  Nearly identical to"
+  echo " '--targ-expansion', but only adds the"
+  echo " subdirectories, omitting the target"
+  echo " aliases passed on the commandline."
+
+  echo ""
+  echo "--no-targ-expansion"
+  echo "  [Alternates:  '+X', '--no-targ-xpansion',"
+  echo "   '+C', '--no-targ-conversion']"
+  echo "  [Default:  N/A]"
+  echo "    An action.  Turns off \"target expansion\""
+  echo " and conversion.  Provided for convenience (so"
+  echo " that you con't have to rearrange your"
+  echo " commandline any time you use '-X' or '-C')."
+
+  echo ""
+  echo "There is one additional option for ease of"
+  echo "maintenance, '--make-overlay-bundle-tarball'."
+  echo "Ignore it unless you already know what it's"
+  echo "for."
+
+  echo ""
+  echo ""
+
   echo "There are also environment variables that you"
   echo "can use to configure the installation:"
+
   echo ""
+  echo "   OVERLAY_HOME"
+  echo "      [Current:  \"$OVERLAY_HOME\"]"
+  echo "   A directory.  It serves two purposes:"
+  echo "   1) The central location where the *entire*"
+  echo "      overlay tarball is extracted."
+  echo "   2) The base-directory used by the"
+  echo "      \"--update\" option when passed a"
+  echo "      relative-path for a '<srcDir>'."
+
+  echo ""
+  echo "   ANDTERM_DATA_DIR"
+  echo "      [Current:  \"$ANDTERM_DATA_DIR\"]"
+  echo "   The \"/data/data\" directory of the popular"
+  echo "   'Android Terminal Emulator' app.  You'll"
+  echo "   only need to tweak this if you've done some"
+  echo "   extensive customization, or if the 'Android"
+  echo "   Terminal Emulator' app changes its name"
+  echo "   and this script hasn't been updated yet."
+}
+
+
+sov__usage() {
+  local thePager=`sov__find_binary less`
+  if [ $? -ne 0 ]; then
+    thePager=`sov__find_binary more`
+    if [ $? -ne 0 ]; then
+      thePager=''
+    fi
+  fi
+
+  if [ -z "$thePager" ]; then
+    sov__printUsage "$@"
+  else
+    sov__printUsage "$@" 2>&1 | $thePager
+  fi
 }
 
 
@@ -1253,7 +1567,7 @@ sov__main_fn() {
   local updateFromTo
   local targList andtermStartTargs
   local hasNonAndTermTarg newBusybox
-  local tweak_kbox
+  local tweak_kbox xpandTargs
   local installDefault_andterm_start
 
   local fullOpt rawVal xlated
@@ -1264,7 +1578,7 @@ sov__main_fn() {
         return 0
         ;;
 
-      -s|--shell|--default*hell)
+      -s|--shell|--default[-_]shell|--defaultShell)
         shift
         fullOpt=default-shell
         default_shell=`sov__chkGetArg $fullOpt "$1"`
@@ -1280,7 +1594,7 @@ sov__main_fn() {
           || return $?
         ;;
 
-      --sd|--shell*ir)
+      --sd|--shell[-_]dir|--shellDir)
         shift
         fullOpt=shell-dir
         dir_explicitShell=`sov__chkGetArg \
@@ -1301,7 +1615,7 @@ sov__main_fn() {
           || return $?
         ;;
 
-      +o|--no-[oO]verlay*)
+      +o|--no[-_]overlay*|--noOverlay*)
         overlayTarball=''
         ;;
 
@@ -1317,7 +1631,7 @@ sov__main_fn() {
         tweak_kbox='y'
         ;;
 
-      --idats|--install*efault[-_][aA]ndterm*tart)
+      --idats|--install*efault*ndterm*tart)
         installDefault_andterm_start='y'
         ;;
 
@@ -1327,10 +1641,26 @@ sov__main_fn() {
         rawVal=`sov__chkGetArg $fullOpt "$1"` \
           || return $?
 
-        xlated=`sov__targAlias2Dirs "$rawVal" y`
+        xlated=`sov__targAlias2Dirs "$rawVal"`
         if [ $? -eq 0 ]; then
           andtermStartTargs="$andtermStartTargs $xlated"
         fi
+        ;;
+
+      -C|--targ*onversion)
+        xpandTargs=y
+        ;;
+
+      -X|--full[-_]targ*xpansion|--fullTarg*xpansion)
+        xpandTargs=all
+        ;;
+
+      +[CX])
+        xpandTargs=''
+        ;;
+
+      --no[-_]targ[-_CEX]*sion|--noTarg[-_CEX]*sion)
+        xpandTargs=''
         ;;
 
       -t|--targ)
@@ -1347,15 +1677,50 @@ sov__main_fn() {
         # through [in the '*' case].
         ;;
 
+      --make-overlay-bundle-tarball)
+        tar --exclude=\*.svn\* \
+          --exclude=scripts/kbox-n-andterm \
+          -C ~/src/sh.scripts/droid/ \
+          -acvf utest/overlay-bundle.tar.bz2 \
+          etc scripts shell
+        if [ $? -ne 0 ]; then
+          echo ""
+          echo ""
+          echo "The '--make-overlay-bundle-tarball'"
+          echo "option should not be used on an"
+          echo "Android system.  It's meant for running"
+          echo "on a development desktop."
+          echo ""
+          return 1
+        fi
+        ;;
+
       -*|+*)
-        sov__usage "Unsupported option:  \"$1\""
+       sov__usage "Unsupported option:  \"$1\""
         return 4
         ;;
 
+      --)
+        # Consume all remaining args.
+        shift
+        while [ -n "$1" ]; do
+          xlated=`sov__targAlias2Dirs "$1" $xpandTargs`
+          if [ $? -eq 0 ]; then
+            if sov__has_non_jackpal_targ $xlated; then
+              hasNonAndTermTarg='y'
+            fi
+
+            targList="$targList $xlated"
+          fi
+
+          shift
+        done
+        ;;
+
       *)
-        xlated=`sov__targAlias2Dirs "$1"`
+        xlated=`sov__targAlias2Dirs "$1" $xpandTargs`
         if [ $? -eq 0 ]; then
-          if sov__non_jackpal_targ $xlated; then
+          if sov__has_non_jackpal_targ $xlated; then
             hasNonAndTermTarg='y'
           fi
 
@@ -1381,11 +1746,15 @@ sov__main_fn() {
     return 1
   fi
 
+  if [ "$UNIT_TEST" = "opts-only" ]; then
+    set | less
+    return 0
+  fi
 
   # Check that we're running as root depending on the
   # target directories.
   local needs_root
-  if [ "$UID" != 0 ]; then
+  if [ "$UID" != 0 -o -z "$UNIT_TEST" ]; then
     sov__has_non_jackpal_targ $targList && needs_root=y
 
     if [ -n "$andtermStartTargs" ]; then
@@ -1562,13 +1931,14 @@ unset -f sov__maybe_mkdir sov__find_binary \
   sov__update_files \
   sov__tweak_andterm_start sov__overlay_new_busybox \
   sov__faux_recurse_fix_modes \
-  sov__init sov__usage \
+  sov__init sov__printUsage sov__usage \
   sov__main_fn
 
 
 # 'x' is the one variable that we can't get rid of, as
 # it contains the 'exit' status of this sourced script.
 return $x
+
 
 ####################
 # End
