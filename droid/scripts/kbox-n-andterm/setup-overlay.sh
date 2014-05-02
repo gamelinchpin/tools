@@ -24,6 +24,8 @@ OVERLAY_HOME=${OVERLAY_HOME:-/sdcard/home}
 
 OVERLAY_TARBALL_DEFAULT="$PWD/overlay-bundle.tar.bz2"
 
+KA_TOOLS_SUBDIR=scripts/kbox-n-andterm
+KBOX_CUSTOM_STARTER="$OVERLAY_HOME/$KA_TOOLS_SUBDIR/start_bash.sh"
 KBOX_STARTER_SCRIPTS="start_bash.sh start_shell.sh"
 KBOX_BASE_DIRS="kbox kbox2"
 
@@ -335,13 +337,13 @@ sov__getmode() {
 sov__targAlias2Dirs() {
   local targAlias="$1"
   shift
-  local doTargExpansion="$1"
+  local extendedAliasTargs="$1"
 
   local targDirBase
 
   case "$targAlias" in
     [jJ]ackpal|[Aa]nd*[-_.][Tt]erm*|[Aa]nd*[Tt]erm)
-      doTargExpansion=y
+      extendedAliasTargs=y
       targDirBase=$ANDTERM_DATA_DIR
       ;;
 
@@ -411,9 +413,9 @@ sov__targAlias2Dirs() {
   esac
 
   local targs kd
-  if [ -n "$doTargExpansion" ]; then
+  if [ -n "$extendedAliasTargs" ]; then
 
-    if [ "$doTargExpansion" = "all" ]; then
+    if [ "$extendedAliasTargs" = "all" ]; then
       if [ -e $targDirBase/bin ]; then
         targs="$targs${targs:+ }$targDirBase"
       fi
@@ -483,12 +485,18 @@ sov__tweak_andterm_start() {
     theTarg=${theTarg}/${theScript##*/}
   fi
 
-  # FIXME:  Add verbose error messages, including
-  # modification start/stop:
+  echo "Creating custom \"andterm-start.sh\"..."
 
   $SED_BIN $sed_cmds $theScript | \
-    $GREP_BIN -v "$CFG_TEMPLATE" >$theTarg \
-    || return $?
+    $GREP_BIN -v "$CFG_TEMPLATE" >$theTarg
+  local sed_grep_stat=$?
+  if [ $sed_grep_stat -ne 0 ]; then
+    echo "Failed to create/customize startup script:"
+    echo "  \"$theTarg\""
+    return $sed_grep_stat
+  fi
+
+  echo "...done."
 
   chmod_v 0644 $theTarg
 }
@@ -732,6 +740,15 @@ sov__tweak_kbox_starter() {
   shift
   local targdirBase="$1"
   shift
+
+  # Special Case:  Do nothing if the replacement startup
+  # script can't be found.
+  if [ ! -e $nuShellStarter ]; then
+    echo "Can't find customized KBox starter:"
+    echo "    $nuShellStarter"
+    echo "Skipping..."
+    return 0
+  fi
 
   local f tf dtf
   for f in $KBOX_STARTER_SCRIPTS; do
@@ -1232,6 +1249,7 @@ sov__printUsage() {
   echo "environments (or other target directories)."
 
   echo ""
+  echo ""
   echo "--overlay-tarball <file>"
   echo "  [Alternates:  '-o', '-p', '--pkg',"
   echo "   '--tarball', '--overlay']"
@@ -1258,6 +1276,7 @@ sov__printUsage() {
   echo " to extract, or you've already installed the"
   echo " one you have."
 
+  echo ""
   echo ""
   echo "--update <updtSpec>"
   echo "  [Alternates:  '-u']"
@@ -1306,32 +1325,83 @@ sov__printUsage() {
   echo " same directory as '<sppfile>'."
 
   echo ""
+  echo ""
   echo "--busybox <newBBFile>"
   echo "  [Alternates:  '-b']"
   echo "  [Default:  N/A]"
-  echo "    "
-  echo ""
-  echo ""
-  echo ""
-  echo ""
-  echo ""
-  echo "  [no default; does nothing if omitted]"
+  echo "    An action.  Replace an existing BusyBox"
+  echo " binary with a new version."
+  echo "    Installs '<newBBFile>' to 'bin'"
+  echo " subdirectory of each target path.  Targets"
+  echo " without a 'bin' subdir are ignored."
+  echo " \"Installation\" contains these steps, all of"
+  echo " which occur in the 'bin' subdirectory:"
+  echo " + '<newBBFile>' has its version appended to it"
+  echo "   before being copied."
+  echo " + Append the version of the existing 'busybox'"
+  echo "   to its name (if it's not a symlink to a"
+  echo "   versioned 'busybox' already)."
+  echo "   Create a 'busybox' symlink to '<newBBFile>'."
+  echo " + Fix links to 'busybox' that were tools"
+  echo "   in the old version, but don't exist in the"
+  echo "   new one.  (Point them at the versioned"
+  echo "   name.)"
+  echo " + Create any missing paths (under the target"
+  echo "   path, not the 'bin' subdir) shown in the"
+  echo "   output of '<newBBFile> --list-full'."
+  echo " + Create links for the tools in '<newBBFile>'"
+  echo "   but not the old version.  (Preserves the"
+  echo "   tool's specified subdirs.)"
+  echo " + Check subdirs other than 'bin' for links"
+  echo "   to the 'busybox' symlink.  If they're tools"
+  echo "   that don't exist in the new version, remove"
+  echo "   them."
 
+  echo ""
+  echo "--no-busybox-paths"
+  echo "  [Alternates:  '+P',]"
+  echo "  [Default:  N/A]"
+  echo "    Disable creation of missing BusyBox"
+  echo " subdirs, if supported"
+  echo "    BusyBox contains both a '--list' and a"
+  echo " '--list-full' option.  The former lists all of"
+  echo " the tools supported by that version of"
+  echo " BusyBox.  The latter *usually* lists all of"
+  echo " the tools prepended by a directory.  One could"
+  echo " use the latter to create tool-symlinks to the"
+  echo " 'busybox' binary *in* those directories.  The"
+  echo " '--busybox' action supports this."
+  echo "    If, however, you use this option. the"
+  echo " '--busybox' action won't create those"
+  echo " directories.  Any new tools in the new Busybox"
+  echo " will, therefore, be put into the \"bin\""
+  echo " subdir of the target path."
+  echo "    Some versions of BusyBox actually treat"
+  echo " '--list-full' as identical to '--list'.  As a"
+  echo " result, all of the tools in this version will"
+  echo " be created in \"bin\", and any duplicate"
+  echo " symlinks in other subdirs will be removed."
+  echo " Bear this in mind."
+  echo "    Used only by \"--busybox\"; ignored if that"
+  echo " option's not passed."
+
+  echo ""
   echo ""
   echo "--kbox"
   echo "  [Alternates:  '-k']"
   echo "  [Default:  N/A]"
-  echo "    "
-  echo ""
-  echo ""
-  echo ""
-  echo ""
-  echo ""
-  echo ""
-  echo ""
-  echo ""
-  echo ""
+  echo "    An action.  Customizes the KBox startup"
+  echo " script."
+  echo "    Version 1 of the KBox environment checked"
+  echo " for a script that it used to start up the"
+  echo " shell.  This let you fire up any shell you"
+  echo " wanted.  However, it failed to pass the"
+  echo " location of the \"etc/profile\" to the shell"
+  echo " (specifically bash).  The customizations"
+  echo " added by this action remedy that."
+  echo "    It's safe to ignore this option."
 
+  echo ""
   echo ""
   echo "--andterm-start-targ <pathOrAlias>"
   echo "  [Alternates:  '--atst']"
@@ -1421,6 +1491,7 @@ sov__printUsage() {
   echo " '/data/local/' on an unrooted phone?)"
 
   echo ""
+  echo ""
   echo "--targ <pathOrAlias>"
   echo "  [Alternates:  '-t']"
   echo "  [Default:  none; required]"
@@ -1448,14 +1519,14 @@ sov__printUsage() {
   sov__targAlias2Dirs --help
   echo " -=-=-=-=-"
   echo "    The 'AndroidTerminal' alias [and its"
-  echo " equivalents] always undergoes \"target"
-  echo " expansion\", as described below."
+  echo " equivalents] always undergoes \"alias"
+  echo " extension\", as described below."
 
   echo ""
-  echo "--targ-expansion"
-  echo "  [Alternates:  '-x', '--targ-xpansion']"
+  echo "--extend-alias-targs"
+  echo "  [Alternates:  '-X', '--xtend-alias']"
   echo "  [Default:  N/A]"
-  echo "    An action.  Enables \"target expansion\" of"
+  echo "    An action.  Enables \"alias extension\" of"
   echo " aliases in all '--targ's following it on the"
   echo " commandline."
   echo "    As a convenience, the path that each target"
@@ -1464,7 +1535,7 @@ sov__printUsage() {
   echo " If it has any of these subdirs, those are"
   echo " added to the list of targets along with the"
   echo " path that the alias expanded to."
-  echo "    Target expansion is always enabled for the"
+  echo "    Alias extension is always enabled for the"
   echo " 'AndroidTerminal' alias [and its alternate"
   echo " forms].  This is as a convenience, since the"
   echo " KBox environment *usually* sits in a"
@@ -1475,23 +1546,29 @@ sov__printUsage() {
   echo " expansion."
 
   echo ""
-  echo "--targ-conversion"
-  echo "  [Alternates:  '-C']"
+  echo "--substitute-alias-targs"
+  echo "  [Alternates:  '-S', '--subst-alias-targs',"
+  echo "   '--substitute-alias', '--subst-alias']"
   echo "  [Default:  N/A]"
-  echo "    An action.  Nearly identical to"
-  echo " '--targ-expansion', but only adds the"
-  echo " subdirectories, omitting the target"
-  echo " aliases passed on the commandline."
+  echo "    An action.  Enables a special case of"
+  echo "  \"alias extension\" that *substitutes* the"
+  echo " path with the subdirectories."
+  echo " Alternatively, you can think of this as"
+  echo " behaving like '--extended-alias-targs',"
+  echo " but only addding the subdirectories, omitting"
+  echo " the actual path that each alias expands to."
 
   echo ""
-  echo "--no-targ-expansion"
-  echo "  [Alternates:  '+X', '--no-targ-xpansion',"
-  echo "   '+C', '--no-targ-conversion']"
+  echo "--no-extend-alias-targs"
+  echo "  [Alternates:  '+X', '--no-extend-alias',"
+  echo "   '--no-xtend-alias',"
+  echo "   '+S', '--no-substitute-alias-targs',"
+  echo "   '--no-substitute-alias', '--no-subst-alias']"
   echo "  [Default:  N/A]"
-  echo "    An action.  Turns off \"target expansion\""
-  echo " and conversion.  Provided for convenience (so"
-  echo " that you con't have to rearrange your"
-  echo " commandline any time you use '-X' or '-C')."
+  echo "    An action.  Turns off \"alias extension\""
+  echo " and substitution.  Provided for convenience"
+  echo " (so that you won't have to rearrange your"
+  echo " commandline any time you use '-X' or '-S')."
 
   echo ""
   echo "There is one additional option for ease of"
@@ -1563,14 +1640,15 @@ sov__main_fn() {
 
   local overlayTarball=$OVERLAY_TARBALL_DEFAULT
   local default_shell=ash
+  local use_full_paths=y
   local default_etcDir dir_explicitShell
   local updateFromTo
   local targList andtermStartTargs
   local hasNonAndTermTarg newBusybox
-  local tweak_kbox xpandTargs
+  local tweak_kbox xtendAlias
   local installDefault_andterm_start
 
-  local fullOpt rawVal xlated
+  local fullOpt rawVal xlated wrkDir
   while [ -n "$1" ]; do
     case "$1" in
       -h|--help)
@@ -1606,6 +1684,10 @@ sov__main_fn() {
         fullOpt=busybox
         newBusybox=`sov__chkGetArg $fullOpt "$1"` \
           || return $?
+        ;;
+
+      +P|--no[-_]busybox*aths|--noBusybox*aths)
+        use_full_paths=''
         ;;
 
       -o|--[oO]verlay*|-p|--pkg|--tarball)
@@ -1647,20 +1729,20 @@ sov__main_fn() {
         fi
         ;;
 
-      -C|--targ*onversion)
-        xpandTargs=y
+      -X|--extend*lias*args|--xtend*lias*)
+        xtendAlias=all
         ;;
 
-      -X|--full[-_]targ*xpansion|--fullTarg*xpansion)
-        xpandTargs=all
+      +X|--no*[xX]tend*lias*)
+        xtendAlias=''
         ;;
 
-      +[CX])
-        xpandTargs=''
+      -S|--subst*lias*)
+        xtendAlias=y
         ;;
 
-      --no[-_]targ[-_CEX]*sion|--noTarg[-_CEX]*sion)
-        xpandTargs=''
+      +S|--no*subst*lias*)
+        xtendAlias=''
         ;;
 
       -t|--targ)
@@ -1678,11 +1760,18 @@ sov__main_fn() {
         ;;
 
       --make-overlay-bundle-tarball)
+        wrkDir=~/src/sh.scripts/droid
+        rawVal=andterm-start.sh
+        rm -f $wrkDir/$rawVal >/dev/null 2>&1
+        ln -sv $wrkDir/$KA_TOOLS_SUBDIR/$rawVal \
+          $wrkDir || return $?
+
         tar --exclude=\*.svn\* \
-          --exclude=scripts/kbox-n-andterm \
-          -C ~/src/sh.scripts/droid/ \
+          --exclude-backups \
+          --exclude-tag=start_bash.sh \
+          -h -C $wrkDir \
           -acvf utest/overlay-bundle.tar.bz2 \
-          etc scripts shell
+          etc scripts shell $rawVal
         if [ $? -ne 0 ]; then
           echo ""
           echo ""
@@ -1693,6 +1782,9 @@ sov__main_fn() {
           echo ""
           return 1
         fi
+
+        # else:
+        rm -fv $wrkDir/$rawVal || return $?
         ;;
 
       -*|+*)
@@ -1704,7 +1796,7 @@ sov__main_fn() {
         # Consume all remaining args.
         shift
         while [ -n "$1" ]; do
-          xlated=`sov__targAlias2Dirs "$1" $xpandTargs`
+          xlated=`sov__targAlias2Dirs "$1" $xtendAlias`
           if [ $? -eq 0 ]; then
             if sov__has_non_jackpal_targ $xlated; then
               hasNonAndTermTarg='y'
@@ -1718,7 +1810,7 @@ sov__main_fn() {
         ;;
 
       *)
-        xlated=`sov__targAlias2Dirs "$1" $xpandTargs`
+        xlated=`sov__targAlias2Dirs "$1" $xtendAlias`
         if [ $? -eq 0 ]; then
           if sov__has_non_jackpal_targ $xlated; then
             hasNonAndTermTarg='y'
@@ -1832,13 +1924,21 @@ sov__main_fn() {
     # 3. Tweak the kbox startup script, if present.
     if [ -n "$tweak_kbox" ]; then
       if sov__has_kbox_starter $targ; then
-        sov__tweak_kbox_starter "???" $targ \
-          || return $?
+        sov__tweak_kbox_starter $KBOX_CUSTOM_STARTER \
+          $targ || return $?
+      fi
+    fi
+
+    # 4. Update Busybox
+    if [ -n "$newBusybox" ]; then
+      if [ -d $targ/bin ]; then
+        sov__overlay_new_busybox $newBusybox \
+          $targ/bin $use_full_paths || return $?
       fi
     fi
   done
 
-  # 4. Update the 'andterm-start.sh' scripts:
+  # 5. Update the 'andterm-start.sh' scripts:
   local andtermScript=$OVERLAY_HOME/andterm-start.sh
   local ast_has_data_local
   for targ in $andtermStartTargs; do
@@ -1854,7 +1954,7 @@ sov__main_fn() {
       "$default_etcDir" || return $?
   done
 
-  # 4a. Update/Create the default 'andterm-start.sh'
+  # 5a. Update/Create the default 'andterm-start.sh'
   #     script, if desired:
   if [ -n "$installDefault_andterm_start" ]; then
     if [ -z "$ast_has_data_local" ]; then
@@ -1910,6 +2010,7 @@ x=$?
 unset UNIT_TEST OVERLAY_TARBALL_DEFAULT \
   TAR_BIN CAT_BIN SED_BIN GREP_BIN BB_BIN \
   KBOX_BASE_DIRS KBOX_STARTER_SCRIPTS \
+  KBOX_CUSTOM_STARTER KA_TOOLS_SUBDIR \
   CFG_TEMPLATE \
   MSG_RUN_ROOTLESS MSG_JACKPAL_APP_NAME MSG_COWARD
 

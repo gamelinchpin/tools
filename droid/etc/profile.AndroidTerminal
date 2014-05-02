@@ -159,6 +159,11 @@ fi
 export USER USERNAME UID
 
 
+# Make sure HOME is an actual directory.  If not, force
+# a search for it.
+[ ! -d $HOME ] && HOME=''
+
+
 # Look for HOME in one of the standard places.
 # Do this *after* setting up HOME_KBOX.
 for d in /sdcard $SD_EXT_MOUNTPTS; do
