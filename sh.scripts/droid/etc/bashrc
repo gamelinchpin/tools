@@ -1,0 +1,14 @@
+# -*- mode: sh; fill-column: 56 -*-
+
+# Commands for "full-versions" of 'bash':
+if [ -n "$BASH_VERSION" ]; then
+
+ export PS1='\[\033[01;34m\]\W \$\[\033[00m\] '
+
+ alias pd='pushd'
+
+else
+
+ export PS1='\W \$ '
+
+fi

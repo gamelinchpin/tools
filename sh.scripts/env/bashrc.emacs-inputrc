@@ -1,4 +1,4 @@
-# Emacs-like bash bindings. 
+# Emacs-like bash bindings.
 # This file must be sourced by a profile or bashrc
 
 set meta-flag on
@@ -181,5 +181,5 @@ set editing-mode emacs
 ##################
 # Local Variables:
 # mode: Shell-script
-# sh-shell: bash
+# eval: (sh-set-shell "bash" nil nil)
 # End:
